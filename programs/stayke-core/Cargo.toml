@@ -1,12 +1,12 @@
 [package]
-name = "stayke-contracts"
+name = "stayke-core"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "Core library for Stayke, containing users core logic to be used by other programs by CPI."
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "stayke_contracts"
+name = "stayke_core"
 
 [features]
 default = []
