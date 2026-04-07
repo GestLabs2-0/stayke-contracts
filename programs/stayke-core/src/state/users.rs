@@ -10,6 +10,15 @@ pub struct UserProfile {
     pub active_booking: bool,
     pub active_stay: bool,
 
+    // This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking.
+    pub deposited: u64,
+    // This field represents the total amount of tokens that the user has lent
+    pub lending: u64,
+    // This field represents the amount of liquid staked tokens that the user has.
+    pub staked: u64,
+
+    // TODO: is this field required?
+    pub is_host: bool,
     pub bump: u8,
 }
 
