@@ -1,14 +1,15 @@
 use anchor_lang::prelude::*;
 
 #[account]
+#[derive(InitSpace)]
 pub struct UserProfile {
     pub owner: Pubkey,
     pub identity: Pubkey,
 
     pub banned: bool,
 
-    pub active_booking: bool,
-    pub active_stay: bool,
+    pub active_booking: Option<Pubkey>,
+    pub active_stay: Option<Pubkey>,
 
     // This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking.
     pub deposited: u64,
@@ -17,6 +18,10 @@ pub struct UserProfile {
     // This field represents the amount of liquid staked tokens that the user has.
     pub staked: u64,
 
+    pub is_verified: bool,
+
+    // Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user.
+    pub listings: u16,
     // TODO: is this field required?
     pub is_host: bool,
     pub bump: u8,
@@ -25,6 +30,7 @@ pub struct UserProfile {
 // Should I handle the reputation of the user in the same account or should I create a separate account for that? I think it would be better to create a separate account for the reputation.
 // This way we have control only over the reputation
 #[account]
+#[derive(InitSpace)]
 pub struct ReputationProfile {
     pub owner: Pubkey,
 
@@ -36,12 +42,14 @@ pub struct ReputationProfile {
 // they can claim the account by providing the correct information to the KYC. This way we can avoid identity theft and also we can have a better control of the users.
 
 #[account]
+#[derive(InitSpace)]
 pub struct Identity {
     pub owner: Pubkey,
     pub country_code: [u8; 2],
     pub id: [u8; 32],
     pub verified_at: i64,         // unix timestamp
     pub verifier: Option<Pubkey>, // who verified (oracle, admin, or the very program)
+    pub doc_type: DocType,
     pub is_frozen: bool,
     pub bump: u8,
 }
