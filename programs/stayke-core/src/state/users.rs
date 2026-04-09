@@ -51,6 +51,7 @@ pub struct Identity {
     pub verifier: Option<Pubkey>, // who verified (oracle, admin, or the very program)
     pub doc_type: DocType,
     pub is_frozen: bool,
+    pub is_banned: bool,
     pub bump: u8,
 }
 

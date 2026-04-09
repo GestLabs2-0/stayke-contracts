@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{DocType, Identity, ReputationProfile, UserProfile};
+use crate::{DocType, Identity, Listing, ReputationProfile, UserProfile, config::ConfigAcc, error::StaykeError};
 
 #[derive(Accounts)]
 pub struct Initialize {}
@@ -38,7 +38,8 @@ pub struct InitializeUserProfile<'info> {
         payer = authority, 
         space = 8 + Identity::INIT_SPACE, 
         seeds = [b"identity", id], 
-        bump
+        bump,
+        constraint = identity.is_banned == false @ StaykeError::IdentityBanned
     )]
     pub identity: Account<'info, Identity>,
     #[account(mut)]
@@ -63,6 +64,37 @@ pub fn handler_initialize_user_profile(ctx: Context<InitializeUserProfile>, id: 
     identity.doc_type = doctype;
     identity.country_code = country_code;
     identity.bump = *ctx.bumps.identity;
+
+    Ok(())
+}
+
+
+#[derive(Accounts)]
+pub struct InitializeListing<'info> {
+    #[account( 
+        seeds = [b"user_profile", user_profile.owner.key().as_ref()], 
+        bump = user_profile.bump, 
+        constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
+        constraint = user_profile.banned == false @ StaykeError::IdentityBanned
+    )]
+    pub user_profile: Account<'info, UserProfile>,
+
+    #[account(mut, seeds = [b"listing", user_profile.owner.key().as_ref(), user_profile.listings.to_be_bytes().as_ref()], bump)]
+    pub listing: Account<'info, Listing>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn handler_initialize_listing(ctx: Context<InitializeListing>, price: u64) -> Result<()> {
+    let listing = &mut ctx.accounts.listing;
+    let user_profile = &mut ctx.accounts.user_profile;
+
+    listing.owner = user_profile.owner;
+    listing.listing_id = user_profile.listings;
+
+    user_profile.listings += 1;
 
     Ok(())
 }

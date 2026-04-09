@@ -31,4 +31,8 @@ pub mod stayke_contracts {
     ) -> Result<()> {
         initialize::handler_initialize_user_profile(ctx, id, country_code, doctype)
     }
+
+    pub fn handler_verify_identity(ctx: Context<VerifyIdentity>) -> Result<()> {
+        verify_identity::handler_verify_identity(ctx)
+    }
 }
