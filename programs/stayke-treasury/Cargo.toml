@@ -21,7 +21,9 @@ custom-panic = []
 
 
 [dependencies]
-anchor-lang = "1.0.0"
+anchor-lang = { version = "1.0.0-rc.3", features = ["init-if-needed"] }
+anchor-spl = "1.0.0-rc.3"
+stayke-core = { path = "../stayke-core", features = ["cpi"] }
 
 [dev-dependencies]
 litesvm = "0.10.0"

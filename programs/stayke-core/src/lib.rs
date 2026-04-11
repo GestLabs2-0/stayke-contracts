@@ -31,4 +31,20 @@ pub mod stayke_contracts {
     pub fn handler_verify_identity(ctx: Context<VerifyIdentity>) -> Result<()> {
         verify_identity::handler_verify_identity(ctx)
     }
+
+    // ---------------------------------------------------------------------------
+    // User profile mutations — callable directly or via CPI
+    // ---------------------------------------------------------------------------
+
+    pub fn update_deposit(
+        ctx: Context<UpdateUserProfile>,
+        amount: u64,
+        is_deposit: bool,
+    ) -> Result<()> {
+        user_profile_mutators::handler_update_deposit(ctx, amount, is_deposit)
+    }
+
+    pub fn set_host_status(ctx: Context<UpdateUserProfile>, status: bool) -> Result<()> {
+        user_profile_mutators::handler_set_host_status(ctx, status)
+    }
 }

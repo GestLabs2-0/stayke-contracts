@@ -6,16 +6,52 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB");
+declare_id!("HnPTYDpC6MV2AHcRoNfGVCuiPHfVdAZLUoPAFCBfzXRx");
 
 #[program]
-pub mod stayke_contracts {
+pub mod stayke_treasury {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+    // ---------------------------------------------------------------------------
+    // Admin
+    // ---------------------------------------------------------------------------
+
+    pub fn initialize_treasury(
+        ctx: Context<InitializeTreasury>,
+        minimum_deposit: u64,
+    ) -> Result<()> {
+        initialize::handler_initialize_treasury(ctx, minimum_deposit)
+    }
+
+    // ---------------------------------------------------------------------------
+    // User — Guarantee deposits
+    // ---------------------------------------------------------------------------
+
+    pub fn deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) -> Result<()> {
+        guarantee::handler_deposit_guarantee(ctx, amount)
+    }
+
+    pub fn withdraw_guarantee(ctx: Context<WithdrawGuarantee>, amount: u64) -> Result<()> {
+        guarantee::handler_withdraw_guarantee(ctx, amount)
+    }
+
+    // ---------------------------------------------------------------------------
+    // Lending & Staking (placeholders — not yet enabled)
+    // ---------------------------------------------------------------------------
+
+    pub fn lend(ctx: Context<Lend>, amount: u64) -> Result<()> {
+        lending::handler_lend(ctx, amount)
+    }
+
+    pub fn withdraw_from_lending(ctx: Context<WithdrawFromLending>, amount: u64) -> Result<()> {
+        lending::handler_withdraw_from_lending(ctx, amount)
+    }
+
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        lending::handler_stake(ctx, amount)
     }
 }

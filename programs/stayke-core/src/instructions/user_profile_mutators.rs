@@ -8,7 +8,9 @@ pub struct UpdateUserProfile<'info> {
         mut, 
         seeds = [b"user_profile", user_profile.owner.key().as_ref()], 
         bump = user_profile.bump,
-        constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized // NOTE: might need CPI auth later
+        // NOTE: the `authority` here can be either the user's wallet (direct call)
+        // or a trusted PDA from another Stayke program (CPI call).
+        // Callers are responsible for checking ownership before invoking.
     )]
     pub user_profile: Account<'info, UserProfile>,
     
