@@ -3,14 +3,6 @@ use anchor_lang::prelude::*;
 use crate::{DocType, Identity, Listing, ReputationProfile, UserProfile, config::ConfigAcc, error::StaykeError};
 
 #[derive(Accounts)]
-pub struct Initialize {}
-
-pub fn handler(ctx: Context<Initialize>) -> Result<()> {
-    msg!("Greetings from: {:?}", ctx.program_id);
-    Ok(())
-}
-
-#[derive(Accounts)]
 pub struct InitializeConfig<'info> {
     #[account(init, payer = authority, space = 8 + 32 + 1, seeds = [b"config"], bump)]
     pub config: Account<'info, ConfigAcc>,
@@ -37,7 +29,7 @@ pub struct InitializeUserProfile<'info> {
         init_if_needed, 
         payer = authority, 
         space = 8 + Identity::INIT_SPACE, 
-        seeds = [b"identity", id], 
+        seeds = [b"identity", id.as_ref()], 
         bump,
         constraint = identity.is_banned == false @ StaykeError::IdentityBanned
     )]
@@ -75,11 +67,12 @@ pub struct InitializeListing<'info> {
         seeds = [b"user_profile", user_profile.owner.key().as_ref()], 
         bump = user_profile.bump, 
         constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
-        constraint = user_profile.banned == false @ StaykeError::IdentityBanned
+        constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
+        constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    #[account(mut, seeds = [b"listing", user_profile.owner.key().as_ref(), user_profile.listings.to_be_bytes().as_ref()], bump)]
+    #[account(mut, seeds = [b"listing", user_profile.key().as_ref(), user_profile.listings.to_be_bytes().as_ref()], bump)]
     pub listing: Account<'info, Listing>,
 
     #[account(mut)]
@@ -91,7 +84,7 @@ pub fn handler_initialize_listing(ctx: Context<InitializeListing>, price: u64) -
     let listing = &mut ctx.accounts.listing;
     let user_profile = &mut ctx.accounts.user_profile;
 
-    listing.owner = user_profile.owner;
+    listing.owner = user_profile.key();
     listing.listing_id = user_profile.listings;
 
     user_profile.listings += 1;

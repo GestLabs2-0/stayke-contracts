@@ -13,6 +13,8 @@ pub struct UserProfile {
 
     // This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking.
     pub deposited: u64,
+    pub deposit_timestamp: i64,
+
     // This field represents the total amount of tokens that the user has lent
     pub lending: u64,
     // This field represents the amount of liquid staked tokens that the user has.
@@ -33,6 +35,19 @@ pub struct UserProfile {
 #[derive(InitSpace)]
 pub struct ReputationProfile {
     pub owner: Pubkey,
+
+    pub host_reviews: u32,     // Number of reviews received as host
+    pub total_score_host: u64, // Total score from reviews (e.g., sum of ratings)
+
+    pub client_reviews: u32,     // Number of reviews received as client
+    pub total_score_client: u64, // Total score from reviews (e.g., sum of ratings)
+
+    pub hosted_stays: u32,    // Number of stays hosted
+    pub completed_stays: u32, // Number of stays completed as a guest
+
+    pub low_infractions: u8,
+    pub medium_infractions: u8,
+    pub high_infractions: u8,
 
     pub bump: u8,
 }

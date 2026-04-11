@@ -15,10 +15,6 @@ declare_id!("4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB");
 pub mod stayke_contracts {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
-    }
-
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
         initialize::handler_initialize_config(ctx)
     }
