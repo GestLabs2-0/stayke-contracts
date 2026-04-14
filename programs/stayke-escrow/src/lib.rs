@@ -10,7 +10,7 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("E5cRkgfp8TEYTt13A5BdEtDmvdm9QGaTPwrgEm5VGkFN");
+declare_id!("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ");
 
 #[program]
 pub mod stayke_escrow {

@@ -7046,11 +7046,15 @@ name = "stayke-disputes"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
  "litesvm 0.10.0",
  "solana-keypair 3.1.2",
  "solana-message 3.1.0",
  "solana-signer 3.0.0",
  "solana-transaction 3.1.0",
+ "stayke-core",
+ "stayke-escrow",
+ "stayke-treasury",
 ]
 
 [[package]]
@@ -7058,11 +7062,14 @@ name = "stayke-escrow"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
  "litesvm 0.10.0",
  "solana-keypair 3.1.2",
  "solana-message 3.1.0",
  "solana-signer 3.0.0",
  "solana-transaction 3.1.0",
+ "stayke-core",
+ "stayke-treasury",
 ]
 
 [[package]]

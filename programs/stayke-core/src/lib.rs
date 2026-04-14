@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB");
+declare_id!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
 
 #[program]
 pub mod stayke_contracts {
