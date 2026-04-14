@@ -54,4 +54,12 @@ pub mod stayke_treasury {
     pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         lending::handler_stake(ctx, amount)
     }
+
+    // ---------------------------------------------------------------------------
+    // CPI endpoints for stayke-disputes
+    // ---------------------------------------------------------------------------
+
+    pub fn cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: u64) -> Result<()> {
+        cpi_transfers::handler_cpi_penalize_transfer(ctx, amount)
+    }
 }
