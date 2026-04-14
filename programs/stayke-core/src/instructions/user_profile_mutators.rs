@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 use crate::{UserProfile, ReputationProfile, error::StaykeError};
 
+// TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
+// I think the best way to handle this all is by creating a global contract
+
 #[derive(Accounts)]
 pub struct UpdateUserProfile<'info> {
      #[account(
@@ -44,6 +47,30 @@ pub fn handler_update_deposit(ctx: Context<UpdateUserProfile>, amount: u64, is_d
         user_profile.deposit_timestamp = Clock::get()?.unix_timestamp;
     } else {
         user_profile.deposited = user_profile.deposited.saturating_sub(amount);
+    }
+
+    Ok(())
+}
+
+pub fn handler_clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<()> {
+    let user_profile = &mut ctx.accounts.user_profile;
+    user_profile.active_booking = None;
+    Ok(())
+}
+
+pub fn handler_add_infraction(ctx: Context<UpdateReputationProfile>, severity: crate::PenaltySeverity) -> Result<()> {
+    let reputation_profile = &mut ctx.accounts.reputation_profile;
+
+    match severity {
+        crate::PenaltySeverity::Low => {
+            reputation_profile.low_infractions = reputation_profile.low_infractions.saturating_add(1);
+        }
+        crate::PenaltySeverity::Medium => {
+            reputation_profile.medium_infractions = reputation_profile.medium_infractions.saturating_add(1);
+        }
+        crate::PenaltySeverity::High => {
+            reputation_profile.high_infractions = reputation_profile.high_infractions.saturating_add(1);
+        }
     }
 
     Ok(())

@@ -47,4 +47,18 @@ pub mod stayke_contracts {
     pub fn set_host_status(ctx: Context<UpdateUserProfile>, status: bool) -> Result<()> {
         user_profile_mutators::handler_set_host_status(ctx, status)
     }
+    pub fn clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<()> {
+        user_profile_mutators::handler_clear_active_booking(ctx)
+    }
+
+    pub fn add_infraction(
+        ctx: Context<UpdateReputationProfile>,
+        severity: crate::PenaltySeverity,
+    ) -> Result<()> {
+        user_profile_mutators::handler_add_infraction(ctx, severity)
+    }
+
+    pub fn clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
+        listing_mutator::handle_clear_listing_bookig(ctx)
+    }
 }
