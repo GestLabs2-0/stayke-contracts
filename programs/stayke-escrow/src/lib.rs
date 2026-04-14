@@ -26,7 +26,7 @@ pub mod stayke_escrow {
         minimum_deposit: u64,
         price_per_night: u64,
     ) -> Result<()> {
-        initialize::handler_initialize_escrow(ctx, fee_bps, minimum_deposit, price_per_night)
+        initialize::handler_initialize_escrow(ctx, fee_bps)
     }
 
     // ---------------------------------------------------------------------------
@@ -57,12 +57,12 @@ pub mod stayke_escrow {
         booking::handler_client_reject_reserve(ctx)
     }
 
-    pub fn complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
-        booking::handler_complete_stay(ctx)
+    pub fn review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
+        booking::handler_review_completed(ctx, score)
     }
 
-    pub fn close_booking(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
-        booking::handler_close_booking(ctx, score)
+    pub fn complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
+        booking::handler_complete_stay(ctx)
     }
 
     // ---------------------------------------------------------------------------

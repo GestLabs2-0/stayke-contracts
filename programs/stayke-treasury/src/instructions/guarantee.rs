@@ -1,10 +1,13 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::{
+    token::{transfer_checked, TransferChecked},
+    token_interface::{Mint, TokenAccount, TokenInterface},
+};
 use stayke_core::cpi::accounts::UpdateUserProfile;
 use stayke_core::program::StaykeContracts as StaykeCore;
 use stayke_core::UserProfile;
 
-use crate::{TreasuryConfig, error::TreasuryError};
+use crate::{error::TreasuryError, TreasuryConfig};
 
 // ---------------------------------------------------------------------------
 // Deposit guarantee
@@ -58,7 +61,10 @@ pub struct DepositGuarantee<'info> {
 pub fn handler_deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) -> Result<()> {
     let config = &ctx.accounts.config;
 
-    require!(amount >= config.minimum_deposit, TreasuryError::DepositTooLow);
+    require!(
+        amount >= config.minimum_deposit,
+        TreasuryError::DepositTooLow
+    );
 
     // 1. Transfer USDC into the treasury vault.
     let cpi_accounts = TransferChecked {
@@ -67,11 +73,11 @@ pub fn handler_deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) ->
         authority: ctx.accounts.signer.to_account_info(),
         mint: ctx.accounts.usdc_mint.to_account_info(),
     };
-    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
-    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
+    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.key(), cpi_accounts);
+    transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
     // 2. CPI → stayke-core: increment deposited balance.
-    let cpi_program = ctx.accounts.stayke_core_program.to_account_info();
+    let cpi_program = ctx.accounts.stayke_core_program.key();
     let cpi_accounts = UpdateUserProfile {
         user_profile: ctx.accounts.user_profile.to_account_info(),
         authority: ctx.accounts.signer.to_account_info(),
@@ -150,7 +156,7 @@ pub fn handler_withdraw_guarantee(ctx: Context<WithdrawGuarantee>, amount: u64) 
     );
 
     // 1. CPI → stayke-core: decrement deposited balance first (checks-effects-interactions).
-    let cpi_program = ctx.accounts.stayke_core_program.to_account_info();
+    let cpi_program = ctx.accounts.stayke_core_program.key();
     let cpi_accounts = UpdateUserProfile {
         user_profile: ctx.accounts.user_profile.to_account_info(),
         authority: ctx.accounts.signer.to_account_info(),
@@ -170,11 +176,11 @@ pub fn handler_withdraw_guarantee(ctx: Context<WithdrawGuarantee>, amount: u64) 
         mint: ctx.accounts.usdc_mint.to_account_info(),
     };
     let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.token_program.key(),
         cpi_accounts,
         treasury_seeds,
     );
-    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
+    transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
     Ok(())
 }

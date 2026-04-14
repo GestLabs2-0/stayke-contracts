@@ -770,7 +770,7 @@ pub struct CloseBooking<'info> {
     pub booking: Account<'info, Booking>,
 }
 
-pub fn handler_close_booking(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
+pub fn handler_review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
     require!((1..=5).contains(&score), EscrowError::InvalidScore);
 
     let booking = &mut ctx.accounts.booking;

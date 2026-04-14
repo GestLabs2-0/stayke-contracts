@@ -1,7 +1,9 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
-
 use crate::{error::TreasuryError, TreasuryConfig};
+use anchor_lang::prelude::*;
+use anchor_spl::{
+    token::{transfer_checked, TransferChecked},
+    token_interface::{Mint, TokenAccount, TokenInterface},
+};
 
 // ---------------------------------------------------------------------------
 // CPI Endpoint: Penalize Transfer (Used by stayke-disputes)
@@ -56,7 +58,7 @@ pub fn handler_cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: 
         cpi_accounts,
         treasury_seeds,
     );
-    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
+    transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
     Ok(())
 }
