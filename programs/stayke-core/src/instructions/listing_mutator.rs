@@ -42,14 +42,14 @@ pub fn handler_update_listing_state(ctx: Context<UpdateListing>,  state: [u8; 32
 // I think the best way to handle this all is by creating a global contract
 #[derive(Accounts)]
 pub struct ClearListingBooking<'info> {
-    // CHECK: if the user_profile is the seed for the listing, then we can be sure that the listing is being modified either by:
+    // TODO: if the user_profile is the seed for the listing, then we can be sure that the listing is being modified either by:
     // - Our contracts
     // - Authority, but maybe this property of the listing should only be modified by the contracts and not the user
     // because we don't hosts clearing properties all the time. I know the account BookingDays make sure that we don't 
     // book in occupied days, but still I don't want this to be modified in any aside of the logic flow.
-    pub user_profile: Box<UncheckedAccount<'info, UserProfile>>,
+    pub user_profile: Account<'info,UserProfile>,
 
-        #[account(
+    #[account(
         mut, 
         seeds = [b"listing", user_profile.key().as_ref(), listing.listing_id.to_be_bytes().as_ref()], bump = listing.bump, 
         constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
@@ -59,7 +59,7 @@ pub struct ClearListingBooking<'info> {
     pub authority: Signer<'info>,
 }
 
-pub fn handle_clear_listing_bookig(ctx: Context<ClearActiveBooking>) -> Result<()> {
+pub fn handle_clear_listing_bookig(ctx: Context<ClearListingBooking>) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     listing.is_occupied = None;
 

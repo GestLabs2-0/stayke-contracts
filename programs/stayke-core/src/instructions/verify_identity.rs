@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{config::ConfigAcc, error::StaykeError, Identity, UserProfile};
 #[derive(Accounts)]
 pub struct VerifyIdentity<'info> {
-    #[account(mut, constraint = authority.key() == config.authority @ ErrorCode::Unauthorized)]
+    #[account(mut, constraint = authority.key() == config.authority @ StaykeError::Unauthorized)]
     pub authority: Signer<'info>,
 
     #[account(mut, seeds = [b"user_profile", user_profile.owner.key().as_ref()], bump = user_profile.bump)]

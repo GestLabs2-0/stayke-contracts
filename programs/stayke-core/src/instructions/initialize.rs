@@ -14,7 +14,7 @@ pub struct InitializeConfig<'info> {
 pub fn handler_initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
     let config = &mut ctx.accounts.config;
     config.authority = ctx.accounts.authority.key();
-    config.bump = *ctx.bumps.config;
+    config.bump = ctx.bumps.config;
     Ok(())
 }
 
@@ -43,11 +43,11 @@ pub fn handler_initialize_user_profile(ctx: Context<InitializeUserProfile>, id: 
     let user_profile = &mut ctx.accounts.user_profile;
     user_profile.owner = ctx.accounts.authority.key();
     user_profile.identity = ctx.accounts.identity.key();
-    user_profile.bump = *ctx.bumps.user_profile;
+    user_profile.bump = ctx.bumps.user_profile;
 
     let reputation_profile = &mut ctx.accounts.reputation_profile;
     reputation_profile.owner = ctx.accounts.authority.key();
-    reputation_profile.bump = *ctx.bumps.reputation_profile;
+    reputation_profile.bump = ctx.bumps.reputation_profile;
 
     // This is just for initialization, we will update the identity data later when the user updates their profile.
     let identity = &mut ctx.accounts.identity;
@@ -55,7 +55,7 @@ pub fn handler_initialize_user_profile(ctx: Context<InitializeUserProfile>, id: 
     identity.id = id;
     identity.doc_type = doctype;
     identity.country_code = country_code;
-    identity.bump = *ctx.bumps.identity;
+    identity.bump = ctx.bumps.identity;
 
     Ok(())
 }
@@ -86,6 +86,7 @@ pub fn handler_initialize_listing(ctx: Context<InitializeListing>, price: u64) -
 
     listing.owner = user_profile.key();
     listing.listing_id = user_profile.listings;
+    listing.price = price;
 
     user_profile.listings += 1;
 

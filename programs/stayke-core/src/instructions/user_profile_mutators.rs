@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{UserProfile, ReputationProfile, error::StaykeError};
+use crate::{UserProfile, ReputationProfile};
 
 // TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
 // I think the best way to handle this all is by creating a global contract
