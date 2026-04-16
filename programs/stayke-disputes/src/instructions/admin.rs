@@ -5,10 +5,14 @@ use stayke_core::{
         accounts::{UpdateReputationProfile, UpdateUserProfile},
         add_infraction, update_deposit,
     },
+    program::StaykeContracts as StaykeCore,
     state::{ReputationProfile, UserProfile},
     PenaltySeverity,
 };
-use stayke_treasury::cpi::{accounts::PenalizeTransferCpi, cpi_penalize_transfer};
+use stayke_treasury::{
+    cpi::{accounts::PenalizeTransferCpi, cpi_penalize_transfer},
+    program::StaykeTreasury,
+};
 
 use crate::{error::DisputeError, events::UserPenalized, state::DisputeConfig};
 
@@ -92,8 +96,8 @@ pub struct PenalizeUser<'info> {
     #[account(mut)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
-    pub stayke_core_program: Program<'info, stayke_core::program::StaykeCore>,
-    pub stayke_treasury_program: Program<'info, stayke_treasury::program::StaykeTreasury>,
+    pub stayke_core_program: Program<'info, StaykeCore>,
+    pub stayke_treasury_program: Program<'info, StaykeTreasury>,
     pub token_program: Interface<'info, TokenInterface>,
 }
 

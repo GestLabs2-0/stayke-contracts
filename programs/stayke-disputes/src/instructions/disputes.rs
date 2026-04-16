@@ -1,8 +1,14 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use stayke_core::{
-    ClearListingBooking, cpi::{accounts::UpdateUserProfile, clear_active_booking, clear_listing_booking}, state::{Listing, UserProfile}
+    cpi::{
+        accounts::{ClearListingBooking, UpdateUserProfile},
+        clear_active_booking, clear_listing_booking,
+    },
+    program::StaykeContracts as StaykeCore,
+    state::{Listing, UserProfile},
 };
+
 use stayke_escrow::{
     cpi::{
         accounts::{ResolveDisputeTransferCpi, UpdateBookingStatusCpi},
@@ -234,7 +240,7 @@ pub struct CloseDispute<'info> {
 
     // Currently we mapped Listing to have active_booking in the monolith, wait: In our new core design, Listing doesn't have active_booking, it has `is_occupied: Option<Pubkey>`.
     // We didn't create a mutator for `is_occupied`. Let's just clear the users since user_profile has `active_booking` and `active_stay`!
-    pub stayke_core_program: Program<'info, stayke_core::program::StaykeCore>,
+    pub stayke_core_program: Program<'info, StaykeCore>,
 }
 
 // TODO: instead of the admin users, we must only use the account PDA as the signer, but for simplicity we can just use the admin signer for now.
@@ -260,15 +266,16 @@ pub fn handler_close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
         host_cpi_accounts,
     ))?;
 
-    let 
-
     let clear_listing_accounts = ClearListingBooking {
         authority: ctx.accounts.admin.to_account_info(),
-        listing: ctx.accounts.listing.to_account_info()
-        authority: ctx.accounts.admin.to_account_info()
+        listing: ctx.accounts.listing.to_account_info(),
+        user_profile: ctx.accounts.host_profile.to_account_info(), // We need the host profile to check if the host has an active stay that matches the listing before clearing the listing's active booking
     };
 
-    clear_listing_booking()
+    clear_listing_booking(CpiContext::new(
+        ctx.accounts.stayke_core_program.key(),
+        clear_listing_accounts,
+    ))?;
 
     Ok(())
 }
