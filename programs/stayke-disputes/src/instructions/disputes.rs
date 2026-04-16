@@ -16,6 +16,7 @@ use stayke_escrow::{
     },
     program::StaykeEscrow,
     state::Booking,
+    BookingStatus,
 };
 
 use crate::{
@@ -66,7 +67,7 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
         DisputeError::UnauthorizedDisputeInitiator
     );
     require!(
-        ctx.accounts.booking.status == stayke_escrow::state::BookingStatus::Active,
+        ctx.accounts.booking.status == BookingStatus::Active,
         DisputeError::BookingNotActive
     );
 
@@ -96,7 +97,7 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
         authority: ctx.accounts.initiator.to_account_info(),
     };
     let cpi_ctx = CpiContext::new(ctx.accounts.stayke_escrow_program.key(), cpi_accounts);
-    cpi_update_booking_status(cpi_ctx, stayke_escrow::state::BookingStatus::Disputed)?;
+    cpi_update_booking_status(cpi_ctx, BookingStatus::Disputed)?;
 
     emit!(DisputeOpened {
         dispute: dispute.key(),

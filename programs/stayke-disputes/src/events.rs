@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::{DisputeReason, DisputeStatus};
+use crate::state::DisputeReason;
 
 #[event]
 pub struct DisputeOpened {
