@@ -6,13 +6,13 @@ use anchor_spl::{
 use stayke_core::{Listing, UserProfile};
 use stayke_treasury::TreasuryConfig;
 
-use crate::utils::DateComponents;
 use crate::{
     error::EscrowError,
     events::{BookingStatusUpdated, NewBookingEvent},
     state::{Booking, BookingDays, BookingStatus},
     utils::{derive_date, TimestampExt},
 };
+use crate::{utils::DateComponents, EscrowConfig};
 
 // ---------------------------------------------------------------------------
 // Helpers: bitmap operations for day-occupancy tracking
@@ -112,7 +112,8 @@ pub fn handler_create_booking(
     let end_date = derive_date(check_out);
     let days = ((check_out - check_in) / 86400) as u64;
 
-    let property = ctx.accounts.property;
+    let property = &ctx.accounts.property;
+    let property_key = property.key();
     let booking_days = &mut ctx.accounts.booking_days;
 
     reserve_days(
@@ -131,7 +132,7 @@ pub fn handler_create_booking(
     booking.set_inner(Booking {
         guest: client_profile.key(),
         host: host_profile.key(),
-        property: property.key(),
+        property: property_key,
         status: status.clone(),
         total_price: property.price * days,
         days,
@@ -344,7 +345,7 @@ pub struct HostAcceptBooking<'info> {
         constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = host_profile.deposited >= escrow_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        constraint = host_profile.deposited >= treasury_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         constraint = host_profile.is_host @ EscrowError::UserNotHost,
     )]
     pub host_profile: Account<'info, UserProfile>,
@@ -358,8 +359,8 @@ pub struct HostAcceptBooking<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [b"escrow_config"], bump = escrow_config.bump)]
-    pub escrow_config: Account<'info, crate::state::EscrowConfig>,
+    #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
+    pub treasury_config: Account<'info, TreasuryConfig>,
 }
 
 pub fn handler_host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {
@@ -621,7 +622,7 @@ pub struct CompleteStay<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(seeds = [b"escrow_config"], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, state::EscrowConfig>>,
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
     pub treasury_config: Box<Account<'info, TreasuryConfig>>,
