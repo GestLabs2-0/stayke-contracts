@@ -4,7 +4,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 use stayke_core::cpi::accounts::UpdateUserProfile;
-use stayke_core::program::StaykeContracts as StaykeCore;
+use stayke_core::program::StaykeCore;
 use stayke_core::UserProfile;
 
 use crate::{error::TreasuryError, TreasuryConfig};

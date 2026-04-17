@@ -5,7 +5,7 @@ use stayke_core::{
         accounts::{UpdateReputationProfile, UpdateUserProfile},
         add_infraction, update_deposit,
     },
-    program::StaykeContracts as StaykeCore,
+    program::StaykeCore,
     state::{ReputationProfile, UserProfile},
     PenaltySeverity,
 };

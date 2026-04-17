@@ -5,7 +5,7 @@ use stayke_core::{
         accounts::{ClearListingBooking, UpdateUserProfile},
         clear_active_booking, clear_listing_booking,
     },
-    program::StaykeContracts as StaykeCore,
+    program::StaykeCore,
     state::{Listing, UserProfile},
 };
 
