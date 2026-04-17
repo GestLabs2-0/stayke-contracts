@@ -53,7 +53,7 @@ pub mod stayke_core {
 
     pub fn add_infraction(
         ctx: Context<UpdateReputationProfile>,
-        severity: crate::PenaltySeverity,
+        severity: PenaltySeverity,
     ) -> Result<()> {
         user_profile_mutators::handler_add_infraction(ctx, severity)
     }

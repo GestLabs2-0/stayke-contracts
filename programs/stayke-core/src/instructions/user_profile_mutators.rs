@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{UserProfile, ReputationProfile};
+use crate::{PenaltySeverity, ReputationProfile, UserProfile};
 
 // TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
 // I think the best way to handle this all is by creating a global contract
@@ -58,17 +58,17 @@ pub fn handler_clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<(
     Ok(())
 }
 
-pub fn handler_add_infraction(ctx: Context<UpdateReputationProfile>, severity: crate::PenaltySeverity) -> Result<()> {
+pub fn handler_add_infraction(ctx: Context<UpdateReputationProfile>, severity: PenaltySeverity) -> Result<()> {
     let reputation_profile = &mut ctx.accounts.reputation_profile;
 
     match severity {
-        crate::PenaltySeverity::Low => {
+        PenaltySeverity::Low => {
             reputation_profile.low_infractions = reputation_profile.low_infractions.saturating_add(1);
         }
-        crate::PenaltySeverity::Medium => {
+        PenaltySeverity::Medium => {
             reputation_profile.medium_infractions = reputation_profile.medium_infractions.saturating_add(1);
         }
-        crate::PenaltySeverity::High => {
+        PenaltySeverity::High => {
             reputation_profile.high_infractions = reputation_profile.high_infractions.saturating_add(1);
         }
     }
