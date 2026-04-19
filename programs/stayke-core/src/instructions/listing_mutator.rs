@@ -1,12 +1,12 @@
 
 use anchor_lang::prelude::*;
 
-use crate::{Listing, UserProfile, error::StaykeError};
+use crate::{LISTING_SEED, Listing, USER_PROFILE_SEED, UserProfile, error::StaykeError};
 
 #[derive(Accounts)]
 pub struct UpdateListing<'info> {
      #[account( 
-        seeds = [b"user_profile", user_profile.owner.key().as_ref()], 
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], 
         bump = user_profile.bump, 
         constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
         constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
@@ -16,7 +16,7 @@ pub struct UpdateListing<'info> {
 
     #[account(
         mut, 
-        seeds = [b"listing", user_profile.key().as_ref(), listing.listing_id.to_be_bytes().as_ref()], bump = listing.bump, 
+        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_be_bytes().as_ref()], bump = listing.bump, 
         constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,
@@ -51,7 +51,7 @@ pub struct ClearListingBooking<'info> {
 
     #[account(
         mut, 
-        seeds = [b"listing", user_profile.key().as_ref(), listing.listing_id.to_be_bytes().as_ref()], bump = listing.bump, 
+        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_be_bytes().as_ref()], bump = listing.bump, 
         constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,

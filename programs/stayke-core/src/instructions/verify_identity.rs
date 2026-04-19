@@ -1,18 +1,21 @@
 use anchor_lang::prelude::*;
 
-use crate::{config::ConfigAcc, error::StaykeError, Identity, UserProfile};
+use crate::{
+    config::ConfigAcc, error::StaykeError, Identity, UserProfile, CORE_CONFIG_SEED, IDENTITY_SEED,
+    USER_PROFILE_SEED,
+};
 #[derive(Accounts)]
 pub struct VerifyIdentity<'info> {
     #[account(mut, constraint = authority.key() == config.authority @ StaykeError::Unauthorized)]
     pub authority: Signer<'info>,
 
-    #[account(mut, seeds = [b"user_profile", user_profile.owner.key().as_ref()], bump = user_profile.bump)]
+    #[account(mut, seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], bump = user_profile.bump)]
     pub user_profile: Account<'info, UserProfile>,
 
-    #[account(mut, seeds = [b"identity", identity.id.as_ref()], bump = identity.bump, constraint = identity.is_frozen == false @ StaykeError::IdentityFrozen)]
+    #[account(mut, seeds = [IDENTITY_SEED.as_bytes(), identity.id.as_ref()], bump = identity.bump, constraint = identity.is_frozen == false @ StaykeError::IdentityFrozen)]
     pub identity: Account<'info, Identity>,
 
-    #[account(seeds = [b"config"], bump = config.bump)]
+    #[account(seeds = [CORE_CONFIG_SEED.as_bytes()], bump = config.bump)]
     pub config: Account<'info, ConfigAcc>,
 }
 

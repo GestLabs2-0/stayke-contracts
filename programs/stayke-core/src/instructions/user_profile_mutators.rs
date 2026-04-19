@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{PenaltySeverity, ReputationProfile, UserProfile};
+use crate::{PenaltySeverity, REPUTATION_PROFILE_SEED, ReputationProfile, USER_PROFILE_SEED, UserProfile};
 
 // TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
 // I think the best way to handle this all is by creating a global contract
@@ -9,7 +9,7 @@ use crate::{PenaltySeverity, ReputationProfile, UserProfile};
 pub struct UpdateUserProfile<'info> {
      #[account(
         mut, 
-        seeds = [b"user_profile", user_profile.owner.key().as_ref()], 
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], 
         bump = user_profile.bump,
         // NOTE: the `authority` here can be either the user's wallet (direct call)
         // or a trusted PDA from another Stayke program (CPI call).
@@ -24,7 +24,7 @@ pub struct UpdateUserProfile<'info> {
 pub struct UpdateReputationProfile<'info> {
      #[account(
         mut, 
-        seeds = [b"reputation_profile", reputation_profile.owner.key().as_ref()], 
+        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), reputation_profile.owner.key().as_ref()], 
         bump = reputation_profile.bump,
     )]
     pub reputation_profile: Account<'info, ReputationProfile>,
