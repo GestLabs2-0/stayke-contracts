@@ -14,7 +14,10 @@ use stayke_treasury::{
     program::StaykeTreasury,
 };
 
-use crate::{error::DisputeError, events::UserPenalized, state::DisputeConfig};
+use crate::{
+    constants::DISPUTE_CONFIG_PDA_SEED, error::DisputeError, events::UserPenalized,
+    state::DisputeConfig,
+};
 
 // ---------------------------------------------------------------------------
 // Add / Remove admin / Init config — (Standard admin logic)
@@ -29,7 +32,7 @@ pub struct InitializeConfig<'info> {
         init,
         payer = authority,
         space = 8 + DisputeConfig::INIT_SPACE,
-        seeds = [b"dispute_config"],
+        seeds = [DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         bump,
     )]
     pub config: Account<'info, DisputeConfig>,
@@ -58,7 +61,7 @@ pub struct PenalizeUser<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"dispute_config"],
+        seeds = [DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         constraint = config.admins.contains(&admin.key()) @ DisputeError::UnauthorizedAdmin,
         bump = config.bump,
     )]
@@ -85,6 +88,9 @@ pub struct PenalizeUser<'info> {
     /// The treasury program config.
     /// CHECK: Used strictly for CPI validation on treasury side.
     pub treasury_config: UncheckedAccount<'info>,
+
+    /// CHECK: Used strictly for CPI validation on treasury side.
+    pub global_config: UncheckedAccount<'info>,
 
     /// The global treasury vault from stayke-treasury.
     #[account(mut)]
@@ -124,6 +130,7 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
         let cpi_accounts = PenalizeTransferCpi {
             authority: ctx.accounts.admin.to_account_info(),
             config: ctx.accounts.treasury_config.to_account_info(),
+            global_config: ctx.accounts.global_config.to_account_info(),
             treasury_vault: ctx.accounts.treasury_vault.to_account_info(),
             treasury_pda: ctx.accounts.treasury_pda.to_account_info(),
             destination_token_account: ctx.accounts.affected_token_account.to_account_info(),

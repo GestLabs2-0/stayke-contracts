@@ -7,6 +7,7 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{Listing, UserProfile},
+    USER_PROFILE_SEED,
 };
 
 use stayke_escrow::{
@@ -20,6 +21,7 @@ use stayke_escrow::{
 };
 
 use crate::{
+    constants::{DISPUTE_CONFIG_PDA_SEED, DISPUTE_PDA_SEED},
     error::DisputeError,
     events::{DisputeOpened, DisputeResolved},
     state::{Dispute, DisputeConfig, DisputeReason, DisputeStatus},
@@ -35,7 +37,7 @@ pub struct OpenDispute<'info> {
     pub initiator: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", initiator.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), initiator.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = initiator_profile.bump,
         constraint = !initiator_profile.banned @ DisputeError::UserBanned,
@@ -51,7 +53,7 @@ pub struct OpenDispute<'info> {
         init,
         payer = initiator,
         space = 8 + Dispute::INIT_SPACE,
-        seeds = [b"dispute", booking.key().as_ref()],
+        seeds = [DISPUTE_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump,
     )]
     pub dispute: Box<Account<'info, Dispute>>,
@@ -121,7 +123,7 @@ pub struct ResolveDispute<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"dispute_config"],
+        seeds = [DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         constraint = config.admins.contains(&admin.key()) @ DisputeError::UnauthorizedAdmin,
         bump = config.bump,
     )]
@@ -129,7 +131,7 @@ pub struct ResolveDispute<'info> {
 
     #[account(
         mut,
-        seeds = [b"dispute", booking.key().as_ref()],
+        seeds = [DISPUTE_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump = dispute.bump,
         constraint = dispute.status == DisputeStatus::Open @ DisputeError::DisputeNotOpen,
     )]
@@ -141,6 +143,9 @@ pub struct ResolveDispute<'info> {
     // Escrow Accounts needed for the CPI:
     /// CHECK: Escrow config validated by stayke-escrow program during CPI.
     pub escrow_config: UncheckedAccount<'info>,
+
+    /// CHECK: Global config validated by stayke-escrow program during CPI.
+    pub global_config: UncheckedAccount<'info>,
 
     // TODO: add validations for token accounts. Platform and usdc_mint need to be equal to the other config files
     #[account(mut)]
@@ -168,6 +173,7 @@ pub fn handler_resolve_dispute(
         authority: ctx.accounts.admin.to_account_info(),
         booking: ctx.accounts.booking.to_account_info(),
         escrow_config: ctx.accounts.escrow_config.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
         escrow_token_account: ctx.accounts.escrow_token_account.to_account_info(),
         host_token_account: ctx.accounts.host_token_account.to_account_info(),
         guest_token_account: ctx.accounts.guest_token_account.to_account_info(),
@@ -206,7 +212,7 @@ pub struct CloseDispute<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"dispute_config"],
+        seeds = [DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         constraint = config.admins.contains(&admin.key()) @ DisputeError::UnauthorizedAdmin,
         bump = config.bump,
     )]
@@ -215,7 +221,7 @@ pub struct CloseDispute<'info> {
     #[account(
         mut,
         close = admin,
-        seeds = [b"dispute", booking.key().as_ref()],
+        seeds = [DISPUTE_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump = dispute.bump,
         constraint = dispute.status != DisputeStatus::Open @ DisputeError::DisputeNotOpen,
     )]

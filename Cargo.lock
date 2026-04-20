@@ -3926,6 +3926,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "stayke-config"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "litesvm",
+ "solana-keypair",
+ "solana-message",
+ "solana-signer",
+ "solana-transaction",
+]
+
+[[package]]
 name = "stayke-core"
 version = "0.1.0"
 dependencies = [
@@ -3964,8 +3977,8 @@ dependencies = [
  "solana-message",
  "solana-signer",
  "solana-transaction",
+ "stayke-config",
  "stayke-core",
- "stayke-treasury",
 ]
 
 [[package]]
@@ -3979,6 +3992,7 @@ dependencies = [
  "solana-message",
  "solana-signer",
  "solana-transaction",
+ "stayke-config",
  "stayke-core",
 ]
 

@@ -1,3 +1,4 @@
+pub mod constants;
 pub mod error;
 pub mod events;
 pub mod instructions;
@@ -6,7 +7,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use error::*;
-pub use instructions::{disputes as disputes_instructions, *};
+pub use instructions::*;
 pub use state::*;
 use stayke_core::state::PenaltySeverity;
 
@@ -33,7 +34,7 @@ pub mod stayke_disputes {
     // ---------------------------------------------------------------------------
 
     pub fn open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) -> Result<()> {
-        disputes_instructions::handler_open_dispute(ctx, reason)
+        manage_disputes::handler_open_dispute(ctx, reason)
     }
 
     pub fn resolve_dispute(
@@ -41,10 +42,10 @@ pub mod stayke_disputes {
         host_share_bps: u16,
         rejected: bool,
     ) -> Result<()> {
-        disputes_instructions::handler_resolve_dispute(ctx, host_share_bps, rejected)
+        manage_disputes::handler_resolve_dispute(ctx, host_share_bps, rejected)
     }
 
     pub fn close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
-        disputes_instructions::handler_close_dispute(ctx)
+        manage_disputes::handler_close_dispute(ctx)
     }
 }

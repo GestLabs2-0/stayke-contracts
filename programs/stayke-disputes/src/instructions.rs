@@ -1,5 +1,5 @@
 pub mod admin;
-pub mod disputes;
+pub mod manage_disputes;
 
 pub use admin::*;
-pub use disputes::*;
+pub use manage_disputes::*;

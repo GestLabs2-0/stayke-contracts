@@ -22,12 +22,6 @@ pub enum DisputeError {
 
     #[msg("Invalid configuration")]
     InvalidFeeBps,
-    
-    // Config/Treasury errors
-    #[msg("The treasury/vault account does not match the configured one")]
-    InvalidVaultAccount,
-    #[msg("The token mint does not match the configured USDC mint")]
-    InvalidTokenMint,
 
     // User errors
     #[msg("User is banned")]
