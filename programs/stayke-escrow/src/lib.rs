@@ -1,3 +1,4 @@
+pub mod constants;
 pub mod error;
 pub mod events;
 pub mod instructions;
@@ -20,13 +21,8 @@ pub mod stayke_escrow {
     // Admin
     // ---------------------------------------------------------------------------
 
-    pub fn initialize_escrow(
-        ctx: Context<InitializeEscrow>,
-        fee_bps: u16,
-        minimum_deposit: u64,
-        price_per_night: u64,
-    ) -> Result<()> {
-        initialize::handler_initialize_escrow(ctx, fee_bps)
+    pub fn initialize_escrow(ctx: Context<InitializeConfigEscrow>) -> Result<()> {
+        initialize::handler_initialize_config_escrow(ctx)
     }
 
     // ---------------------------------------------------------------------------

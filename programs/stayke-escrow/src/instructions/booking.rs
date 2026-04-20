@@ -3,10 +3,15 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
-use stayke_core::{Listing, UserProfile};
-use stayke_treasury::TreasuryConfig;
+use stayke_core::{
+    constants::{LISTING_SEED, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED},
+    Listing, UserProfile,
+};
+
+use stayke_config::{GLOBAL_CONFIG_SEED, GlobalConfig, error::StaykeConfigError};
 
 use crate::{
+    constants::{BOOKING_DAYS_SEED, BOOKING_SEED, ESCROW_CONFIG_SEED, ESCROW_PDA_SEED},
     error::EscrowError,
     events::{BookingStatusUpdated, NewBookingEvent},
     state::{Booking, BookingDays, BookingStatus},
@@ -47,25 +52,25 @@ pub struct CreateBooking<'info> {
 
     /// The guest's UserProfile from stayke-core.
     #[account(
-        seeds = [b"user_profile", client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
         constraint = client.key() != host_profile.owner @ EscrowError::HostCannotBookOwnProperty,
         constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = client_profile.deposited >= treasury_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
     /// The host's UserProfile from stayke-core.
     #[account(
-        seeds = [b"user_profile", host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = host_profile.deposited >= treasury_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         constraint = host_profile.is_host @ EscrowError::UserNotHost,
     )]
     pub host_profile: Box<Account<'info, UserProfile>>,
@@ -74,16 +79,24 @@ pub struct CreateBooking<'info> {
         init,
         payer = client,
         space = 8 + Booking::INIT_SPACE,
-        seeds = [b"booking", property.key().as_ref(), client_profile.key().as_ref(), check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), property.key().as_ref(), client_profile.key().as_ref(), check_in.to_le_bytes().as_ref()],
         bump
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [b"listing", property.owner.key().as_ref(), property.listing_id.to_be_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
+    #[account(seeds = [LISTING_SEED.as_bytes(), property.owner.key().as_ref(), property.listing_id.to_be_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
     pub property: Account<'info, Listing>,
 
-    #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
-    pub treasury_config: Account<'info, TreasuryConfig>,
+    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
+    
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump, 
+        seeds::program = stayke_config::ID,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     pub system_program: Program<'info, System>,
 
@@ -91,7 +104,7 @@ pub struct CreateBooking<'info> {
         init_if_needed,
         payer = client,
         space = 8 + BookingDays::INIT_SPACE,
-        seeds = [b"booking_days", property.key().as_ref(), check_in.year_month().to_le_bytes().as_ref()],
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), property.key().as_ref(), check_in.year_month().to_le_bytes().as_ref()],
         bump,
     )]
     pub booking_days: Account<'info, BookingDays>,
@@ -339,28 +352,36 @@ pub struct HostAcceptBooking<'info> {
     pub host: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", host.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
         constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = host_profile.deposited >= treasury_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         constraint = host_profile.is_host @ EscrowError::UserNotHost,
     )]
     pub host_profile: Account<'info, UserProfile>,
 
     #[account(
         mut,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.host == host_profile.key() @ EscrowError::InvalidBookingProperty,
         constraint = booking.status == BookingStatus::Pending @ EscrowError::InvalidBookingStatus,
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
-    pub treasury_config: Account<'info, TreasuryConfig>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump, 
+        seeds::program = stayke_config::ID,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
+
+    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 }
 
 pub fn handler_host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {
@@ -383,7 +404,7 @@ pub struct HostRejectBooking<'info> {
     pub host: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", host.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
         constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
@@ -400,7 +421,7 @@ pub struct HostRejectBooking<'info> {
     #[account(
         mut,
         close = guest,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.host == host_profile.key() @ EscrowError::InvalidBookingProperty,
         constraint = booking.status == BookingStatus::Pending @ EscrowError::InvalidBookingStatus,
@@ -409,7 +430,7 @@ pub struct HostRejectBooking<'info> {
 
     #[account(
         mut,
-        seeds = [b"booking_days", booking_days.property.as_ref(), booking_days.year_month().to_le_bytes().as_ref()],
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking_days.property.as_ref(), booking_days.year_month().to_le_bytes().as_ref()],
         bump,
         constraint = booking_days.property == booking.property @ EscrowError::InvalidBookingDaysAccount,
     )]
@@ -443,19 +464,19 @@ pub struct ClientAcceptReserve<'info> {
     pub client: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
         constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = client_profile.deposited >= treasury_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
         mut,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.status == BookingStatus::HostAccepted @ EscrowError::InvalidBookingStatus,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
@@ -464,16 +485,24 @@ pub struct ClientAcceptReserve<'info> {
 
     #[account(
         mut,
-        seeds = [b"listing", listing.owner.as_ref(), listing.listing_id.to_be_bytes().as_ref()],
+        seeds = [LISTING_SEED.as_bytes(), listing.owner.as_ref(), listing.listing_id.to_be_bytes().as_ref()],
         bump = listing.bump,
         constraint = booking.property == listing.key() @ EscrowError::InvalidBookingProperty
     )]
     pub listing: Account<'info, Listing>,
 
-    #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
-    pub treasury_config: Box<Account<'info, TreasuryConfig>>,
+     #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump, 
+        seeds::program = stayke_config::ID,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    #[account(mut, constraint = mint.key() == treasury_config.usdc_mint @ EscrowError::InvalidTokenMint)]
+    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
+
+    #[account(mut, constraint = mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
     pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(
@@ -488,7 +517,7 @@ pub struct ClientAcceptReserve<'info> {
         payer = client,
         token::mint = mint,
         token::authority = booking,
-        seeds = [b"escrow", booking.key().as_ref()],
+        seeds = [ESCROW_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump,
     )]
     pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -541,7 +570,7 @@ pub struct ClientRejectReserve<'info> {
     pub client: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
         constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
@@ -553,7 +582,7 @@ pub struct ClientRejectReserve<'info> {
     #[account(
         mut,
         close = client,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = (booking.status == BookingStatus::HostAccepted || booking.status == BookingStatus::Pending) @ EscrowError::InvalidBookingStatus,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
@@ -562,7 +591,7 @@ pub struct ClientRejectReserve<'info> {
 
     #[account(
         mut,
-        seeds = [b"booking_days", booking.property.as_ref(), booking_days.year_month().to_le_bytes().as_ref()],
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking_days.year_month().to_le_bytes().as_ref()],
         bump,
     )]
     pub booking_days: Account<'info, BookingDays>,
@@ -595,7 +624,7 @@ pub struct CompleteStay<'info> {
     pub client: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
         constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
@@ -605,7 +634,7 @@ pub struct CompleteStay<'info> {
 
     /// The host's UserProfile — destination for the payment.
     #[account(
-        seeds = [b"user_profile", host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
     )]
@@ -614,22 +643,27 @@ pub struct CompleteStay<'info> {
     #[account(
         mut,
         close = client,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
         constraint = booking.status == BookingStatus::ReviewCompleted @ EscrowError::BookingNotReviewCompleted,
     )]
     pub booking: Box<Account<'info, Booking>>,
 
-    #[account(seeds = [b"escrow_config"], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, EscrowConfig>>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump, 
+        seeds::program = stayke_config::ID,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    #[account(seeds = [b"treasury_config"], bump = treasury_config.bump)]
-    pub treasury_config: Box<Account<'info, TreasuryConfig>>,
+    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(
         mut,
-        seeds = [b"escrow", booking.key().as_ref()],
+        seeds = [ESCROW_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump = booking.escrow_bump,
         token::mint = mint,
         token::authority = booking,
@@ -643,11 +677,11 @@ pub struct CompleteStay<'info> {
     /// Platform fee vault.
     #[account(
         mut,
-        constraint = platform_vault.key() == escrow_config.platform_vault @ EscrowError::InvalidVaultAccount,
+        constraint = platform_vault.key() == global_config.platform_vault @ StaykeConfigError::InvalidVaultAccount,
     )]
     pub platform_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, constraint = mint.key() == treasury_config.usdc_mint @ EscrowError::InvalidTokenMint)]
+    #[account(mut, constraint = mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     pub token_program: Interface<'info, TokenInterface>,
@@ -655,7 +689,7 @@ pub struct CompleteStay<'info> {
 
 pub fn handler_complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
-    let config = &ctx.accounts.escrow_config;
+    let config = &ctx.accounts.global_config;
     let decimals = ctx.accounts.mint.decimals;
 
     let fee = (booking.total_price as u128)
@@ -664,7 +698,7 @@ pub fn handler_complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
     let host_amount = booking.total_price.saturating_sub(fee);
 
     let booking_seeds: &[&[&[u8]]] = &[&[
-        b"booking",
+        BOOKING_SEED.as_bytes(),
         booking.property.as_ref(),
         booking.guest.as_ref(),
         &booking.check_in.to_le_bytes(),
@@ -737,7 +771,7 @@ pub struct CloseBooking<'info> {
     pub client: Signer<'info>,
 
     #[account(
-        seeds = [b"user_profile", client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
         constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
@@ -747,7 +781,7 @@ pub struct CloseBooking<'info> {
 
     #[account(
         mut,
-        seeds = [b"user_profile", host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
     )]
@@ -755,7 +789,7 @@ pub struct CloseBooking<'info> {
 
     /// Host's ReputationProfile from stayke-core (receives score update).
     #[account(
-        seeds = [b"reputation_profile", host_profile.owner.key().as_ref()],
+        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump,
     )]
@@ -763,7 +797,7 @@ pub struct CloseBooking<'info> {
 
     #[account(
         mut,
-        seeds = [b"booking", booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
         constraint = booking.status == BookingStatus::Active @ EscrowError::BookingNotActive,

@@ -63,6 +63,4 @@ pub enum EscrowError {
     // Config
     #[msg("Unauthorized admin action")]
     UnauthorizedAdmin,
-    #[msg("Fee basis points must be less than 10 000")]
-    InvalidBps,
 }

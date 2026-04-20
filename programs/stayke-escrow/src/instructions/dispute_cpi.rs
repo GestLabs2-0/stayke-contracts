@@ -2,8 +2,10 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{
     self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
+use stayke_config::{GLOBAL_CONFIG_SEED, GlobalConfig, error::StaykeConfigError};
 
 use crate::{
+    constants::{BOOKING_SEED, ESCROW_CONFIG_SEED, ESCROW_PDA_SEED},
     error::EscrowError,
     events::BookingStatusUpdated,
     state::{Booking, BookingStatus, EscrowConfig},
@@ -71,7 +73,7 @@ pub struct ResolveDisputeTransferCpi<'info> {
     #[account(
         mut,
         seeds = [
-            b"booking",
+            BOOKING_SEED.as_bytes(),
             booking.property.as_ref(),
             booking.guest.as_ref(),
             booking.check_in.to_le_bytes().as_ref(),
@@ -81,12 +83,20 @@ pub struct ResolveDisputeTransferCpi<'info> {
     )]
     pub booking: Box<Account<'info, Booking>>,
 
-    #[account(seeds = [b"escrow_config"], bump = escrow_config.bump)]
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
+        bump = global_config.bump, 
+        seeds::program = stayke_config::ID,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
+
+    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
     pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(
         mut,
-        seeds = [b"escrow", booking.key().as_ref()],
+        seeds = [ESCROW_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump = booking.escrow_bump,
         token::mint = mint,
         token::authority = booking,
@@ -104,13 +114,13 @@ pub struct ResolveDisputeTransferCpi<'info> {
     /// Platform vault
     #[account(
         mut,
-        constraint = platform_vault_token_account.key() == escrow_config.platform_vault @ EscrowError::InvalidVaultAccount,
+        constraint = platform_vault_token_account.key() == global_config.platform_vault @ StaykeConfigError::InvalidVaultAccount,
     )]
     pub platform_vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
-        constraint = mint.key() == escrow_config.usdc_mint @ EscrowError::InvalidTokenMint,
+        constraint = mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint,
     )]
     pub mint: InterfaceAccount<'info, Mint>,
 
@@ -122,10 +132,10 @@ pub fn handler_cpi_resolve_dispute_transfer(
     host_share_bps: u16,
     rejected: bool,
 ) -> Result<()> {
-    require!(host_share_bps <= 10_000, EscrowError::InvalidBps);
+    require!(host_share_bps <= 10_000, StaykeConfigError::InvalidFeeBps);
 
     let booking = &mut ctx.accounts.booking;
-    let config = &ctx.accounts.escrow_config;
+    let config = &ctx.accounts.global_config;
     let decimals = ctx.accounts.mint.decimals;
     let total = booking.total_price;
 
@@ -144,7 +154,7 @@ pub fn handler_cpi_resolve_dispute_transfer(
     let guest_amount = distributable.saturating_sub(host_amount);
 
     let booking_seeds: &[&[&[u8]]] = &[&[
-        b"booking",
+        BOOKING_SEED.as_bytes(),
         booking.property.as_ref(),
         booking.guest.as_ref(),
         &booking.check_in.to_le_bytes(),
