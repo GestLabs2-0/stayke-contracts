@@ -44,7 +44,7 @@ pub struct PenalizeTransferCpi<'info> {
     #[account(mut)]
     pub destination_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ TreasuryError::InvalidTokenMint)]
+    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub token_program: Interface<'info, TokenInterface>,

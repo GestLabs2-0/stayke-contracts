@@ -11,8 +11,6 @@ pub enum TreasuryError {
     DepositTooLow,
     #[msg("The treasury vault account does not match the configured one")]
     InvalidTreasuryVault,
-    #[msg("The token mint does not match the configured USDC mint")]
-    InvalidTokenMint,
 
     // Withdraw
     #[msg("Insufficient guarantee balance to withdraw the requested amount")]

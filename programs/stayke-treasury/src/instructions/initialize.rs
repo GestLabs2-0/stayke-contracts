@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use stayke_config::GLOBAL_CONFIG_SEED;
+use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
 
 use crate::{
     error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED, TREASURY_SEED, TREASURY_VAULT_SEED,
@@ -42,7 +42,7 @@ pub struct InitializeTreasury<'info> {
     )]
     pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ TreasuryError::InvalidTokenMint)]
+    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
