@@ -22,4 +22,6 @@ pub mod stayke_config {
     ) -> Result<()> {
         handler_initialize_config(ctx, minimum_deposit, fee_bps)
     }
+
+    // TODO: create instruction to withdraw fees from vault
 }

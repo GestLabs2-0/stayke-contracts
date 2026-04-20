@@ -1,6 +1,6 @@
 # 🏰 Arquitectura Global y Flujo de Interconexiones de Stayke
 
-A pesar de existir de manera independiente, los 4 contratos inteligentes de Stayke (`stayke-core`, `stayke-disputes`, `stayke-escrow` y `stayke-treasury`) forman un ecosistema sumamente interconectado y modular donde todos confían en uno: la información es validada principalmente por el **Core**.
+A pesar de existir de manera independiente, los 5 contratos inteligentes de Stayke forman un ecosistema sumamente interconectado y modular donde todos confían en uno: la información es validada principalmente por el **Core**, y dictaminada estructuralmente por el **Global Config**.
 
 En este diagrama conceptual se detallan las principales responsabilidades de cada componente y cómo se comunican entre sí.
 
@@ -8,16 +8,19 @@ En este diagrama conceptual se detallan las principales responsabilidades de cad
 
 ## 🔄 Rol de Cada Componente en el Ecosistema
 
-1. **🌍 Core (`stayke-core`)**
-   - **Es el cerebro y la fuente de la verdad para el estado de los usuarios.**
+1. **⚙️ Config (`stayke-config`)**
+   - **Es la única fuente de verdad y de configuración global.**
+   - Mantiene los permisos, los valores de comisiones (`fee_bps`), el depósito mínimo y funciona como bóveda general de las utilidades (Platform Vault). Centraliza la seguridad para evitar la falsificación de CPIs.
+2. **🌍 Core (`stayke-core`)**
+   - **Es el cerebro de estado de los usuarios.**
    - Mantiene perfiles, listas de propiedades (listings) y registros de reputación KYC.
-2. **💰 Treasury (`stayke-treasury`)**
+3. **💰 Treasury (`stayke-treasury`)**
    - **Actúa como la base monetaria general (Garantías/Colaterales).**
    - Maneja el dinero de alto nivel y el fondo de riesgo aportado por los usuarios para siquiera abrir la app.
-3. **🏦 Escrow (`stayke-escrow`)**
+4. **🏦 Escrow (`stayke-escrow`)**
    - **Opera como el intermediario transaccional de "corto plazo".**
    - Solamente resguarda los pagos relacionados al flujo efímero de una reserva (`Booking`).
-4. **⚖️ Disputes (`stayke-disputes`)**
+5. **⚖️ Disputes (`stayke-disputes`)**
    - **Actúa como el Tribunal Supremo Judicial.**
    - Congela movimientos de dinero, impone veredictos alterando pagos directos, golpea la reputación y absorbe partes de depósitos.
 
@@ -49,4 +52,4 @@ El ecosistema Stayke maneja un diseño donde los procesos dependen de "Cross-Pro
 
 ---
 > [!NOTE] 
-> Todas las flechas de ejecución asumen un protocolo subyacente donde las firmas entre PDAs (Program Derived Addresses) actúan con base en configuraciones seguras para salvaguardar el estado de llamadas maliciosas externas **(la "Global Config", pendiente de integrar vía una capa superior como discutimos antes).**
+> Todas las flechas de ejecución asumen un protocolo subyacente donde las firmas entre PDAs (Program Derived Addresses) actúan con base en configuraciones seguras verificadas contra estado para evitar inyecciones maliciosas. Esto es posible al hacer referencia cruzada a la Configuración Global en `stayke-config`.
