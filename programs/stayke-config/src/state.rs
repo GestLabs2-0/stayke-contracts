@@ -1,5 +1,9 @@
 use anchor_lang::prelude::*;
 
+// TODO: add stayke contracts to Global Config
+// The purpose is to have a single source of truth for all the stayke contracts, so
+// whenever we make any CPI call to any of the stayke contracts we can be sure that the signer is correct and we don't have to hardcode any addresses in the code.
+
 #[account]
 #[derive(InitSpace)]
 pub struct GlobalConfig {
