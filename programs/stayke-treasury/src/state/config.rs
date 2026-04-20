@@ -16,11 +16,7 @@ pub struct TreasuryConfig {
     /// Bump of the treasury PDA ([b"treasury"]) — used to sign CPI calls.
     pub treasury_bump: u8,
 
-    /// The USDC mint accepted by this treasury.
-    pub usdc_mint: Pubkey,
-
-    /// Minimum deposit amount (in USDC lamports) required from each user.
-    pub minimum_deposit: u64,
+    pub global_config: Pubkey,
 
     /// Guard flag to prevent re-initialization.
     pub is_initialized: bool,

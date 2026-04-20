@@ -3,11 +3,12 @@ use anchor_spl::{
     token::{transfer_checked, TransferChecked},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use stayke_core::cpi::accounts::UpdateUserProfile;
+use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
 use stayke_core::program::StaykeCore;
 use stayke_core::UserProfile;
+use stayke_core::{cpi::accounts::UpdateUserProfile, USER_PROFILE_SEED};
 
-use crate::{error::TreasuryError, TreasuryConfig};
+use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED, TREASURY_SEED};
 
 // ---------------------------------------------------------------------------
 // Deposit guarantee
@@ -22,10 +23,18 @@ pub struct DepositGuarantee<'info> {
 
     // ---- Treasury config ----
     #[account(
-        seeds = [b"treasury_config"],
+        seeds = [TREASURY_CONFIG_SEED.as_bytes()],
         bump = config.bump,
     )]
     pub config: Account<'info, TreasuryConfig>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID,
+        constraint = global_config.key() == config.global_config @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 
     // ---- Token accounts ----
     /// Source: the user's own USDC token account.
@@ -39,7 +48,7 @@ pub struct DepositGuarantee<'info> {
     )]
     pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(constraint = usdc_mint.key() == config.usdc_mint @ TreasuryError::InvalidTokenMint)]
+    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ TreasuryError::InvalidTokenMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub token_program: Interface<'info, TokenInterface>,
@@ -48,7 +57,7 @@ pub struct DepositGuarantee<'info> {
     /// The user's UserProfile PDA in stayke-core — will be mutated via CPI.
     #[account(
         mut,
-        seeds = [b"user_profile", signer.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), signer.key().as_ref()],
         seeds::program = stayke_core_program.key(),
         bump = user_profile.bump,
         constraint = user_profile.owner == signer.key() @ TreasuryError::Unauthorized,
@@ -59,7 +68,7 @@ pub struct DepositGuarantee<'info> {
 }
 
 pub fn handler_deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) -> Result<()> {
-    let config = &ctx.accounts.config;
+    let config = &ctx.accounts.global_config;
 
     require!(
         amount >= config.minimum_deposit,
@@ -105,10 +114,18 @@ pub struct WithdrawGuarantee<'info> {
 
     // ---- Treasury config ----
     #[account(
-        seeds = [b"treasury_config"],
+        seeds = [TREASURY_CONFIG_SEED.as_bytes()],
         bump = config.bump,
     )]
-    pub config: Account<'info, TreasuryConfig>,
+    pub config: Box<Account<'info, TreasuryConfig>>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID,
+        constraint = global_config.key() == config.global_config @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 
     // ---- Token accounts ----
     /// Treasury vault — source of the withdrawal.
@@ -119,14 +136,14 @@ pub struct WithdrawGuarantee<'info> {
     pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Treasury PDA — signs the CPI transfer out of the vault.
-    #[account(seeds = [b"treasury"], bump = config.treasury_bump)]
+    #[account(seeds = [TREASURY_SEED.as_bytes()], bump = config.treasury_bump)]
     pub treasury_pda: UncheckedAccount<'info>,
 
     /// Destination: the user's own USDC token account.
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(constraint = usdc_mint.key() == config.usdc_mint @ TreasuryError::InvalidTokenMint)]
+    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ TreasuryError::InvalidTokenMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub token_program: Interface<'info, TokenInterface>,
@@ -134,7 +151,7 @@ pub struct WithdrawGuarantee<'info> {
     // ---- stayke-core CPI ----
     #[account(
         mut,
-        seeds = [b"user_profile", signer.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), signer.key().as_ref()],
         seeds::program = stayke_core_program.key(),
         bump = user_profile.bump,
         constraint = user_profile.owner == signer.key() @ TreasuryError::Unauthorized,
@@ -168,7 +185,7 @@ pub fn handler_withdraw_guarantee(ctx: Context<WithdrawGuarantee>, amount: u64) 
     )?;
 
     // 2. Transfer USDC from the treasury vault to the user.
-    let treasury_seeds: &[&[&[u8]]] = &[&[b"treasury", &[config.treasury_bump]]];
+    let treasury_seeds: &[&[&[u8]]] = &[&[TREASURY_SEED.as_bytes(), &[config.treasury_bump]]];
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.treasury_vault.to_account_info(),
         to: ctx.accounts.user_token_account.to_account_info(),

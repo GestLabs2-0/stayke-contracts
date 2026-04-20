@@ -1,9 +1,10 @@
-use crate::{error::TreasuryError, TreasuryConfig};
+use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED, TREASURY_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::{transfer_checked, TransferChecked},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
+use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
 
 // ---------------------------------------------------------------------------
 // CPI Endpoint: Penalize Transfer (Used by stayke-disputes)
@@ -16,10 +17,18 @@ pub struct PenalizeTransferCpi<'info> {
     pub authority: Signer<'info>,
 
     #[account(
-        seeds = [b"treasury_config"],
+        seeds = [TREASURY_CONFIG_SEED.as_bytes()],
         bump = config.bump,
     )]
     pub config: Account<'info, TreasuryConfig>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID,
+        constraint = global_config.key() == config.global_config @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 
     #[account(
         mut,
@@ -28,14 +37,14 @@ pub struct PenalizeTransferCpi<'info> {
     pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Treasury PDA — signs the CPI transfer out of the vault.
-    #[account(seeds = [b"treasury"], bump = config.treasury_bump)]
+    #[account(seeds = [TREASURY_SEED.as_bytes()], bump = config.treasury_bump)]
     pub treasury_pda: UncheckedAccount<'info>,
 
     /// Destination: the destination token account owned by the affected party.
     #[account(mut)]
     pub destination_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(constraint = usdc_mint.key() == config.usdc_mint @ TreasuryError::InvalidTokenMint)]
+    #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ TreasuryError::InvalidTokenMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub token_program: Interface<'info, TokenInterface>,
@@ -46,7 +55,7 @@ pub fn handler_cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: 
 
     require!(amount > 0, TreasuryError::ZeroWithdrawal);
 
-    let treasury_seeds: &[&[&[u8]]] = &[&[b"treasury", &[config.treasury_bump]]];
+    let treasury_seeds: &[&[&[u8]]] = &[&[TREASURY_SEED.as_bytes(), &[config.treasury_bump]]];
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.treasury_vault.to_account_info(),
         to: ctx.accounts.destination_token_account.to_account_info(),

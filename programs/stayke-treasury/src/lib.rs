@@ -20,11 +20,8 @@ pub mod stayke_treasury {
     // Admin
     // ---------------------------------------------------------------------------
 
-    pub fn initialize_treasury(
-        ctx: Context<InitializeTreasury>,
-        minimum_deposit: u64,
-    ) -> Result<()> {
-        initialize::handler_initialize_treasury(ctx, minimum_deposit)
+    pub fn initialize_treasury(ctx: Context<InitializeTreasury>) -> Result<()> {
+        initialize::handler_initialize_treasury(ctx)
     }
 
     // ---------------------------------------------------------------------------
