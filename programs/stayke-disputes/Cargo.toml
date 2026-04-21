@@ -1,0 +1,39 @@
+[package]
+name = "stayke-disputes"
+version = "0.1.0"
+description = "Disputes library for Stayke, containing disputes core logic"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "stayke_disputes"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "stayke-core/idl-build", 'stayke-treasury/idl-build', 'stayke-escrow/idl-build']
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+
+[dependencies]
+anchor-lang = { version = "1.0.0", features = ["init-if-needed"] }
+anchor-spl = "1.0.0"
+stayke-core = { path = "../stayke-core", features = ["cpi"] }
+stayke-escrow = { path = "../stayke-escrow", features = ["cpi"] }
+stayke-treasury = { path = "../stayke-treasury", features = ["cpi"] }
+
+[dev-dependencies]
+litesvm = "0.10.0"
+solana-message = "3.0.1"
+solana-transaction = "3.0.2"
+solana-signer = "3.0.0"
+solana-keypair = "3.0.1"
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
