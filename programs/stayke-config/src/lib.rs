@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
+declare_id!("2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW");
 
 #[program]
 pub mod stayke_config {

@@ -10,7 +10,7 @@ stayke_contracts = "4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./test-keypair.json"
 
 [scripts]
 test = "cargo test"
