@@ -1,0 +1,19 @@
+{
+	"name": "codama-generator",
+	"private": true,
+	"author": "Gabriel Torres gabrieltorres2014@gmail.com",
+	"type": "module",
+	"scripts": {
+		"generate": "tsx src/index.ts"
+	},
+	"dependencies": {
+		"@codama/nodes-from-anchor": "^1.4.1",
+		"@codama/renderers-js": "^2.2.0",
+		"codama": "^1.6.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
+}

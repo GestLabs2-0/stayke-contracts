@@ -7,5 +7,5 @@ test-ledger
 .yarn
 .surfpool
 
-
+dist/
 stayke
