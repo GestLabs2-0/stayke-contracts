@@ -1,0 +1,30 @@
+{
+    "name": "initialize-contracts",
+    "version": "1.0.0",
+    "description": "CLI tool to initialize the Stayke contracts on a Solana cluster",
+    "main": "dist/index.ts",
+    "files": [
+        "./dist",
+        "./src"
+    ],
+    "scripts": {
+        "build": "tsc --build",
+        "start": "tsx src/index.ts"
+    },
+    "keywords": [],
+    "author": "Gabriel Torres gabrieltorres2014@gmail.com",
+    "dependencies": {
+        "@generated/stayke-core": "workspace:*",
+        "@generated/stayke-disputes": "workspace:*",
+        "@generated/stayke-escrow": "workspace:*",
+        "@generated/stayke-treasury": "workspace:*",
+        "@generated/stayke-config": "workspace:*",
+        "@solana/kit": "^6.4.0"
+    },
+    "devDependencies": {
+        "@types/node": "^18.19.130",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",    
+        "typescript": "^5.9.3"
+    }
+}

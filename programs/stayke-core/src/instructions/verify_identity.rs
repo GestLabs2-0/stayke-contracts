@@ -28,7 +28,7 @@ pub fn handler_verify_identity(ctx: Context<VerifyIdentity>) -> Result<()> {
 
     identity.verifier = Some(ctx.accounts.authority.key());
     identity.is_frozen = true;
-    identity.owner = user_profile.owner;
+    identity.owner = user_profile.key();
     identity.verified_at = Clock::get()?.unix_timestamp;
 
     user_profile.is_verified = true;

@@ -1,0 +1,24 @@
+{
+  "name": "@generated/stayke-core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/src/index.js",
+	"types": "dist/src/index.d.ts",
+	"files": [
+		"./dist/src",
+		"./dist/types",
+		"./src/"
+	],
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "tsc --build"
+	},
+  "keywords": [],
+  "author": "",
+  "peerDependencies": {
+    "@solana/kit": "^6.4.0"
+  },
+  "dependencies": {
+    "@solana/program-client-core": "^6.4.0"
+  }
+}
