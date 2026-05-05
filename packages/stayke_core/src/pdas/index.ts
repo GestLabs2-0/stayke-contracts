@@ -8,5 +8,6 @@
 
 export * from "./config";
 export * from "./identity";
+export * from "./listing";
 export * from "./reputationProfile";
 export * from "./userProfile";

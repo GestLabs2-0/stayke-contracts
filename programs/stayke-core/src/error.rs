@@ -12,4 +12,7 @@ pub enum StaykeError {
     // Admin Errors
     #[msg("Unauthorized: Only the authority can perform this action")]
     Unauthorized,
+
+    #[msg("Invalid listing ID: The provided listing ID does not match the last existing listing")]
+    InvalidListingId,
 }

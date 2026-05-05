@@ -10,6 +10,7 @@ export * from "./addInfraction";
 export * from "./clearActiveBooking";
 export * from "./clearListingBooking";
 export * from "./initializeConfig";
+export * from "./initializeListing";
 export * from "./initializeUserProfile";
 export * from "./setHostStatus";
 export * from "./updateDeposit";

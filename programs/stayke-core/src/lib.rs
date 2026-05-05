@@ -32,6 +32,9 @@ pub mod stayke_core {
         verify_identity::handler_verify_identity(ctx)
     }
 
+    pub fn initialize_listing(ctx: Context<InitializeListing>, price: u64, listing_id: u16) -> Result<()> {
+        initialize::handler_initialize_listing(ctx, price, listing_id)
+    }
     // ---------------------------------------------------------------------------
     // User profile mutations — callable directly or via CPI
     // ---------------------------------------------------------------------------

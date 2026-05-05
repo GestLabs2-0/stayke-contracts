@@ -22,10 +22,13 @@ export const STAYKE_CORE_ERROR__IDENTITY_BANNED = 0x1771; // 6001
 export const STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED = 0x1772; // 6002
 /** Unauthorized: Unauthorized: Only the authority can perform this action */
 export const STAYKE_CORE_ERROR__UNAUTHORIZED = 0x1773; // 6003
+/** InvalidListingId: Invalid listing ID: The provided listing ID does not match the last existing listing */
+export const STAYKE_CORE_ERROR__INVALID_LISTING_ID = 0x1774; // 6004
 
 export type StaykeCoreError =
   | typeof STAYKE_CORE_ERROR__IDENTITY_BANNED
   | typeof STAYKE_CORE_ERROR__IDENTITY_FROZEN
+  | typeof STAYKE_CORE_ERROR__INVALID_LISTING_ID
   | typeof STAYKE_CORE_ERROR__UNAUTHORIZED
   | typeof STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED;
 
@@ -34,6 +37,7 @@ if (process.env["NODE_ENV"] !== "production") {
   staykeCoreErrorMessages = {
     [STAYKE_CORE_ERROR__IDENTITY_BANNED]: `Identity is banned and cannot be used to create a user profile`,
     [STAYKE_CORE_ERROR__IDENTITY_FROZEN]: `Identity is frozen and already verified`,
+    [STAYKE_CORE_ERROR__INVALID_LISTING_ID]: `Invalid listing ID: The provided listing ID does not match the last existing listing`,
     [STAYKE_CORE_ERROR__UNAUTHORIZED]: `Unauthorized: Only the authority can perform this action`,
     [STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED]: `User profile is not verified, cannot perform this action`,
   };

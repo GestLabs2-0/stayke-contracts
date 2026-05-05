@@ -54,6 +54,7 @@ import {
   getClearActiveBookingInstruction,
   getClearListingBookingInstruction,
   getInitializeConfigInstructionAsync,
+  getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
   getSetHostStatusInstruction,
   getUpdateDepositInstruction,
@@ -62,6 +63,7 @@ import {
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
   parseInitializeConfigInstruction,
+  parseInitializeListingInstruction,
   parseInitializeUserProfileInstruction,
   parseSetHostStatusInstruction,
   parseUpdateDepositInstruction,
@@ -70,11 +72,13 @@ import {
   type ClearActiveBookingInput,
   type ClearListingBookingInput,
   type InitializeConfigAsyncInput,
+  type InitializeListingAsyncInput,
   type InitializeUserProfileAsyncInput,
   type ParsedAddInfractionInstruction,
   type ParsedClearActiveBookingInstruction,
   type ParsedClearListingBookingInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedInitializeListingInstruction,
   type ParsedInitializeUserProfileInstruction,
   type ParsedSetHostStatusInstruction,
   type ParsedUpdateDepositInstruction,
@@ -86,6 +90,7 @@ import {
 import {
   findConfigPda,
   findIdentityPda,
+  findListingPda,
   findReputationProfilePda,
   findUserProfilePda,
 } from "../pdas";
@@ -171,6 +176,7 @@ export enum StaykeCoreInstruction {
   ClearActiveBooking,
   ClearListingBooking,
   InitializeConfig,
+  InitializeListing,
   InitializeUserProfile,
   SetHostStatus,
   UpdateDeposit,
@@ -224,6 +230,17 @@ export function identifyStaykeCoreInstruction(
     )
   ) {
     return StaykeCoreInstruction.InitializeConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([170, 54, 135, 232, 166, 202, 75, 54]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.InitializeListing;
   }
   if (
     containsBytes(
@@ -291,6 +308,9 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.InitializeListing;
+    } & ParsedInitializeListingInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.InitializeUserProfile;
     } & ParsedInitializeUserProfileInstruction<TProgram>)
   | ({
@@ -334,6 +354,13 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
       return {
         instructionType: StaykeCoreInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.InitializeListing: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.InitializeListing,
+        ...parseInitializeListingInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.InitializeUserProfile: {
@@ -411,6 +438,10 @@ export type StaykeCorePluginInstructions = {
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeListing: (
+    input: InitializeListingAsyncInput,
+  ) => ReturnType<typeof getInitializeListingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeUserProfile: (
     input: InitializeUserProfileAsyncInput,
   ) => ReturnType<typeof getInitializeUserProfileInstructionAsync> &
@@ -431,6 +462,7 @@ export type StaykeCorePluginInstructions = {
 
 export type StaykeCorePluginPdas = {
   config: typeof findConfigPda;
+  listing: typeof findListingPda;
   userProfile: typeof findUserProfilePda;
   reputationProfile: typeof findReputationProfilePda;
   identity: typeof findIdentityPda;
@@ -479,6 +511,11 @@ export function staykeCoreProgram() {
               client,
               getInitializeConfigInstructionAsync(input),
             ),
+          initializeListing: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeListingInstructionAsync(input),
+            ),
           initializeUserProfile: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -502,6 +539,7 @@ export function staykeCoreProgram() {
         },
         pdas: {
           config: findConfigPda,
+          listing: findListingPda,
           userProfile: findUserProfilePda,
           reputationProfile: findReputationProfilePda,
           identity: findIdentityPda,
