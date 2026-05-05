@@ -8,7 +8,7 @@ use stayke_core::{
     Listing, UserProfile,
 };
 
-use stayke_config::{GLOBAL_CONFIG_SEED, GlobalConfig, error::StaykeConfigError};
+use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
 
 use crate::{
     constants::{BOOKING_DAYS_SEED, BOOKING_SEED, ESCROW_CONFIG_SEED, ESCROW_PDA_SEED},
@@ -84,12 +84,12 @@ pub struct CreateBooking<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [LISTING_SEED.as_bytes(), property.owner.key().as_ref(), property.listing_id.to_be_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
+    #[account(seeds = [LISTING_SEED.as_bytes(), property.owner.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
     pub property: Account<'info, Listing>,
 
     #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
     pub escrow_config: Box<Account<'info, EscrowConfig>>,
-    
+
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
         bump = global_config.bump, 
@@ -485,13 +485,13 @@ pub struct ClientAcceptReserve<'info> {
 
     #[account(
         mut,
-        seeds = [LISTING_SEED.as_bytes(), listing.owner.as_ref(), listing.listing_id.to_be_bytes().as_ref()],
+        seeds = [LISTING_SEED.as_bytes(), listing.owner.as_ref(), listing.listing_id.to_le_bytes().as_ref()],
         bump = listing.bump,
         constraint = booking.property == listing.key() @ EscrowError::InvalidBookingProperty
     )]
     pub listing: Account<'info, Listing>,
 
-     #[account(
+    #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
         bump = global_config.bump, 
         seeds::program = stayke_config::ID,

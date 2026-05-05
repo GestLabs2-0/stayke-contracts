@@ -31,7 +31,10 @@ pub struct WithdrawFromLending<'info> {
     // TODO: Add lending protocol accounts
 }
 
-pub fn handler_withdraw_from_lending(_ctx: Context<WithdrawFromLending>, _amount: u64) -> Result<()> {
+pub fn handler_withdraw_from_lending(
+    _ctx: Context<WithdrawFromLending>,
+    _amount: u64,
+) -> Result<()> {
     err!(TreasuryError::LendingNotEnabled)
 }
 
