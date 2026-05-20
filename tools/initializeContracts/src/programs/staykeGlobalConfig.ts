@@ -18,7 +18,7 @@ import { confirmTx } from "../utils";
 import {
 	getInitializeConfigInstructionAsync,
 	findGlobalConfigPda,
-} from "@generated/stayke-config";
+} from "@stayke/stayke-config";
 
 export async function initializeGlobalConfig(
 	connection: SolanaRpcType,

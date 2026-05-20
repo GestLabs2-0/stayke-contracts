@@ -17,7 +17,7 @@ import { SolanaRpcType } from "../connection";
 import {
 	findConfigPda,
 	getInitializeTreasuryInstructionAsync,
-} from "@generated/stayke-treasury";
+} from "@stayke/stayke-treasury";
 import { confirmTx } from "../utils";
 
 export async function initializeTreasuryConfig(

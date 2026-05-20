@@ -16,7 +16,7 @@ import {
 import {
 	findConfigPda,
 	getInitializeConfigInstructionAsync,
-} from "@generated/stayke-core";
+} from "@stayke/stayke-core";
 import { SolanaRpcType } from "../connection";
 import { confirmTx } from "../utils";
 
