@@ -63,7 +63,6 @@ export type UserProfile = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
   identity: Address;
-  banned: boolean;
   activeBooking: Option<Address>;
   activeStay: Option<Address>;
   deposited: bigint;
@@ -71,15 +70,14 @@ export type UserProfile = {
   lending: bigint;
   staked: bigint;
   isVerified: boolean;
+  banned: boolean;
   listings: number;
-  isHost: boolean;
   bump: number;
 };
 
 export type UserProfileArgs = {
   owner: Address;
   identity: Address;
-  banned: boolean;
   activeBooking: OptionOrNullable<Address>;
   activeStay: OptionOrNullable<Address>;
   deposited: number | bigint;
@@ -87,8 +85,8 @@ export type UserProfileArgs = {
   lending: number | bigint;
   staked: number | bigint;
   isVerified: boolean;
+  banned: boolean;
   listings: number;
-  isHost: boolean;
   bump: number;
 };
 
@@ -99,7 +97,6 @@ export function getUserProfileEncoder(): Encoder<UserProfileArgs> {
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["owner", getAddressEncoder()],
       ["identity", getAddressEncoder()],
-      ["banned", getBooleanEncoder()],
       ["activeBooking", getOptionEncoder(getAddressEncoder())],
       ["activeStay", getOptionEncoder(getAddressEncoder())],
       ["deposited", getU64Encoder()],
@@ -107,8 +104,8 @@ export function getUserProfileEncoder(): Encoder<UserProfileArgs> {
       ["lending", getU64Encoder()],
       ["staked", getU64Encoder()],
       ["isVerified", getBooleanEncoder()],
+      ["banned", getBooleanEncoder()],
       ["listings", getU16Encoder()],
-      ["isHost", getBooleanEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: USER_PROFILE_DISCRIMINATOR }),
@@ -121,7 +118,6 @@ export function getUserProfileDecoder(): Decoder<UserProfile> {
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
     ["identity", getAddressDecoder()],
-    ["banned", getBooleanDecoder()],
     ["activeBooking", getOptionDecoder(getAddressDecoder())],
     ["activeStay", getOptionDecoder(getAddressDecoder())],
     ["deposited", getU64Decoder()],
@@ -129,8 +125,8 @@ export function getUserProfileDecoder(): Decoder<UserProfile> {
     ["lending", getU64Decoder()],
     ["staked", getU64Decoder()],
     ["isVerified", getBooleanDecoder()],
+    ["banned", getBooleanDecoder()],
     ["listings", getU16Decoder()],
-    ["isHost", getBooleanDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

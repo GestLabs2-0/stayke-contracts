@@ -10,6 +10,8 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -32,9 +34,14 @@ export type ReputationProfile = {
   totalScoreClient: bigint;
   hostedStays: number;
   completedStays: number;
+  hostCancellations: number;
+  clientCancellations: number;
+  hostCancellationsWithin48h: number;
+  clientCancellationsWithin48h: number;
   lowInfractions: number;
   mediumInfractions: number;
   highInfractions: number;
+  lastUpdated: bigint;
   bump: number;
 };
 
@@ -46,9 +53,14 @@ export type ReputationProfileArgs = {
   totalScoreClient: number | bigint;
   hostedStays: number;
   completedStays: number;
+  hostCancellations: number;
+  clientCancellations: number;
+  hostCancellationsWithin48h: number;
+  clientCancellationsWithin48h: number;
   lowInfractions: number;
   mediumInfractions: number;
   highInfractions: number;
+  lastUpdated: number | bigint;
   bump: number;
 };
 
@@ -61,9 +73,14 @@ export function getReputationProfileEncoder(): FixedSizeEncoder<ReputationProfil
     ["totalScoreClient", getU64Encoder()],
     ["hostedStays", getU32Encoder()],
     ["completedStays", getU32Encoder()],
+    ["hostCancellations", getU32Encoder()],
+    ["clientCancellations", getU32Encoder()],
+    ["hostCancellationsWithin48h", getU32Encoder()],
+    ["clientCancellationsWithin48h", getU32Encoder()],
     ["lowInfractions", getU8Encoder()],
     ["mediumInfractions", getU8Encoder()],
     ["highInfractions", getU8Encoder()],
+    ["lastUpdated", getI64Encoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -77,9 +94,14 @@ export function getReputationProfileDecoder(): FixedSizeDecoder<ReputationProfil
     ["totalScoreClient", getU64Decoder()],
     ["hostedStays", getU32Decoder()],
     ["completedStays", getU32Decoder()],
+    ["hostCancellations", getU32Decoder()],
+    ["clientCancellations", getU32Decoder()],
+    ["hostCancellationsWithin48h", getU32Decoder()],
+    ["clientCancellationsWithin48h", getU32Decoder()],
     ["lowInfractions", getU8Decoder()],
     ["mediumInfractions", getU8Decoder()],
     ["highInfractions", getU8Decoder()],
+    ["lastUpdated", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

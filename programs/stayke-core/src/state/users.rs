@@ -6,8 +6,6 @@ pub struct UserProfile {
     pub owner: Pubkey,
     pub identity: Pubkey,
 
-    pub banned: bool,
-
     pub active_booking: Option<Pubkey>,
     pub active_stay: Option<Pubkey>,
 
@@ -22,10 +20,11 @@ pub struct UserProfile {
 
     pub is_verified: bool,
 
+    pub banned: bool, // This might be deleted in the future, but for now I think it's better to have it here so we don't call identity account every time we need to check if the user is banned or not.
+
     // Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user.
     pub listings: u16,
-    // TODO: is this field required?
-    pub is_host: bool,
+
     pub bump: u8,
 }
 
@@ -45,9 +44,17 @@ pub struct ReputationProfile {
     pub hosted_stays: u32,    // Number of stays hosted
     pub completed_stays: u32, // Number of stays completed as a guest
 
+    pub host_cancellations: u32,   // Number of cancellations as host
+    pub client_cancellations: u32, // Number of cancellations as client
+
+    pub host_cancellations_within_48h: u32, // Number of cancellations as host within 24 hours of the stay
+    pub client_cancellations_within_48h: u32, // Number of cancellations as host within 24 hours of the stay
+
     pub low_infractions: u8,
     pub medium_infractions: u8,
     pub high_infractions: u8,
+
+    pub last_updated: i64, // unix timestamp of the last update to the reputation profile
 
     pub bump: u8,
 }
@@ -67,6 +74,7 @@ pub struct Identity {
     pub doc_type: DocType,
     pub is_frozen: bool,
     pub is_banned: bool,
+    pub banned_at: i64,
     pub bump: u8,
 }
 

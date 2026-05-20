@@ -69,6 +69,7 @@ export type Identity = {
   docType: DocType;
   isFrozen: boolean;
   isBanned: boolean;
+  bannedAt: bigint;
   bump: number;
 };
 
@@ -81,6 +82,7 @@ export type IdentityArgs = {
   docType: DocTypeArgs;
   isFrozen: boolean;
   isBanned: boolean;
+  bannedAt: number | bigint;
   bump: number;
 };
 
@@ -97,6 +99,7 @@ export function getIdentityEncoder(): Encoder<IdentityArgs> {
       ["docType", getDocTypeEncoder()],
       ["isFrozen", getBooleanEncoder()],
       ["isBanned", getBooleanEncoder()],
+      ["bannedAt", getI64Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: IDENTITY_DISCRIMINATOR }),
@@ -115,6 +118,7 @@ export function getIdentityDecoder(): Decoder<Identity> {
     ["docType", getDocTypeDecoder()],
     ["isFrozen", getBooleanDecoder()],
     ["isBanned", getBooleanDecoder()],
+    ["bannedAt", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

@@ -34,12 +34,6 @@ pub struct UpdateReputationProfile<'info> {
     pub authority: Signer<'info>, // Often will be a PDA of an escrow/dispute contract rather than the user
 }
 
-pub fn handler_set_host_status(ctx: Context<UpdateUserProfile>, status: bool) -> Result<()> {
-    let user_profile = &mut ctx.accounts.user_profile;
-    user_profile.is_host = status;
-    Ok(())
-}
-
 // These functions abstract the logic that would normally be called by CPI from a Treasury/Escrow program.
 pub fn handler_update_deposit(
     ctx: Context<UpdateUserProfile>,

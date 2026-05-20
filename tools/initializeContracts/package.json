@@ -1,6 +1,7 @@
 {
     "name": "initialize-contracts",
     "version": "1.0.0",
+    "private": true,
     "description": "CLI tool to initialize the Stayke contracts on a Solana cluster",
     "main": "dist/index.ts",
     "files": [

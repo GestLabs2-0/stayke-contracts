@@ -12,6 +12,5 @@ export * from "./clearListingBooking";
 export * from "./initializeConfig";
 export * from "./initializeListing";
 export * from "./initializeUserProfile";
-export * from "./setHostStatus";
 export * from "./updateDeposit";
 export * from "./verifyIdentity";

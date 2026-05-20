@@ -56,7 +56,6 @@ import {
   getInitializeConfigInstructionAsync,
   getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
-  getSetHostStatusInstruction,
   getUpdateDepositInstruction,
   getVerifyIdentityInstructionAsync,
   parseAddInfractionInstruction,
@@ -65,7 +64,6 @@ import {
   parseInitializeConfigInstruction,
   parseInitializeListingInstruction,
   parseInitializeUserProfileInstruction,
-  parseSetHostStatusInstruction,
   parseUpdateDepositInstruction,
   parseVerifyIdentityInstruction,
   type AddInfractionInput,
@@ -80,10 +78,8 @@ import {
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeListingInstruction,
   type ParsedInitializeUserProfileInstruction,
-  type ParsedSetHostStatusInstruction,
   type ParsedUpdateDepositInstruction,
   type ParsedVerifyIdentityInstruction,
-  type SetHostStatusInput,
   type UpdateDepositInput,
   type VerifyIdentityAsyncInput,
 } from "../instructions";
@@ -178,7 +174,6 @@ export enum StaykeCoreInstruction {
   InitializeConfig,
   InitializeListing,
   InitializeUserProfile,
-  SetHostStatus,
   UpdateDeposit,
   VerifyIdentity,
 }
@@ -257,17 +252,6 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([127, 70, 76, 106, 152, 218, 71, 254]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeCoreInstruction.SetHostStatus;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([126, 116, 15, 164, 238, 179, 155, 59]),
       ),
       0,
@@ -313,9 +297,6 @@ export type ParsedStaykeCoreInstruction<
   | ({
       instructionType: StaykeCoreInstruction.InitializeUserProfile;
     } & ParsedInitializeUserProfileInstruction<TProgram>)
-  | ({
-      instructionType: StaykeCoreInstruction.SetHostStatus;
-    } & ParsedSetHostStatusInstruction<TProgram>)
   | ({
       instructionType: StaykeCoreInstruction.UpdateDeposit;
     } & ParsedUpdateDepositInstruction<TProgram>)
@@ -368,13 +349,6 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
       return {
         instructionType: StaykeCoreInstruction.InitializeUserProfile,
         ...parseInitializeUserProfileInstruction(instruction),
-      };
-    }
-    case StaykeCoreInstruction.SetHostStatus: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeCoreInstruction.SetHostStatus,
-        ...parseSetHostStatusInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.UpdateDeposit: {
@@ -446,10 +420,6 @@ export type StaykeCorePluginInstructions = {
     input: InitializeUserProfileAsyncInput,
   ) => ReturnType<typeof getInitializeUserProfileInstructionAsync> &
     SelfPlanAndSendFunctions;
-  setHostStatus: (
-    input: SetHostStatusInput,
-  ) => ReturnType<typeof getSetHostStatusInstruction> &
-    SelfPlanAndSendFunctions;
   updateDeposit: (
     input: UpdateDepositInput,
   ) => ReturnType<typeof getUpdateDepositInstruction> &
@@ -520,11 +490,6 @@ export function staykeCoreProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getInitializeUserProfileInstructionAsync(input),
-            ),
-          setHostStatus: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetHostStatusInstruction(input),
             ),
           updateDeposit: (input) =>
             addSelfPlanAndSendFunctions(

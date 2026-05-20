@@ -71,8 +71,7 @@ pub struct CreateBooking<'info> {
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
         constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
-        constraint = host_profile.is_host @ EscrowError::UserNotHost,
-    )]
+        )]
     pub host_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
@@ -359,7 +358,6 @@ pub struct HostAcceptBooking<'info> {
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
         constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
-        constraint = host_profile.is_host @ EscrowError::UserNotHost,
     )]
     pub host_profile: Account<'info, UserProfile>,
 
@@ -410,7 +408,6 @@ pub struct HostRejectBooking<'info> {
         constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
-        constraint = host_profile.is_host @ EscrowError::UserNotHost,
     )]
     pub host_profile: Account<'info, UserProfile>,
 

@@ -32,7 +32,11 @@ pub mod stayke_core {
         verify_identity::handler_verify_identity(ctx)
     }
 
-    pub fn initialize_listing(ctx: Context<InitializeListing>, price: u64, listing_id: u16) -> Result<()> {
+    pub fn initialize_listing(
+        ctx: Context<InitializeListing>,
+        price: u64,
+        listing_id: u16,
+    ) -> Result<()> {
         initialize::handler_initialize_listing(ctx, price, listing_id)
     }
     // ---------------------------------------------------------------------------
@@ -47,9 +51,6 @@ pub mod stayke_core {
         user_profile_mutators::handler_update_deposit(ctx, amount, is_deposit)
     }
 
-    pub fn set_host_status(ctx: Context<UpdateUserProfile>, status: bool) -> Result<()> {
-        user_profile_mutators::handler_set_host_status(ctx, status)
-    }
     pub fn clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<()> {
         user_profile_mutators::handler_clear_active_booking(ctx)
     }
