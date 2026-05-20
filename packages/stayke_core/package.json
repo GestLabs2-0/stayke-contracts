@@ -20,5 +20,8 @@
   },
   "dependencies": {
     "@solana/program-client-core": "^6.4.0"
-  }
+  },
+  "publishConfig": {
+		"@gabriez:registry": "https://npm.pkg.github.com"
+	}
 }
