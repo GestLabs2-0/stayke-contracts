@@ -15,11 +15,11 @@
     "keywords": [],
     "author": "Gabriel Torres gabrieltorres2014@gmail.com",
     "dependencies": {
-        "@stayke/stayke-core": "workspace:*",
-        "@stayke/stayke-disputes": "workspace:*",
-        "@stayke/stayke-escrow": "workspace:*",
-        "@stayke/stayke-treasury": "workspace:*",
-        "@stayke/stayke-config": "workspace:*",
+        "@GestLabs2-0/stayke-core": "workspace:*",
+        "@GestLabs2-0/stayke-disputes": "workspace:*",
+        "@GestLabs2-0/stayke-escrow": "workspace:*",
+        "@GestLabs2-0/stayke-treasury": "workspace:*",
+        "@GestLabs2-0/stayke-config": "workspace:*",
         "@solana/kit": "^6.4.0"
     },
     "devDependencies": {

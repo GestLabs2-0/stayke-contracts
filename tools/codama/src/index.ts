@@ -74,7 +74,9 @@ async function main() {
 
 			const pkg = JSON.parse(packageFileRead as string);
 
-			pkg.name = `@stayke/${program.name.toLowerCase().replace(/_/g, "-")}`;
+			pkg.name = `@GestLabs2-0/${program.name
+				.toLowerCase()
+				.replace(/_/g, "-")}`;
 
 			await fs.writeFile(packageJsonPath, JSON.stringify(pkg, null, 2));
 		})

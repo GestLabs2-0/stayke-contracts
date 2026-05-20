@@ -1,5 +1,5 @@
 {
-  "name": "@stayke/stayke-escrow",
+  "name": "@GestLabs2-0/stayke-escrow",
   "version": "1.0.0",
   "description": "",
   "main": "dist/src/index.js",

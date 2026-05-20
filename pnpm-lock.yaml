@@ -81,19 +81,19 @@ importers:
 
   tools/initializeContracts:
     dependencies:
-      '@stayke/stayke-config':
+      '@GestLabs2-0/stayke-config':
         specifier: workspace:*
         version: link:../../packages/stayke_config
-      '@stayke/stayke-core':
+      '@GestLabs2-0/stayke-core':
         specifier: workspace:*
         version: link:../../packages/stayke_core
-      '@stayke/stayke-disputes':
+      '@GestLabs2-0/stayke-disputes':
         specifier: workspace:*
         version: link:../../packages/stayke_disputes
-      '@stayke/stayke-escrow':
+      '@GestLabs2-0/stayke-escrow':
         specifier: workspace:*
         version: link:../../packages/stayke_escrow
-      '@stayke/stayke-treasury':
+      '@GestLabs2-0/stayke-treasury':
         specifier: workspace:*
         version: link:../../packages/stayke_treasury
       '@solana/kit':
