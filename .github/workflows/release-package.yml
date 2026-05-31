@@ -21,7 +21,6 @@ jobs:
           node-version: 24
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter './packages/*' build
       # - run: pnpm test
 
   publish-gpr:
@@ -38,6 +37,7 @@ jobs:
           node-version: 24
           registry-url: https://npm.pkg.github.com/
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter './packages/*' build
       - run: pnpm publish -r
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
