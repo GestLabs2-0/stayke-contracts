@@ -4,16 +4,15 @@
 		"rootDir": ".",
 		"tsBuildInfoFile": "./dist/.tsbuildinfo",
 		"target": "ES2022",
-		"module": "CommonJS",
+		"module": "ESNext",
 		"incremental": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"removeComments": true,
 		"resolveJsonModule": true,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
-
 		/* Strictness */
 		"strict": true,
 		"noUncheckedIndexedAccess": true,

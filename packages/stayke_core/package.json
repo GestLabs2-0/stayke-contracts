@@ -1,27 +1,28 @@
 {
-  "name": "@GestLabs2-0/stayke-core",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
-  "files": [
-    "./dist/src",
-    "./dist/types",
-    "./src/"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --build"
-  },
-  "keywords": [],
-  "author": "",
-  "peerDependencies": {
-    "@solana/kit": "^6.4.0"
-  },
-  "dependencies": {
-    "@solana/program-client-core": "^6.4.0"
-  },
-  "publishConfig": {
+	"name": "@GestLabs2-0/stayke-core",
+	"version": "1.0.0",
+	"description": "",
+	"main": "dist/src/index.js",
+	"types": "dist/src/index.d.ts",
+	"files": [
+		"./dist/src",
+		"./dist/types",
+		"./src/"
+	],
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "tsc --build"
+	},
+	"keywords": [],
+	"author": "",
+	"peerDependencies": {
+		"@solana/kit": "^6.4.0"
+	},
+	"dependencies": {
+		"@solana/program-client-core": "^6.4.0"
+	},
+	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	}
 }
