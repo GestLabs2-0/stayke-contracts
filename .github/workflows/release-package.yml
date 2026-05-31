@@ -12,15 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter './packages/*' build
       # - run: pnpm test
 
   publish-gpr:
@@ -37,6 +38,6 @@ jobs:
           node-version: 24
           registry-url: https://npm.pkg.github.com/
       - run: pnpm install --frozen-lockfile
-      - run: pnpm publish -r 
+      - run: pnpm publish -r
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
