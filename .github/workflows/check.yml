@@ -89,15 +89,6 @@ jobs:
           cp -v artifact/*.so target/deploy/
           cp -v artifact/*.json target/idl/ 2>/dev/null || true
 
-      - name: Verify artifact paths
-        run: |
-          echo "=== target/deploy/ ==="
-          ls -la target/deploy/
-          echo "=== target/idl/ ==="
-          ls -la target/idl/ 2>/dev/null || echo "no idl"
-          echo "=== resolve include_bytes path ==="
-          ls -la programs/stayke-escrow/tests/../../../target/deploy/stayke_escrow.so
-
       - name: cargo tree
         run: |
           cargo tree
