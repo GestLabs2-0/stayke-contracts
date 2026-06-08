@@ -32,7 +32,8 @@ jobs:
             ./target/deploy/*.so
             ./target/idl/*.json
 
-  build: 
+  check:
+    needs: anchor-build
     runs-on: ubuntu-latest
   
     steps:
@@ -72,6 +73,10 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
           components: clippy
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: anchor-programs
 
       - name: cargo tree
         run: |
