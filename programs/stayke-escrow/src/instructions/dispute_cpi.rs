@@ -53,7 +53,7 @@ pub fn handler_cpi_update_booking_status(
     booking.status = status.clone();
 
     emit!(BookingStatusUpdated {
-        status: status,
+        status,
         booking: booking.key()
     });
 

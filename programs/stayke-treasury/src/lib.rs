@@ -1,3 +1,4 @@
+#![allow(clippy::diverging_sub_expression)]
 pub mod constants;
 pub mod error;
 pub mod instructions;
@@ -40,17 +41,17 @@ pub mod stayke_treasury {
     // Lending & Staking (placeholders — not yet enabled)
     // ---------------------------------------------------------------------------
 
-    pub fn lend(ctx: Context<Lend>, amount: u64) -> Result<()> {
-        lending::handler_lend(ctx, amount)
-    }
+    // pub fn lend(ctx: Context<Lend>, amount: u64) -> Result<()> {
+    //     lending::handler_lend(ctx, amount)
+    // }
 
-    pub fn withdraw_from_lending(ctx: Context<WithdrawFromLending>, amount: u64) -> Result<()> {
-        lending::handler_withdraw_from_lending(ctx, amount)
-    }
+    // pub fn withdraw_from_lending(ctx: Context<WithdrawFromLending>, amount: u64) -> Result<()> {
+    //     lending::handler_withdraw_from_lending(ctx, amount)
+    // }
 
-    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
-        lending::handler_stake(ctx, amount)
-    }
+    // pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+    //     lending::handler_stake(ctx, amount)
+    // }
 
     // ---------------------------------------------------------------------------
     // CPI endpoints for stayke-disputes

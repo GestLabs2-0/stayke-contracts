@@ -35,7 +35,7 @@ pub struct InitializeUserProfile<'info> {
         space = 8 + Identity::INIT_SPACE,
         seeds = [IDENTITY_SEED.as_bytes(), id.as_ref()],
         bump,
-        constraint = identity.is_banned == false @ StaykeError::IdentityBanned
+        constraint = !identity.is_banned @ StaykeError::IdentityBanned
     )]
     pub identity: Account<'info, Identity>,
     #[account(mut)]
@@ -86,8 +86,8 @@ pub struct InitializeListing<'info> {
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
         bump = user_profile.bump,
-        constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
-        constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
+        constraint = user_profile.is_verified @ StaykeError::UserProfileNotVerified,
+        constraint = !user_profile.banned @ StaykeError::IdentityBanned,
         constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized,
         constraint = user_profile.listings == listing_id @ StaykeError::InvalidListingId,
     )]

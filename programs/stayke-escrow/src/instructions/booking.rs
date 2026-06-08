@@ -221,7 +221,7 @@ pub fn reserve_days<'a>(
         booking_days.occupied_days |= mask;
 
         let years_to_reserve = if check_out.year > check_in.year {
-            (check_out.year - check_in.year) as u32
+            check_out.year.saturating_sub(check_in.year)
         } else {
             0
         };
@@ -304,7 +304,7 @@ pub fn release_days<'a>(
         booking_days.occupied_days &= !mask;
 
         let years_to_reserve = if check_out.year > check_in.year {
-            (check_out.year - check_in.year) as u32
+            check_out.year.saturating_sub(check_in.year)
         } else {
             0
         };

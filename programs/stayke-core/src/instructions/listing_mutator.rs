@@ -7,8 +7,8 @@ pub struct UpdateListing<'info> {
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
         bump = user_profile.bump,
-        constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
-        constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
+        constraint = user_profile.is_verified @ StaykeError::UserProfileNotVerified,
+        constraint = !user_profile.banned @ StaykeError::IdentityBanned,
         constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized
     )]
     pub user_profile: Account<'info, UserProfile>,

@@ -12,7 +12,7 @@ pub struct VerifyIdentity<'info> {
     #[account(mut, seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], bump = user_profile.bump)]
     pub user_profile: Account<'info, UserProfile>,
 
-    #[account(mut, seeds = [IDENTITY_SEED.as_bytes(), identity.id.as_ref()], bump = identity.bump, constraint = identity.is_frozen == false @ StaykeError::IdentityFrozen)]
+    #[account(mut, seeds = [IDENTITY_SEED.as_bytes(), identity.id.as_ref()], bump = identity.bump, constraint = !identity.is_frozen @ StaykeError::IdentityFrozen)]
     pub identity: Account<'info, Identity>,
 
     #[account(seeds = [CORE_CONFIG_SEED.as_bytes()], bump = config.bump)]

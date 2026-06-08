@@ -1,3 +1,4 @@
+#![allow(clippy::diverging_sub_expression)]
 pub mod constants;
 pub mod error;
 pub mod events;
