@@ -12,6 +12,26 @@ on:
     branches: [main, dev, staging]
 
 jobs: 
+  anchor-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: solana-developers/github-actions/setup-all@v0.2.10
+        with:
+          solana_version: "3.0.2"
+          anchor_version: "1.0.2"
+
+      - name: Build Anchor programs
+        run: anchor build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anchor-programs
+          path: |
+            ./target/deploy/*.so
+            ./target/idl/*.json
+
   build: 
     runs-on: ubuntu-latest
   
