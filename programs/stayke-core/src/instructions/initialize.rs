@@ -96,7 +96,11 @@ pub struct InitializeListing<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler_initialize_listing(ctx: Context<InitializeListing>, price: u64, listing_id: u16) -> Result<()> {
+pub fn handler_initialize_listing(
+    ctx: Context<InitializeListing>,
+    price: u64,
+    listing_id: u16,
+) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     let user_profile = &mut ctx.accounts.user_profile;
 
