@@ -84,8 +84,8 @@ pub struct ResolveDisputeTransferCpi<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
-        bump = global_config.bump, 
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
         seeds::program = stayke_config::ID,
         constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]

@@ -30,10 +30,10 @@ pub struct InitializeUserProfile<'info> {
     #[account(init, payer = authority, space = 8 + ReputationProfile::INIT_SPACE, seeds = [REPUTATION_PROFILE_SEED.as_bytes(), authority.key().as_ref()], bump)]
     pub reputation_profile: Account<'info, ReputationProfile>,
     #[account(
-        init_if_needed, 
-        payer = authority, 
-        space = 8 + Identity::INIT_SPACE, 
-        seeds = [IDENTITY_SEED.as_bytes(), id.as_ref()], 
+        init_if_needed,
+        payer = authority,
+        space = 8 + Identity::INIT_SPACE,
+        seeds = [IDENTITY_SEED.as_bytes(), id.as_ref()],
         bump,
         constraint = identity.is_banned == false @ StaykeError::IdentityBanned
     )]
@@ -75,17 +75,17 @@ pub struct InitializeListing<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    #[account(init, 
-            payer = authority, 
-            space = 8 + Listing::INIT_SPACE, 
-            seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing_id.to_le_bytes().as_ref()], 
+    #[account(init,
+            payer = authority,
+            space = 8 + Listing::INIT_SPACE,
+            seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing_id.to_le_bytes().as_ref()],
             bump
         )]
     pub listing: Account<'info, Listing>,
 
-    #[account( 
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], 
-        bump = user_profile.bump, 
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
+        bump = user_profile.bump,
         constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
         constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
         constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized,

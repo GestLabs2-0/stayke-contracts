@@ -4,9 +4,9 @@ use crate::{error::StaykeError, Listing, UserProfile, LISTING_SEED, USER_PROFILE
 
 #[derive(Accounts)]
 pub struct UpdateListing<'info> {
-    #[account( 
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()], 
-        bump = user_profile.bump, 
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
+        bump = user_profile.bump,
         constraint = user_profile.is_verified == true @ StaykeError::UserProfileNotVerified,
         constraint = user_profile.banned == false @ StaykeError::IdentityBanned,
         constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized
@@ -14,8 +14,9 @@ pub struct UpdateListing<'info> {
     pub user_profile: Account<'info, UserProfile>,
 
     #[account(
-        mut, 
-        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()], bump = listing.bump,
+        mut,
+        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
+        bump = listing.bump,
         constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,
@@ -47,8 +48,9 @@ pub struct ClearListingBooking<'info> {
     pub user_profile: Account<'info, UserProfile>,
 
     #[account(
-        mut, 
-        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()], bump = listing.bump, 
+        mut,
+        seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
+        bump = listing.bump,
         constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,

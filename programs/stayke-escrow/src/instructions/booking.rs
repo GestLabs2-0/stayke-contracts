@@ -90,8 +90,8 @@ pub struct CreateBooking<'info> {
     pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
-        bump = global_config.bump, 
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
         seeds::program = stayke_config::ID,
         constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
@@ -371,8 +371,8 @@ pub struct HostAcceptBooking<'info> {
     pub booking: Account<'info, Booking>,
 
     #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
-        bump = global_config.bump, 
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
         seeds::program = stayke_config::ID,
         constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
@@ -489,8 +489,8 @@ pub struct ClientAcceptReserve<'info> {
     pub listing: Account<'info, Listing>,
 
     #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
-        bump = global_config.bump, 
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
         seeds::program = stayke_config::ID,
         constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
@@ -648,8 +648,8 @@ pub struct CompleteStay<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()], 
-        bump = global_config.bump, 
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
         seeds::program = stayke_config::ID,
         constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
