@@ -23,7 +23,7 @@ jobs:
           anchor_version: "1.0.2"
 
       - name: Build Anchor programs
-        run: anchor build
+        run: anchor build --ignore-keys
 
       - uses: actions/upload-artifact@v4
         with:
