@@ -7,7 +7,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
-pub use instructions::*;
+pub use instructions::{cpi::*, *};
 pub use state::*;
 
 declare_id!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
@@ -17,7 +17,7 @@ pub mod stayke_core {
     use super::*;
 
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
-        initialize::handler_initialize_config(ctx)
+        initialize_config::handler_initialize_config(ctx)
     }
 
     pub fn initialize_user_profile(
@@ -26,7 +26,7 @@ pub mod stayke_core {
         country_code: [u8; 2],
         doctype: DocType,
     ) -> Result<()> {
-        initialize::handler_initialize_user_profile(ctx, id, country_code, doctype)
+        initialize_user_profile::handler_initialize_user_profile(ctx, id, country_code, doctype)
     }
 
     pub fn verify_identity(ctx: Context<VerifyIdentity>) -> Result<()> {
@@ -38,7 +38,7 @@ pub mod stayke_core {
         price: u64,
         listing_id: u16,
     ) -> Result<()> {
-        initialize::handler_initialize_listing(ctx, price, listing_id)
+        initialize_listing::handler_initialize_listing(ctx, price, listing_id)
     }
     // ---------------------------------------------------------------------------
     // User profile mutations — callable directly or via CPI
@@ -49,21 +49,21 @@ pub mod stayke_core {
         amount: u64,
         is_deposit: bool,
     ) -> Result<()> {
-        user_profile_mutators::handler_update_deposit(ctx, amount, is_deposit)
+        handler_update_deposit(ctx, amount, is_deposit)
     }
 
     pub fn clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<()> {
-        user_profile_mutators::handler_clear_active_booking(ctx)
+        handler_clear_active_booking(ctx)
     }
 
     pub fn add_infraction(
         ctx: Context<UpdateReputationProfile>,
         severity: PenaltySeverity,
     ) -> Result<()> {
-        user_profile_mutators::handler_add_infraction(ctx, severity)
+        handler_add_infraction(ctx, severity)
     }
 
     pub fn clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
-        listing_mutator::handle_clear_listing_bookig(ctx)
+        handle_clear_listing_booking(ctx)
     }
 }

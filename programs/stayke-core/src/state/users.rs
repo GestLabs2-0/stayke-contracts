@@ -6,8 +6,8 @@ pub struct UserProfile {
     pub owner: Pubkey,
     pub identity: Pubkey,
 
+    // Refers to the active booking paid by the user
     pub active_booking: Option<Pubkey>,
-    pub active_stay: Option<Pubkey>,
 
     // This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking.
     pub deposited: u64,
