@@ -1,9 +1,11 @@
-pub mod cpi_transfers;
-pub mod guarantee;
+pub mod deposit_guarantee;
 pub mod initialize;
+pub mod penalize_transfer_cpi;
+pub mod withdraw_guarantee;
 
-pub use cpi_transfers::*;
-pub use guarantee::*;
+pub use deposit_guarantee::*;
 pub use initialize::*;
+pub use penalize_transfer_cpi::*;
+pub use withdraw_guarantee::*;
 // pub use lending::*;
 // pub use lending::*;

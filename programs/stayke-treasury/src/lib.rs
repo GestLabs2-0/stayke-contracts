@@ -30,11 +30,11 @@ pub mod stayke_treasury {
     // ---------------------------------------------------------------------------
 
     pub fn deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) -> Result<()> {
-        guarantee::handler_deposit_guarantee(ctx, amount)
+        deposit_guarantee::handler_deposit_guarantee(ctx, amount)
     }
 
     pub fn withdraw_guarantee(ctx: Context<WithdrawGuarantee>, amount: u64) -> Result<()> {
-        guarantee::handler_withdraw_guarantee(ctx, amount)
+        withdraw_guarantee::handler_withdraw_guarantee(ctx, amount)
     }
 
     // ---------------------------------------------------------------------------
@@ -58,6 +58,6 @@ pub mod stayke_treasury {
     // ---------------------------------------------------------------------------
 
     pub fn cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: u64) -> Result<()> {
-        cpi_transfers::handler_cpi_penalize_transfer(ctx, amount)
+        penalize_transfer_cpi::handler_cpi_penalize_transfer(ctx, amount)
     }
 }
