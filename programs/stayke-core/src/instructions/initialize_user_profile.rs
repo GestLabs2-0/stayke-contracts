@@ -5,6 +5,8 @@ use crate::{
     REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
 };
 
+// TODO: REFACTOR IDENTITY CREATION BY USING A UNIQUE INSTRUCTION TO CREATE IT
+
 #[derive(Accounts)]
 #[instruction(id: [u8; 32])]
 pub struct InitializeUserProfile<'info> {

@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+// TODO: MODIFY USERPROFIEL STATE TO USE AN OPTIONAL IDENTITY. EVERYTHING WILL BE BLOCK IF IDENTITY ISN'T SET
 #[account]
 #[derive(InitSpace)]
 pub struct UserProfile {
