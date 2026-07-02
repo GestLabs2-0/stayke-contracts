@@ -1,7 +1,19 @@
-pub mod booking;
-pub mod dispute_cpi;
+pub mod client_accept_reserve;
+pub mod client_reject_reserve;
+pub mod close_booking;
+pub mod complete_stay;
+pub mod cpi;
+pub mod create_booking;
+pub mod host_accept_booking;
+pub mod host_reject_booking;
 pub mod initialize;
 
-pub use booking::*;
-pub use dispute_cpi::*;
+pub use client_accept_reserve::*;
+pub use client_reject_reserve::*;
+pub use close_booking::*;
+pub use complete_stay::*;
+pub use cpi::*;
+pub use create_booking::*;
+pub use host_accept_booking::*;
+pub use host_reject_booking::*;
 pub use initialize::*;
