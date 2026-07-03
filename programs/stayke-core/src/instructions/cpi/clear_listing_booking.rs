@@ -1,5 +1,9 @@
+use crate::{
+    constants::LISTING_SEED,
+    error::StaykeError,
+    state::{Listing, UserProfile},
+};
 use anchor_lang::prelude::*;
-use crate::{state::{UserProfile, Listing}, error::StaykeError, constants::LISTING_SEED};
 
 // TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
 // I think the best way to handle this all is by creating a global contract
