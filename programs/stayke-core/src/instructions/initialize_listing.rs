@@ -20,7 +20,7 @@ pub struct InitializeListing<'info> {
 
     #[account(
         mut,
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.authority.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), authority.key().as_ref()],
         bump = user_profile.bump,
         constraint = user_profile.identity.is_some() @StaykeError::UserProfileNotVerified,
         constraint = !user_profile.banned @ StaykeError::IdentityBanned,
@@ -40,11 +40,13 @@ pub fn handler_initialize_listing(
     let listing = &mut ctx.accounts.listing;
     let user_profile = &mut ctx.accounts.user_profile;
 
+    user_profile.listings = user_profile
+        .listings
+        .checked_add(1)
+        .ok_or(StaykeError::MaxListingsReached)?;
     listing.owner = user_profile.key();
     listing.listing_id = listing_id;
     listing.price = price;
-
-    user_profile.listings += 1;
 
     Ok(())
 }

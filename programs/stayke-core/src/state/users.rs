@@ -64,7 +64,6 @@ pub struct ReputationProfile {
 #[derive(InitSpace)]
 pub struct Identity {
     pub verified_at: i64,
-    pub is_banned: bool,
-    pub banned_at: i64,
+    pub linked: bool,
     pub bump: u8,
 }

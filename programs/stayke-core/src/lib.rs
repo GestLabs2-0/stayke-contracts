@@ -17,15 +17,11 @@ pub mod stayke_core {
     use super::*;
 
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
-        initialize_config::handler_initialize_config(ctx)
+        handler_initialize_config(ctx)
     }
 
     pub fn initialize_user_profile(ctx: Context<InitializeUserProfile>) -> Result<()> {
-        initialize_user_profile::handler_initialize_user_profile(ctx)
-    }
-
-    pub fn verify_identity(ctx: Context<InitIdentity>, _id: [u8; 32]) -> Result<()> {
-        init_identity::handler_init_identity(ctx)
+        handler_initialize_user_profile(ctx)
     }
 
     pub fn initialize_listing(
@@ -33,7 +29,7 @@ pub mod stayke_core {
         price: u64,
         listing_id: u16,
     ) -> Result<()> {
-        initialize_listing::handler_initialize_listing(ctx, price, listing_id)
+        handler_initialize_listing(ctx, price, listing_id)
     }
     // ---------------------------------------------------------------------------
     // User profile mutations — callable directly or via CPI
@@ -60,5 +56,17 @@ pub mod stayke_core {
 
     pub fn clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
         handle_clear_listing_booking(ctx)
+    }
+
+    // --------------------------------------------------------------------------
+    // Identity Verification
+    // ------------------------------------------------------------------------
+
+    pub fn link_identity(ctx: Context<LinkIdentity>, _id: [u8; 32]) -> Result<()> {
+        handler_link_identity(ctx)
+    }
+
+    pub fn init_identity(ctx: Context<InitIdentity>, _id: [u8; 32]) -> Result<()> {
+        handler_init_identity(ctx)
     }
 }
