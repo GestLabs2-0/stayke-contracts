@@ -11,7 +11,7 @@ use crate::{
 pub struct UpdateUserProfile<'info> {
     #[account(
         mut,
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.authority.key().as_ref()],
         bump = user_profile.bump,
         // NOTE: the `authority` here can be either the user's wallet (direct call)
         // or a trusted PDA from another Stayke program (CPI call).
@@ -26,7 +26,7 @@ pub struct UpdateUserProfile<'info> {
 pub struct UpdateReputationProfile<'info> {
     #[account(
         mut,
-        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), reputation_profile.owner.key().as_ref()],
+        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), reputation_profile.authority.key().as_ref()],
         bump = reputation_profile.bump,
     )]
     pub reputation_profile: Account<'info, ReputationProfile>,
@@ -44,7 +44,7 @@ pub fn handler_update_deposit(
 
     if is_deposit {
         user_profile.deposited = user_profile.deposited.saturating_add(amount);
-        user_profile.deposit_timestamp = Clock::get()?.unix_timestamp;
+        // user_profile.deposit_timestamp = Clock::get()?.unix_timestamp;
     } else {
         user_profile.deposited = user_profile.deposited.saturating_sub(amount);
     }

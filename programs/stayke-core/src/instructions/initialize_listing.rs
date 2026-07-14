@@ -6,10 +6,12 @@ use crate::{error::StaykeError, Listing, UserProfile, LISTING_SEED, USER_PROFILE
 #[instruction(price: u64, listing_id: u16)]
 pub struct InitializeListing<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub authority: Signer<'info>,
 
     #[account(init,
-            payer = authority,
+            payer = payer,
             space = 8 + Listing::INIT_SPACE,
             seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing_id.to_le_bytes().as_ref()],
             bump
@@ -17,11 +19,12 @@ pub struct InitializeListing<'info> {
     pub listing: Account<'info, Listing>,
 
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
+        mut,
+        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.authority.key().as_ref()],
         bump = user_profile.bump,
-        constraint = user_profile.is_verified @ StaykeError::UserProfileNotVerified,
+        constraint = user_profile.identity.is_some() @StaykeError::UserProfileNotVerified,
         constraint = !user_profile.banned @ StaykeError::IdentityBanned,
-        constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized,
+        constraint = user_profile.authority == authority.key() @ StaykeError::Unauthorized,
         constraint = user_profile.listings == listing_id @ StaykeError::InvalidListingId,
     )]
     pub user_profile: Account<'info, UserProfile>,

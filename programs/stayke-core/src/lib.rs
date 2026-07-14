@@ -20,17 +20,12 @@ pub mod stayke_core {
         initialize_config::handler_initialize_config(ctx)
     }
 
-    pub fn initialize_user_profile(
-        ctx: Context<InitializeUserProfile>,
-        id: [u8; 32],
-        country_code: [u8; 2],
-        doctype: DocType,
-    ) -> Result<()> {
-        initialize_user_profile::handler_initialize_user_profile(ctx, id, country_code, doctype)
+    pub fn initialize_user_profile(ctx: Context<InitializeUserProfile>) -> Result<()> {
+        initialize_user_profile::handler_initialize_user_profile(ctx)
     }
 
-    pub fn verify_identity(ctx: Context<VerifyIdentity>) -> Result<()> {
-        verify_identity::handler_verify_identity(ctx)
+    pub fn verify_identity(ctx: Context<InitIdentity>, _id: [u8; 32]) -> Result<()> {
+        init_identity::handler_init_identity(ctx)
     }
 
     pub fn initialize_listing(

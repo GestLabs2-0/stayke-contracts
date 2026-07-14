@@ -5,11 +5,11 @@ use crate::{error::StaykeError, Listing, UserProfile, LISTING_SEED, USER_PROFILE
 #[derive(Accounts)]
 pub struct UpdateListing<'info> {
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), authority.key().as_ref()],
         bump = user_profile.bump,
-        constraint = user_profile.is_verified @ StaykeError::UserProfileNotVerified,
+        constraint = user_profile.identity.is_some() @StaykeError::UserProfileNotVerified,
         constraint = !user_profile.banned @ StaykeError::IdentityBanned,
-        constraint = user_profile.owner == authority.key() @ StaykeError::Unauthorized
+        constraint = user_profile.authority == authority.key() @ StaykeError::Unauthorized
     )]
     pub user_profile: Account<'info, UserProfile>,
 
@@ -22,6 +22,9 @@ pub struct UpdateListing<'info> {
     pub listing: Account<'info, Listing>,
 
     pub authority: Signer<'info>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
 }
 
 pub fn handler_update_listing_price(ctx: Context<UpdateListing>, price: u64) -> Result<()> {
