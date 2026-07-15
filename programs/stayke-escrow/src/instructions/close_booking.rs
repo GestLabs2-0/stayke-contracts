@@ -18,30 +18,32 @@ use crate::{
 #[derive(Accounts)]
 pub struct CloseBooking<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub client: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
-        constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
+        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
     #[account(
         mut,
-        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
-        bump = host_profile.bump,
+        bump = host_reputation.bump,
     )]
     pub host_reputation: Account<'info, stayke_core::ReputationProfile>,
 
     /// Host's ReputationProfile from stayke-core (receives score update).
     #[account(
-        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
+        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
-        bump,
+        bump = host_profile.bump,
     )]
     pub host_profile: Account<'info, UserProfile>,
 
@@ -50,6 +52,7 @@ pub struct CloseBooking<'info> {
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
+        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
         constraint = booking.status == BookingStatus::Active @ EscrowError::BookingNotActive,
     )]
     pub booking: Account<'info, Booking>,

@@ -21,20 +21,22 @@ use crate::{
 #[derive(Accounts)]
 pub struct CompleteStay<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub client: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
-        constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
+        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
     /// The host's UserProfile — destination for the payment.
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
     )]
@@ -46,6 +48,7 @@ pub struct CompleteStay<'info> {
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
         constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
+        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
         constraint = booking.status == BookingStatus::ReviewCompleted @ EscrowError::BookingNotReviewCompleted,
     )]
     pub booking: Box<Account<'info, Booking>>,

@@ -18,15 +18,17 @@ use crate::{
 #[derive(Accounts)]
 pub struct HostAcceptBooking<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub host: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
-        constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
+        constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
-        constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
+        constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
         constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub host_profile: Account<'info, UserProfile>,

@@ -129,7 +129,7 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
     add_infraction(add_inf_ctx, severity)?;
 
     emit!(UserPenalized {
-        penalized_user: ctx.accounts.penalized_user_profile.owner,
+        penalized_user: ctx.accounts.penalized_user_profile.authority,
         affected_wallet: ctx.accounts.affected_wallet.key(),
         penalty_amount: actual_retribution,
         timestamp: Clock::get()?.unix_timestamp,

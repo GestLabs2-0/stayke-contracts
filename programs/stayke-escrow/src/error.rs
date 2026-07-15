@@ -37,12 +37,16 @@ pub enum EscrowError {
     InvalidHost,
     #[msg("Invalid booking property")]
     InvalidBookingProperty,
+    #[msg("Invalid host for this booking")]
+    InvalidHostBooking,
 
     // User state
     #[msg("User is banned")]
     UserBanned,
     #[msg("User is not verified")]
     UserNotVerified,
+    #[msg("Host not verified")]
+    HostNotVerified,
     #[msg("User does not have enough deposit to perform this action")]
     InsufficientDeposit,
     #[msg("User is not registered as a host")]

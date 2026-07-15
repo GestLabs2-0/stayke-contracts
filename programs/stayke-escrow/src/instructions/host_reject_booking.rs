@@ -19,18 +19,21 @@ use crate::{
 #[derive(Accounts)]
 pub struct HostRejectBooking<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub host: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
-        constraint = host.key() == host_profile.owner @ EscrowError::UnauthorizedHost,
+        constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
-        constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
+        constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
     )]
     pub host_profile: Account<'info, UserProfile>,
 
+    // TODO: check if lamports for closing booking goes to payer
     /// CHECK: The guest wallet — receives the rent lamports from the closed booking account.
     #[account(mut, constraint = guest.key() == booking.guest @ EscrowError::WrongGuestPassed)]
     pub guest: UncheckedAccount<'info>,

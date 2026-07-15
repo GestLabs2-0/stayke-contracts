@@ -63,7 +63,7 @@ pub struct WithdrawGuarantee<'info> {
         seeds = [USER_PROFILE_SEED.as_bytes(), signer.key().as_ref()],
         seeds::program = stayke_core_program.key(),
         bump = user_profile.bump,
-        constraint = user_profile.owner == signer.key() @ TreasuryError::Unauthorized,
+        constraint = user_profile.authority == signer.key() @ TreasuryError::Unauthorized,
         constraint = !user_profile.banned @ TreasuryError::UserBanned,
         constraint = user_profile.active_booking.is_none() @ TreasuryError::ActiveBookingExists,
     )]

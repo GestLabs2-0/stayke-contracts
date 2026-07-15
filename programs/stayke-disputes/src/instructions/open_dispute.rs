@@ -22,6 +22,8 @@ use crate::{
 #[derive(Accounts)]
 pub struct OpenDispute<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub initiator: Signer<'info>,
 
     #[account(
@@ -29,7 +31,7 @@ pub struct OpenDispute<'info> {
         seeds::program = stayke_core::ID,
         bump = initiator_profile.bump,
         constraint = !initiator_profile.banned @ DisputeError::UserBanned,
-        constraint = initiator_profile.is_verified @ DisputeError::UserNotVerified,
+        constraint = initiator_profile.identity.is_some() @ DisputeError::UserNotVerified,
     )]
     pub initiator_profile: Account<'info, UserProfile>,
 
@@ -39,7 +41,7 @@ pub struct OpenDispute<'info> {
 
     #[account(
         init,
-        payer = initiator,
+        payer = payer,
         space = 8 + Dispute::INIT_SPACE,
         seeds = [DISPUTE_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump,

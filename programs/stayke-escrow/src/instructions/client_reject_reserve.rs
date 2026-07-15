@@ -19,15 +19,17 @@ use crate::{
 #[derive(Accounts)]
 pub struct ClientRejectReserve<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub client: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
-        constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
+        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
-        constraint = client_profile.is_verified @ EscrowError::UserNotVerified,
+        constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
     )]
     pub client_profile: Account<'info, UserProfile>,
 

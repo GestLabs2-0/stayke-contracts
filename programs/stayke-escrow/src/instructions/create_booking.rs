@@ -23,6 +23,8 @@ use crate::{
 #[instruction(check_in: i64)]
 pub struct CreateBooking<'info> {
     #[account(mut)]
+    pub payer: Signer<'info>,
+
     pub client: Signer<'info>,
 
     /// The guest's UserProfile from stayke-core.
@@ -30,28 +32,28 @@ pub struct CreateBooking<'info> {
         seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = client_profile.bump,
-        constraint = client.key() != host_profile.owner @ EscrowError::HostCannotBookOwnProperty,
-        constraint = client.key() == client_profile.owner @ EscrowError::UnauthorizedBooking,
+        constraint = client.key() != host_profile.authority @ EscrowError::HostCannotBookOwnProperty,
+        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
-        constraint = client_profile.is_verified @ EscrowError::UserNotVerified,
+        constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
         constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
     /// The host's UserProfile from stayke-core.
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.owner.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
-        constraint = host_profile.is_verified @ EscrowError::UserNotVerified,
+        constraint = host_profile.identity.is_some() @ EscrowError::HostNotVerified,
         constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         )]
     pub host_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
         init,
-        payer = client,
+        payer = payer,
         space = 8 + Booking::INIT_SPACE,
         seeds = [BOOKING_SEED.as_bytes(), property.key().as_ref(), client_profile.key().as_ref(), check_in.to_le_bytes().as_ref()],
         bump
@@ -74,9 +76,10 @@ pub struct CreateBooking<'info> {
 
     pub system_program: Program<'info, System>,
 
+    // TODO: check if it is required to use init_if_needed in the other bookingDays acc
     #[account(
         init_if_needed,
-        payer = client,
+        payer = payer,
         space = 8 + BookingDays::INIT_SPACE,
         seeds = [BOOKING_DAYS_SEED.as_bytes(), property.key().as_ref(), check_in.year_month().to_le_bytes().as_ref()],
         bump,
