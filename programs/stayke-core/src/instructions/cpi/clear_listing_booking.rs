@@ -29,7 +29,7 @@ pub struct ClearListingBooking<'info> {
 
 pub fn handle_clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
-    listing.is_occupied = None;
+    listing.is_occupied = false;
 
     Ok(())
 }

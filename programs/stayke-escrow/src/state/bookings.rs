@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::utils::DateComponents;
+// TODO: refactor bookings days to store all year instead of multiple accounts
 
 /// Tracks which calendar days are occupied for a given property in a given month.
 /// Uses bitwise operations on a u32 (max 31 days).

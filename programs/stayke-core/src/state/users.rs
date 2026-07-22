@@ -54,8 +54,6 @@ pub struct ReputationProfile {
     pub medium_infractions: u8,
     /// Infraction counter
     pub high_infractions: u8,
-    /// unix timestamp of the last update to the reputation profile
-    pub last_updated: i64,
     pub bump: u8,
 }
 

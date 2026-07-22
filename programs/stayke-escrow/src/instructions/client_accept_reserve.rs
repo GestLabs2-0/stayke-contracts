@@ -115,7 +115,7 @@ pub fn handler_client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Resul
         ctx.accounts.mint.decimals,
     )?;
 
-    listing.is_occupied = Some(booking.guest);
+    listing.is_occupied = true;
     booking.status = BookingStatus::Active;
     booking.escrow_bump = ctx.bumps.escrow_token_account;
 
