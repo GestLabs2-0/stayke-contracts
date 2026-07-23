@@ -44,24 +44,28 @@ export const STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY = 0x177c; // 601
 export const STAYKE_ESCROW_ERROR__INVALID_HOST = 0x177d; // 6013
 /** InvalidBookingProperty: Invalid booking property */
 export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY = 0x177e; // 6014
+/** InvalidHostBooking: Invalid host for this booking */
+export const STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING = 0x177f; // 6015
 /** UserBanned: User is banned */
-export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x177f; // 6015
+export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x1780; // 6016
 /** UserNotVerified: User is not verified */
-export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1780; // 6016
+export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1781; // 6017
+/** HostNotVerified: Host not verified */
+export const STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED = 0x1782; // 6018
 /** InsufficientDeposit: User does not have enough deposit to perform this action */
-export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1781; // 6017
+export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1783; // 6019
 /** UserNotHost: User is not registered as a host */
-export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1782; // 6018
+export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1784; // 6020
 /** InvalidScore: Invalid score — must be between 1 and 5 */
-export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x1783; // 6019
+export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x1785; // 6021
 /** InvalidTokenMint: The token mint does not match the configured USDC mint */
-export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x1784; // 6020
+export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x1786; // 6022
 /** InvalidVaultAccount: The treasury/vault account does not match the configured one */
-export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x1785; // 6021
+export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x1787; // 6023
 /** WrongGuestPassed: Wrong guest pubkey passed */
-export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x1786; // 6022
+export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x1788; // 6024
 /** UnauthorizedAdmin: Unauthorized admin action */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x1787; // 6023
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x1789; // 6025
 
 export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE
@@ -69,12 +73,14 @@ export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED
   | typeof STAYKE_ESCROW_ERROR__DATES_UNBOOKED
   | typeof STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY
+  | typeof STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED
   | typeof STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_DATES
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_DAYS_ACCOUNT
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS
   | typeof STAYKE_ESCROW_ERROR__INVALID_HOST
+  | typeof STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING
   | typeof STAYKE_ESCROW_ERROR__INVALID_MONTH
   | typeof STAYKE_ESCROW_ERROR__INVALID_SCORE
   | typeof STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT
@@ -97,12 +103,14 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED]: `Dates already booked for this property`,
     [STAYKE_ESCROW_ERROR__DATES_UNBOOKED]: `Dates are not booked for this property`,
     [STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY]: `Host cannot book their own property`,
+    [STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED]: `Host not verified`,
     [STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT]: `User does not have enough deposit to perform this action`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_DATES]: `Invalid booking dates: check-in must be before check-out and in the future`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_DAYS_ACCOUNT]: `Invalid BookingDays account for the given dates`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY]: `Invalid booking property`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS]: `Invalid booking status for this action`,
     [STAYKE_ESCROW_ERROR__INVALID_HOST]: `Invalid host for this property`,
+    [STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING]: `Invalid host for this booking`,
     [STAYKE_ESCROW_ERROR__INVALID_MONTH]: `Invalid month`,
     [STAYKE_ESCROW_ERROR__INVALID_SCORE]: `Invalid score — must be between 1 and 5`,
     [STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT]: `The token mint does not match the configured USDC mint`,

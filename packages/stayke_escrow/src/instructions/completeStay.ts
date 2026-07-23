@@ -29,6 +29,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -54,6 +55,7 @@ export function getCompleteStayDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CompleteStayInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountClient extends string | AccountMeta<string> = string,
   TAccountClientProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
@@ -71,8 +73,12 @@ export type CompleteStayInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountClient extends string
-        ? WritableSignerAccount<TAccountClient> &
+        ? ReadonlySignerAccount<TAccountClient> &
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
@@ -137,6 +143,7 @@ export function getCompleteStayInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CompleteStayAsyncInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostProfile extends string = string,
@@ -149,6 +156,7 @@ export type CompleteStayAsyncInput<
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile?: Address<TAccountClientProfile>;
   /** The host's UserProfile — destination for the payment. */
@@ -166,6 +174,7 @@ export type CompleteStayAsyncInput<
 };
 
 export async function getCompleteStayInstructionAsync<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostProfile extends string,
@@ -180,6 +189,7 @@ export async function getCompleteStayInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CompleteStayAsyncInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -196,6 +206,7 @@ export async function getCompleteStayInstructionAsync<
 ): Promise<
   CompleteStayInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -215,7 +226,8 @@ export async function getCompleteStayInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
@@ -290,6 +302,7 @@ export async function getCompleteStayInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
@@ -306,6 +319,7 @@ export async function getCompleteStayInstructionAsync<
     programAddress,
   } as CompleteStayInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -321,6 +335,7 @@ export async function getCompleteStayInstructionAsync<
 }
 
 export type CompleteStayInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostProfile extends string = string,
@@ -333,6 +348,7 @@ export type CompleteStayInput<
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile: Address<TAccountClientProfile>;
   /** The host's UserProfile — destination for the payment. */
@@ -350,6 +366,7 @@ export type CompleteStayInput<
 };
 
 export function getCompleteStayInstruction<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostProfile extends string,
@@ -364,6 +381,7 @@ export function getCompleteStayInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CompleteStayInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -379,6 +397,7 @@ export function getCompleteStayInstruction<
   config?: { programAddress?: TProgramAddress },
 ): CompleteStayInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountClient,
   TAccountClientProfile,
   TAccountHostProfile,
@@ -397,7 +416,8 @@ export function getCompleteStayInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
@@ -429,6 +449,7 @@ export function getCompleteStayInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
@@ -445,6 +466,7 @@ export function getCompleteStayInstruction<
     programAddress,
   } as CompleteStayInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -465,20 +487,21 @@ export type ParsedCompleteStayInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    client: TAccountMetas[0];
-    clientProfile: TAccountMetas[1];
+    payer: TAccountMetas[0];
+    client: TAccountMetas[1];
+    clientProfile: TAccountMetas[2];
     /** The host's UserProfile — destination for the payment. */
-    hostProfile: TAccountMetas[2];
-    booking: TAccountMetas[3];
-    globalConfig: TAccountMetas[4];
-    escrowConfig: TAccountMetas[5];
-    escrowTokenAccount: TAccountMetas[6];
+    hostProfile: TAccountMetas[3];
+    booking: TAccountMetas[4];
+    globalConfig: TAccountMetas[5];
+    escrowConfig: TAccountMetas[6];
+    escrowTokenAccount: TAccountMetas[7];
     /** The host's USDC token account. */
-    hostTokenAccount: TAccountMetas[7];
+    hostTokenAccount: TAccountMetas[8];
     /** Platform fee vault. */
-    platformVault: TAccountMetas[8];
-    mint: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
+    platformVault: TAccountMetas[9];
+    mint: TAccountMetas[10];
+    tokenProgram: TAccountMetas[11];
   };
   data: CompleteStayInstructionData;
 };
@@ -491,12 +514,12 @@ export function parseCompleteStayInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCompleteStayInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 11) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 11,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -509,6 +532,7 @@ export function parseCompleteStayInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       client: getNextAccount(),
       clientProfile: getNextAccount(),
       hostProfile: getNextAccount(),

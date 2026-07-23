@@ -31,6 +31,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -61,6 +62,7 @@ export function getCreateBookingDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CreateBookingInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountClient extends string | AccountMeta<string> = string,
   TAccountClientProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
@@ -76,8 +78,12 @@ export type CreateBookingInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountClient extends string
-        ? WritableSignerAccount<TAccountClient> &
+        ? ReadonlySignerAccount<TAccountClient> &
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
@@ -149,6 +155,7 @@ export function getCreateBookingInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CreateBookingAsyncInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostProfile extends string = string,
@@ -159,6 +166,7 @@ export type CreateBookingAsyncInput<
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   /** The guest's UserProfile from stayke-core. */
   clientProfile?: Address<TAccountClientProfile>;
@@ -175,6 +183,7 @@ export type CreateBookingAsyncInput<
 };
 
 export async function getCreateBookingInstructionAsync<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostProfile extends string,
@@ -187,6 +196,7 @@ export async function getCreateBookingInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CreateBookingAsyncInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -201,6 +211,7 @@ export async function getCreateBookingInstructionAsync<
 ): Promise<
   CreateBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -218,7 +229,8 @@ export async function getCreateBookingInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
@@ -302,6 +314,7 @@ export async function getCreateBookingInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
@@ -318,6 +331,7 @@ export async function getCreateBookingInstructionAsync<
     programAddress,
   } as CreateBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -331,6 +345,7 @@ export async function getCreateBookingInstructionAsync<
 }
 
 export type CreateBookingInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostProfile extends string = string,
@@ -341,6 +356,7 @@ export type CreateBookingInput<
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   /** The guest's UserProfile from stayke-core. */
   clientProfile: Address<TAccountClientProfile>;
@@ -357,6 +373,7 @@ export type CreateBookingInput<
 };
 
 export function getCreateBookingInstruction<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostProfile extends string,
@@ -369,6 +386,7 @@ export function getCreateBookingInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CreateBookingInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -382,6 +400,7 @@ export function getCreateBookingInstruction<
   config?: { programAddress?: TProgramAddress },
 ): CreateBookingInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountClient,
   TAccountClientProfile,
   TAccountHostProfile,
@@ -398,7 +417,8 @@ export function getCreateBookingInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
@@ -425,6 +445,7 @@ export function getCreateBookingInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
@@ -441,6 +462,7 @@ export function getCreateBookingInstruction<
     programAddress,
   } as CreateBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostProfile,
@@ -459,17 +481,18 @@ export type ParsedCreateBookingInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    client: TAccountMetas[0];
+    payer: TAccountMetas[0];
+    client: TAccountMetas[1];
     /** The guest's UserProfile from stayke-core. */
-    clientProfile: TAccountMetas[1];
+    clientProfile: TAccountMetas[2];
     /** The host's UserProfile from stayke-core. */
-    hostProfile: TAccountMetas[2];
-    booking: TAccountMetas[3];
-    property: TAccountMetas[4];
-    escrowConfig: TAccountMetas[5];
-    globalConfig: TAccountMetas[6];
-    systemProgram: TAccountMetas[7];
-    bookingDays: TAccountMetas[8];
+    hostProfile: TAccountMetas[3];
+    booking: TAccountMetas[4];
+    property: TAccountMetas[5];
+    escrowConfig: TAccountMetas[6];
+    globalConfig: TAccountMetas[7];
+    systemProgram: TAccountMetas[8];
+    bookingDays: TAccountMetas[9];
   };
   data: CreateBookingInstructionData;
 };
@@ -482,12 +505,12 @@ export function parseCreateBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -500,6 +523,7 @@ export function parseCreateBookingInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       client: getNextAccount(),
       clientProfile: getNextAccount(),
       hostProfile: getNextAccount(),

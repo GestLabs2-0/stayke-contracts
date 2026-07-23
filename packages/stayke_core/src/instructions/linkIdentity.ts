@@ -34,23 +34,25 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda } from "../pdas";
+import { findConfigPda, findIdentityPda } from "../pdas";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
 
-export const VERIFY_IDENTITY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [177, 162, 9, 111, 44, 84, 80, 21],
-);
+export const LINK_IDENTITY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  175, 194, 103, 122, 161, 65, 174, 142,
+]);
 
-export function getVerifyIdentityDiscriminatorBytes(): ReadonlyUint8Array {
+export function getLinkIdentityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    VERIFY_IDENTITY_DISCRIMINATOR,
+    LINK_IDENTITY_DISCRIMINATOR,
   );
 }
 
-export type VerifyIdentityInstruction<
+export type LinkIdentityInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountUserProfile extends string | AccountMeta<string> = string,
   TAccountIdentity extends string | AccountMeta<string> = string,
@@ -60,6 +62,10 @@ export type VerifyIdentityInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountAuthority extends string
         ? WritableSignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
@@ -77,55 +83,65 @@ export type VerifyIdentityInstruction<
     ]
   >;
 
-export type VerifyIdentityInstructionData = {
+export type LinkIdentityInstructionData = {
   discriminator: ReadonlyUint8Array;
+  id: ReadonlyUint8Array;
 };
 
-export type VerifyIdentityInstructionDataArgs = {};
+export type LinkIdentityInstructionDataArgs = { id: ReadonlyUint8Array };
 
-export function getVerifyIdentityInstructionDataEncoder(): FixedSizeEncoder<VerifyIdentityInstructionDataArgs> {
+export function getLinkIdentityInstructionDataEncoder(): FixedSizeEncoder<LinkIdentityInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: VERIFY_IDENTITY_DISCRIMINATOR }),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["id", fixEncoderSize(getBytesEncoder(), 32)],
+    ]),
+    (value) => ({ ...value, discriminator: LINK_IDENTITY_DISCRIMINATOR }),
   );
 }
 
-export function getVerifyIdentityInstructionDataDecoder(): FixedSizeDecoder<VerifyIdentityInstructionData> {
+export function getLinkIdentityInstructionDataDecoder(): FixedSizeDecoder<LinkIdentityInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["id", fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 
-export function getVerifyIdentityInstructionDataCodec(): FixedSizeCodec<
-  VerifyIdentityInstructionDataArgs,
-  VerifyIdentityInstructionData
+export function getLinkIdentityInstructionDataCodec(): FixedSizeCodec<
+  LinkIdentityInstructionDataArgs,
+  LinkIdentityInstructionData
 > {
   return combineCodec(
-    getVerifyIdentityInstructionDataEncoder(),
-    getVerifyIdentityInstructionDataDecoder(),
+    getLinkIdentityInstructionDataEncoder(),
+    getLinkIdentityInstructionDataDecoder(),
   );
 }
 
-export type VerifyIdentityAsyncInput<
+export type LinkIdentityAsyncInput<
+  TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
   TAccountUserProfile extends string = string,
   TAccountIdentity extends string = string,
   TAccountConfig extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
   userProfile: Address<TAccountUserProfile>;
-  identity: Address<TAccountIdentity>;
+  identity?: Address<TAccountIdentity>;
   config?: Address<TAccountConfig>;
+  id: LinkIdentityInstructionDataArgs["id"];
 };
 
-export async function getVerifyIdentityInstructionAsync<
+export async function getLinkIdentityInstructionAsync<
+  TAccountPayer extends string,
   TAccountAuthority extends string,
   TAccountUserProfile extends string,
   TAccountIdentity extends string,
   TAccountConfig extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: VerifyIdentityAsyncInput<
+  input: LinkIdentityAsyncInput<
+    TAccountPayer,
     TAccountAuthority,
     TAccountUserProfile,
     TAccountIdentity,
@@ -133,8 +149,9 @@ export async function getVerifyIdentityInstructionAsync<
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  VerifyIdentityInstruction<
+  LinkIdentityInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountUserProfile,
     TAccountIdentity,
@@ -146,6 +163,7 @@ export async function getVerifyIdentityInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
+    payer: { value: input.payer ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: true },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
     identity: { value: input.identity ?? null, isWritable: true },
@@ -156,7 +174,15 @@ export async function getVerifyIdentityInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
+  if (!accounts.identity.value) {
+    accounts.identity.value = await findIdentityPda({
+      id: getNonNullResolvedInstructionInput("id", args.id),
+    });
+  }
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
@@ -164,15 +190,19 @@ export async function getVerifyIdentityInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("userProfile", accounts.userProfile),
       getAccountMeta("identity", accounts.identity),
       getAccountMeta("config", accounts.config),
     ],
-    data: getVerifyIdentityInstructionDataEncoder().encode({}),
+    data: getLinkIdentityInstructionDataEncoder().encode(
+      args as LinkIdentityInstructionDataArgs,
+    ),
     programAddress,
-  } as VerifyIdentityInstruction<
+  } as LinkIdentityInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountUserProfile,
     TAccountIdentity,
@@ -180,34 +210,40 @@ export async function getVerifyIdentityInstructionAsync<
   >);
 }
 
-export type VerifyIdentityInput<
+export type LinkIdentityInput<
+  TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
   TAccountUserProfile extends string = string,
   TAccountIdentity extends string = string,
   TAccountConfig extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
   userProfile: Address<TAccountUserProfile>;
   identity: Address<TAccountIdentity>;
   config: Address<TAccountConfig>;
+  id: LinkIdentityInstructionDataArgs["id"];
 };
 
-export function getVerifyIdentityInstruction<
+export function getLinkIdentityInstruction<
+  TAccountPayer extends string,
   TAccountAuthority extends string,
   TAccountUserProfile extends string,
   TAccountIdentity extends string,
   TAccountConfig extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: VerifyIdentityInput<
+  input: LinkIdentityInput<
+    TAccountPayer,
     TAccountAuthority,
     TAccountUserProfile,
     TAccountIdentity,
     TAccountConfig
   >,
   config?: { programAddress?: TProgramAddress },
-): VerifyIdentityInstruction<
+): LinkIdentityInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountAuthority,
   TAccountUserProfile,
   TAccountIdentity,
@@ -218,6 +254,7 @@ export function getVerifyIdentityInstruction<
 
   // Original accounts.
   const originalAccounts = {
+    payer: { value: input.payer ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: true },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
     identity: { value: input.identity ?? null, isWritable: true },
@@ -228,18 +265,25 @@ export function getVerifyIdentityInstruction<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("userProfile", accounts.userProfile),
       getAccountMeta("identity", accounts.identity),
       getAccountMeta("config", accounts.config),
     ],
-    data: getVerifyIdentityInstructionDataEncoder().encode({}),
+    data: getLinkIdentityInstructionDataEncoder().encode(
+      args as LinkIdentityInstructionDataArgs,
+    ),
     programAddress,
-  } as VerifyIdentityInstruction<
+  } as LinkIdentityInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountUserProfile,
     TAccountIdentity,
@@ -247,34 +291,35 @@ export function getVerifyIdentityInstruction<
   >);
 }
 
-export type ParsedVerifyIdentityInstruction<
+export type ParsedLinkIdentityInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    authority: TAccountMetas[0];
-    userProfile: TAccountMetas[1];
-    identity: TAccountMetas[2];
-    config: TAccountMetas[3];
+    payer: TAccountMetas[0];
+    authority: TAccountMetas[1];
+    userProfile: TAccountMetas[2];
+    identity: TAccountMetas[3];
+    config: TAccountMetas[4];
   };
-  data: VerifyIdentityInstructionData;
+  data: LinkIdentityInstructionData;
 };
 
-export function parseVerifyIdentityInstruction<
+export function parseLinkIdentityInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedVerifyIdentityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+): ParsedLinkIdentityInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 5) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 5,
       },
     );
   }
@@ -287,11 +332,12 @@ export function parseVerifyIdentityInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       authority: getNextAccount(),
       userProfile: getNextAccount(),
       identity: getNextAccount(),
       config: getNextAccount(),
     },
-    data: getVerifyIdentityInstructionDataDecoder().decode(instruction.data),
+    data: getLinkIdentityInstructionDataDecoder().decode(instruction.data),
   };
 }

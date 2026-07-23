@@ -14,31 +14,39 @@ import {
 } from "@solana/kit";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
 
-/** IdentityFrozen: Identity is frozen and already verified */
+/** IdentityFrozen: Identity is frozen and already linked */
 export const STAYKE_CORE_ERROR__IDENTITY_FROZEN = 0x1770; // 6000
 /** IdentityBanned: Identity is banned and cannot be used to create a user profile */
 export const STAYKE_CORE_ERROR__IDENTITY_BANNED = 0x1771; // 6001
 /** UserProfileNotVerified: User profile is not verified, cannot perform this action */
 export const STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED = 0x1772; // 6002
+/** UserProfileAlreadyLinked: User profile already linked */
+export const STAYKE_CORE_ERROR__USER_PROFILE_ALREADY_LINKED = 0x1773; // 6003
 /** Unauthorized: Unauthorized: Only the authority can perform this action */
-export const STAYKE_CORE_ERROR__UNAUTHORIZED = 0x1773; // 6003
+export const STAYKE_CORE_ERROR__UNAUTHORIZED = 0x1774; // 6004
 /** InvalidListingId: Invalid listing ID: The provided listing ID does not match the last existing listing */
-export const STAYKE_CORE_ERROR__INVALID_LISTING_ID = 0x1774; // 6004
+export const STAYKE_CORE_ERROR__INVALID_LISTING_ID = 0x1775; // 6005
+/** MaxListingsReached: Max listings reached */
+export const STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED = 0x1776; // 6006
 
 export type StaykeCoreError =
   | typeof STAYKE_CORE_ERROR__IDENTITY_BANNED
   | typeof STAYKE_CORE_ERROR__IDENTITY_FROZEN
   | typeof STAYKE_CORE_ERROR__INVALID_LISTING_ID
+  | typeof STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED
   | typeof STAYKE_CORE_ERROR__UNAUTHORIZED
+  | typeof STAYKE_CORE_ERROR__USER_PROFILE_ALREADY_LINKED
   | typeof STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED;
 
 let staykeCoreErrorMessages: Record<StaykeCoreError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   staykeCoreErrorMessages = {
     [STAYKE_CORE_ERROR__IDENTITY_BANNED]: `Identity is banned and cannot be used to create a user profile`,
-    [STAYKE_CORE_ERROR__IDENTITY_FROZEN]: `Identity is frozen and already verified`,
+    [STAYKE_CORE_ERROR__IDENTITY_FROZEN]: `Identity is frozen and already linked`,
     [STAYKE_CORE_ERROR__INVALID_LISTING_ID]: `Invalid listing ID: The provided listing ID does not match the last existing listing`,
+    [STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED]: `Max listings reached`,
     [STAYKE_CORE_ERROR__UNAUTHORIZED]: `Unauthorized: Only the authority can perform this action`,
+    [STAYKE_CORE_ERROR__USER_PROFILE_ALREADY_LINKED]: `User profile already linked`,
     [STAYKE_CORE_ERROR__USER_PROFILE_NOT_VERIFIED]: `User profile is not verified, cannot perform this action`,
   };
 }

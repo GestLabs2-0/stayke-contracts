@@ -23,11 +23,11 @@ pub mod stayke_disputes {
     // ---------------------------------------------------------------------------
 
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
-        admin::handler_initialize_config(ctx)
+        handler_initialize_config(ctx)
     }
 
     pub fn penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeverity) -> Result<()> {
-        admin::handler_penalize_user(ctx, severity)
+        handler_penalize_user(ctx, severity)
     }
 
     // ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ pub mod stayke_disputes {
     // ---------------------------------------------------------------------------
 
     pub fn open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) -> Result<()> {
-        manage_disputes::handler_open_dispute(ctx, reason)
+        handler_open_dispute(ctx, reason)
     }
 
     pub fn resolve_dispute(
@@ -43,10 +43,10 @@ pub mod stayke_disputes {
         host_share_bps: u16,
         rejected: bool,
     ) -> Result<()> {
-        manage_disputes::handler_resolve_dispute(ctx, host_share_bps, rejected)
+        handler_resolve_dispute(ctx, host_share_bps, rejected)
     }
 
     pub fn close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
-        manage_disputes::handler_close_dispute(ctx)
+        handler_close_dispute(ctx)
     }
 }

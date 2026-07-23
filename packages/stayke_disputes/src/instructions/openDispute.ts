@@ -29,6 +29,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -60,6 +61,7 @@ export function getOpenDisputeDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type OpenDisputeInstruction<
   TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountInitiator extends string | AccountMeta<string> = string,
   TAccountInitiatorProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
@@ -73,8 +75,12 @@ export type OpenDisputeInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountInitiator extends string
-        ? WritableSignerAccount<TAccountInitiator> &
+        ? ReadonlySignerAccount<TAccountInitiator> &
             AccountSignerMeta<TAccountInitiator>
         : TAccountInitiator,
       TAccountInitiatorProfile extends string
@@ -131,6 +137,7 @@ export function getOpenDisputeInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type OpenDisputeAsyncInput<
+  TAccountPayer extends string = string,
   TAccountInitiator extends string = string,
   TAccountInitiatorProfile extends string = string,
   TAccountBooking extends string = string,
@@ -138,6 +145,7 @@ export type OpenDisputeAsyncInput<
   TAccountStaykeEscrowProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile?: Address<TAccountInitiatorProfile>;
   /** We must mutate the booking state via CPI */
@@ -149,6 +157,7 @@ export type OpenDisputeAsyncInput<
 };
 
 export async function getOpenDisputeInstructionAsync<
+  TAccountPayer extends string,
   TAccountInitiator extends string,
   TAccountInitiatorProfile extends string,
   TAccountBooking extends string,
@@ -158,6 +167,7 @@ export async function getOpenDisputeInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
   input: OpenDisputeAsyncInput<
+    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
     TAccountBooking,
@@ -169,6 +179,7 @@ export async function getOpenDisputeInstructionAsync<
 ): Promise<
   OpenDisputeInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
     TAccountBooking,
@@ -183,7 +194,8 @@ export async function getOpenDisputeInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    initiator: { value: input.initiator ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    initiator: { value: input.initiator ?? null, isWritable: false },
     initiatorProfile: {
       value: input.initiatorProfile ?? null,
       isWritable: false,
@@ -244,6 +256,7 @@ export async function getOpenDisputeInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("initiator", accounts.initiator),
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
       getAccountMeta("booking", accounts.booking),
@@ -257,6 +270,7 @@ export async function getOpenDisputeInstructionAsync<
     programAddress,
   } as OpenDisputeInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
     TAccountBooking,
@@ -267,6 +281,7 @@ export async function getOpenDisputeInstructionAsync<
 }
 
 export type OpenDisputeInput<
+  TAccountPayer extends string = string,
   TAccountInitiator extends string = string,
   TAccountInitiatorProfile extends string = string,
   TAccountBooking extends string = string,
@@ -274,6 +289,7 @@ export type OpenDisputeInput<
   TAccountStaykeEscrowProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile: Address<TAccountInitiatorProfile>;
   /** We must mutate the booking state via CPI */
@@ -285,6 +301,7 @@ export type OpenDisputeInput<
 };
 
 export function getOpenDisputeInstruction<
+  TAccountPayer extends string,
   TAccountInitiator extends string,
   TAccountInitiatorProfile extends string,
   TAccountBooking extends string,
@@ -294,6 +311,7 @@ export function getOpenDisputeInstruction<
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
   input: OpenDisputeInput<
+    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
     TAccountBooking,
@@ -304,6 +322,7 @@ export function getOpenDisputeInstruction<
   config?: { programAddress?: TProgramAddress },
 ): OpenDisputeInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountInitiator,
   TAccountInitiatorProfile,
   TAccountBooking,
@@ -317,7 +336,8 @@ export function getOpenDisputeInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    initiator: { value: input.initiator ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    initiator: { value: input.initiator ?? null, isWritable: false },
     initiatorProfile: {
       value: input.initiatorProfile ?? null,
       isWritable: false,
@@ -351,6 +371,7 @@ export function getOpenDisputeInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("initiator", accounts.initiator),
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
       getAccountMeta("booking", accounts.booking),
@@ -364,6 +385,7 @@ export function getOpenDisputeInstruction<
     programAddress,
   } as OpenDisputeInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
     TAccountBooking,
@@ -379,13 +401,14 @@ export type ParsedOpenDisputeInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    initiator: TAccountMetas[0];
-    initiatorProfile: TAccountMetas[1];
+    payer: TAccountMetas[0];
+    initiator: TAccountMetas[1];
+    initiatorProfile: TAccountMetas[2];
     /** We must mutate the booking state via CPI */
-    booking: TAccountMetas[2];
-    dispute: TAccountMetas[3];
-    staykeEscrowProgram: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    booking: TAccountMetas[3];
+    dispute: TAccountMetas[4];
+    staykeEscrowProgram: TAccountMetas[5];
+    systemProgram: TAccountMetas[6];
   };
   data: OpenDisputeInstructionData;
 };
@@ -398,12 +421,12 @@ export function parseOpenDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedOpenDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -416,6 +439,7 @@ export function parseOpenDisputeInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       initiator: getNextAccount(),
       initiatorProfile: getNextAccount(),
       booking: getNextAccount(),

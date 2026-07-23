@@ -31,6 +31,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -54,6 +55,7 @@ export function getReviewCompletedDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type ReviewCompletedInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountClient extends string | AccountMeta<string> = string,
   TAccountClientProfile extends string | AccountMeta<string> = string,
   TAccountHostReputation extends string | AccountMeta<string> = string,
@@ -64,8 +66,12 @@ export type ReviewCompletedInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountClient extends string
-        ? WritableSignerAccount<TAccountClient> &
+        ? ReadonlySignerAccount<TAccountClient> &
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
@@ -119,12 +125,14 @@ export function getReviewCompletedInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type ReviewCompletedAsyncInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostReputation extends string = string,
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile?: Address<TAccountClientProfile>;
   hostReputation: Address<TAccountHostReputation>;
@@ -135,6 +143,7 @@ export type ReviewCompletedAsyncInput<
 };
 
 export async function getReviewCompletedInstructionAsync<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostReputation extends string,
@@ -143,6 +152,7 @@ export async function getReviewCompletedInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ReviewCompletedAsyncInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostReputation,
@@ -153,6 +163,7 @@ export async function getReviewCompletedInstructionAsync<
 ): Promise<
   ReviewCompletedInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostReputation,
@@ -166,7 +177,8 @@ export async function getReviewCompletedInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
@@ -204,6 +216,7 @@ export async function getReviewCompletedInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostReputation", accounts.hostReputation),
@@ -216,6 +229,7 @@ export async function getReviewCompletedInstructionAsync<
     programAddress,
   } as ReviewCompletedInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostReputation,
@@ -225,12 +239,14 @@ export async function getReviewCompletedInstructionAsync<
 }
 
 export type ReviewCompletedInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountHostReputation extends string = string,
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile: Address<TAccountClientProfile>;
   hostReputation: Address<TAccountHostReputation>;
@@ -241,6 +257,7 @@ export type ReviewCompletedInput<
 };
 
 export function getReviewCompletedInstruction<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountHostReputation extends string,
@@ -249,6 +266,7 @@ export function getReviewCompletedInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ReviewCompletedInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostReputation,
@@ -258,6 +276,7 @@ export function getReviewCompletedInstruction<
   config?: { programAddress?: TProgramAddress },
 ): ReviewCompletedInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountClient,
   TAccountClientProfile,
   TAccountHostReputation,
@@ -270,7 +289,8 @@ export function getReviewCompletedInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
@@ -287,6 +307,7 @@ export function getReviewCompletedInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("hostReputation", accounts.hostReputation),
@@ -299,6 +320,7 @@ export function getReviewCompletedInstruction<
     programAddress,
   } as ReviewCompletedInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountHostReputation,
@@ -313,12 +335,13 @@ export type ParsedReviewCompletedInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    client: TAccountMetas[0];
-    clientProfile: TAccountMetas[1];
-    hostReputation: TAccountMetas[2];
+    payer: TAccountMetas[0];
+    client: TAccountMetas[1];
+    clientProfile: TAccountMetas[2];
+    hostReputation: TAccountMetas[3];
     /** Host's ReputationProfile from stayke-core (receives score update). */
-    hostProfile: TAccountMetas[3];
-    booking: TAccountMetas[4];
+    hostProfile: TAccountMetas[4];
+    booking: TAccountMetas[5];
   };
   data: ReviewCompletedInstructionData;
 };
@@ -331,12 +354,12 @@ export function parseReviewCompletedInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedReviewCompletedInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -349,6 +372,7 @@ export function parseReviewCompletedInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       client: getNextAccount(),
       clientProfile: getNextAccount(),
       hostReputation: getNextAccount(),

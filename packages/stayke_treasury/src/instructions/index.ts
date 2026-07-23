@@ -9,7 +9,4 @@
 export * from "./cpiPenalizeTransfer";
 export * from "./depositGuarantee";
 export * from "./initializeTreasury";
-export * from "./lend";
-export * from "./stake";
-export * from "./withdrawFromLending";
 export * from "./withdrawGuarantee";

@@ -31,6 +31,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -42,7 +43,7 @@ import {
   getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findListingPda } from "../pdas";
+import { findListingPda, findUserProfilePda } from "../pdas";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
 
 export const INITIALIZE_LISTING_DISCRIMINATOR: ReadonlyUint8Array =
@@ -56,6 +57,7 @@ export function getInitializeListingDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type InitializeListingInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountListing extends string | AccountMeta<string> = string,
   TAccountUserProfile extends string | AccountMeta<string> = string,
@@ -66,15 +68,19 @@ export type InitializeListingInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
+        ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       TAccountListing extends string
         ? WritableAccount<TAccountListing>
         : TAccountListing,
       TAccountUserProfile extends string
-        ? ReadonlyAccount<TAccountUserProfile>
+        ? WritableAccount<TAccountUserProfile>
         : TAccountUserProfile,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
@@ -124,20 +130,23 @@ export function getInitializeListingInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type InitializeListingAsyncInput<
+  TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
   TAccountListing extends string = string,
   TAccountUserProfile extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
   listing?: Address<TAccountListing>;
-  userProfile: Address<TAccountUserProfile>;
+  userProfile?: Address<TAccountUserProfile>;
   systemProgram?: Address<TAccountSystemProgram>;
   price: InitializeListingInstructionDataArgs["price"];
   listingId: InitializeListingInstructionDataArgs["listingId"];
 };
 
 export async function getInitializeListingInstructionAsync<
+  TAccountPayer extends string,
   TAccountAuthority extends string,
   TAccountListing extends string,
   TAccountUserProfile extends string,
@@ -145,6 +154,7 @@ export async function getInitializeListingInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
   input: InitializeListingAsyncInput<
+    TAccountPayer,
     TAccountAuthority,
     TAccountListing,
     TAccountUserProfile,
@@ -154,6 +164,7 @@ export async function getInitializeListingInstructionAsync<
 ): Promise<
   InitializeListingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountListing,
     TAccountUserProfile,
@@ -165,9 +176,10 @@ export async function getInitializeListingInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: false },
     listing: { value: input.listing ?? null, isWritable: true },
-    userProfile: { value: input.userProfile ?? null, isWritable: false },
+    userProfile: { value: input.userProfile ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -179,6 +191,14 @@ export async function getInitializeListingInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.userProfile.value) {
+    accounts.userProfile.value = await findUserProfilePda({
+      authority: getAddressFromResolvedInstructionAccount(
+        "authority",
+        accounts.authority.value,
+      ),
+    });
+  }
   if (!accounts.listing.value) {
     accounts.listing.value = await findListingPda({
       userProfile: getAddressFromResolvedInstructionAccount(
@@ -199,6 +219,7 @@ export async function getInitializeListingInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("listing", accounts.listing),
       getAccountMeta("userProfile", accounts.userProfile),
@@ -210,6 +231,7 @@ export async function getInitializeListingInstructionAsync<
     programAddress,
   } as InitializeListingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountListing,
     TAccountUserProfile,
@@ -218,11 +240,13 @@ export async function getInitializeListingInstructionAsync<
 }
 
 export type InitializeListingInput<
+  TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
   TAccountListing extends string = string,
   TAccountUserProfile extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
   listing: Address<TAccountListing>;
   userProfile: Address<TAccountUserProfile>;
@@ -232,6 +256,7 @@ export type InitializeListingInput<
 };
 
 export function getInitializeListingInstruction<
+  TAccountPayer extends string,
   TAccountAuthority extends string,
   TAccountListing extends string,
   TAccountUserProfile extends string,
@@ -239,6 +264,7 @@ export function getInitializeListingInstruction<
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
   input: InitializeListingInput<
+    TAccountPayer,
     TAccountAuthority,
     TAccountListing,
     TAccountUserProfile,
@@ -247,6 +273,7 @@ export function getInitializeListingInstruction<
   config?: { programAddress?: TProgramAddress },
 ): InitializeListingInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountAuthority,
   TAccountListing,
   TAccountUserProfile,
@@ -257,9 +284,10 @@ export function getInitializeListingInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: false },
     listing: { value: input.listing ?? null, isWritable: true },
-    userProfile: { value: input.userProfile ?? null, isWritable: false },
+    userProfile: { value: input.userProfile ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -279,6 +307,7 @@ export function getInitializeListingInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("listing", accounts.listing),
       getAccountMeta("userProfile", accounts.userProfile),
@@ -290,6 +319,7 @@ export function getInitializeListingInstruction<
     programAddress,
   } as InitializeListingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountAuthority,
     TAccountListing,
     TAccountUserProfile,
@@ -303,10 +333,11 @@ export type ParsedInitializeListingInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    authority: TAccountMetas[0];
-    listing: TAccountMetas[1];
-    userProfile: TAccountMetas[2];
-    systemProgram: TAccountMetas[3];
+    payer: TAccountMetas[0];
+    authority: TAccountMetas[1];
+    listing: TAccountMetas[2];
+    userProfile: TAccountMetas[3];
+    systemProgram: TAccountMetas[4];
   };
   data: InitializeListingInstructionData;
 };
@@ -319,12 +350,12 @@ export function parseInitializeListingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeListingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 5) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 5,
       },
     );
   }
@@ -337,6 +368,7 @@ export function parseInitializeListingInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       authority: getNextAccount(),
       listing: getNextAccount(),
       userProfile: getNextAccount(),

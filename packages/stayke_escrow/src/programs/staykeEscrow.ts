@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -414,15 +415,15 @@ export type StaykeEscrowPluginAccounts = {
 
 export type StaykeEscrowPluginInstructions = {
   clientAcceptReserve: (
-    input: ClientAcceptReserveAsyncInput,
+    input: MakeOptional<ClientAcceptReserveAsyncInput, "payer">,
   ) => ReturnType<typeof getClientAcceptReserveInstructionAsync> &
     SelfPlanAndSendFunctions;
   clientRejectReserve: (
-    input: ClientRejectReserveAsyncInput,
+    input: MakeOptional<ClientRejectReserveAsyncInput, "payer">,
   ) => ReturnType<typeof getClientRejectReserveInstructionAsync> &
     SelfPlanAndSendFunctions;
   completeStay: (
-    input: CompleteStayAsyncInput,
+    input: MakeOptional<CompleteStayAsyncInput, "payer">,
   ) => ReturnType<typeof getCompleteStayInstructionAsync> &
     SelfPlanAndSendFunctions;
   cpiResolveDisputeTransfer: (
@@ -434,15 +435,15 @@ export type StaykeEscrowPluginInstructions = {
   ) => ReturnType<typeof getCpiUpdateBookingStatusInstruction> &
     SelfPlanAndSendFunctions;
   createBooking: (
-    input: CreateBookingAsyncInput,
+    input: MakeOptional<CreateBookingAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
   hostAcceptBooking: (
-    input: HostAcceptBookingAsyncInput,
+    input: MakeOptional<HostAcceptBookingAsyncInput, "payer">,
   ) => ReturnType<typeof getHostAcceptBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
   hostRejectBooking: (
-    input: HostRejectBookingAsyncInput,
+    input: MakeOptional<HostRejectBookingAsyncInput, "payer">,
   ) => ReturnType<typeof getHostRejectBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeEscrow: (
@@ -450,7 +451,7 @@ export type StaykeEscrowPluginInstructions = {
   ) => ReturnType<typeof getInitializeEscrowInstructionAsync> &
     SelfPlanAndSendFunctions;
   reviewCompleted: (
-    input: ReviewCompletedAsyncInput,
+    input: MakeOptional<ReviewCompletedAsyncInput, "payer">,
   ) => ReturnType<typeof getReviewCompletedInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
@@ -465,6 +466,7 @@ export type StaykeEscrowPluginPdas = {
 export type StaykeEscrowPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -483,17 +485,26 @@ export function staykeEscrowProgram() {
           clientAcceptReserve: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getClientAcceptReserveInstructionAsync(input),
+              getClientAcceptReserveInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           clientRejectReserve: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getClientRejectReserveInstructionAsync(input),
+              getClientRejectReserveInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           completeStay: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCompleteStayInstructionAsync(input),
+              getCompleteStayInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           cpiResolveDisputeTransfer: (input) =>
             addSelfPlanAndSendFunctions(
@@ -508,17 +519,26 @@ export function staykeEscrowProgram() {
           createBooking: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCreateBookingInstructionAsync(input),
+              getCreateBookingInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           hostAcceptBooking: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getHostAcceptBookingInstructionAsync(input),
+              getHostAcceptBookingInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           hostRejectBooking: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getHostRejectBookingInstructionAsync(input),
+              getHostRejectBookingInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           initializeEscrow: (input) =>
             addSelfPlanAndSendFunctions(
@@ -528,7 +548,10 @@ export function staykeEscrowProgram() {
           reviewCompleted: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getReviewCompletedInstructionAsync(input),
+              getReviewCompletedInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
         },
         pdas: {
@@ -541,3 +564,5 @@ export function staykeEscrowProgram() {
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

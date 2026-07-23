@@ -21,8 +21,6 @@ import {
   getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getI64Decoder,
-  getI64Encoder,
   getOptionDecoder,
   getOptionEncoder,
   getStructDecoder,
@@ -61,31 +59,39 @@ export function getUserProfileDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type UserProfile = {
   discriminator: ReadonlyUint8Array;
-  owner: Address;
-  identity: Address;
+  authority: Address;
+  /** Identity pubkey linked to IdentityAccount */
+  identity: Option<Address>;
+  /** Refers to the active booking paid by the user */
   activeBooking: Option<Address>;
-  activeStay: Option<Address>;
+  /** This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking. */
   deposited: bigint;
-  depositTimestamp: bigint;
+  /** This field represents the total amount of tokens that the user has lent */
   lending: bigint;
+  /** This field represents the amount of liquid staked tokens that the user has. */
   staked: bigint;
-  isVerified: boolean;
+  /** This might be deleted in the future, but for now I think it's better to have it here so we don't call identity account every time we need to check if the user is banned or not. */
   banned: boolean;
+  /** Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user. */
   listings: number;
   bump: number;
 };
 
 export type UserProfileArgs = {
-  owner: Address;
-  identity: Address;
+  authority: Address;
+  /** Identity pubkey linked to IdentityAccount */
+  identity: OptionOrNullable<Address>;
+  /** Refers to the active booking paid by the user */
   activeBooking: OptionOrNullable<Address>;
-  activeStay: OptionOrNullable<Address>;
+  /** This field represents the total amount of tokens that the user has deposited in the platform, excluding the ones that are currently being used for lending and staking. */
   deposited: number | bigint;
-  depositTimestamp: number | bigint;
+  /** This field represents the total amount of tokens that the user has lent */
   lending: number | bigint;
+  /** This field represents the amount of liquid staked tokens that the user has. */
   staked: number | bigint;
-  isVerified: boolean;
+  /** This might be deleted in the future, but for now I think it's better to have it here so we don't call identity account every time we need to check if the user is banned or not. */
   banned: boolean;
+  /** Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user. */
   listings: number;
   bump: number;
 };
@@ -95,15 +101,12 @@ export function getUserProfileEncoder(): Encoder<UserProfileArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["owner", getAddressEncoder()],
-      ["identity", getAddressEncoder()],
+      ["authority", getAddressEncoder()],
+      ["identity", getOptionEncoder(getAddressEncoder())],
       ["activeBooking", getOptionEncoder(getAddressEncoder())],
-      ["activeStay", getOptionEncoder(getAddressEncoder())],
       ["deposited", getU64Encoder()],
-      ["depositTimestamp", getI64Encoder()],
       ["lending", getU64Encoder()],
       ["staked", getU64Encoder()],
-      ["isVerified", getBooleanEncoder()],
       ["banned", getBooleanEncoder()],
       ["listings", getU16Encoder()],
       ["bump", getU8Encoder()],
@@ -116,15 +119,12 @@ export function getUserProfileEncoder(): Encoder<UserProfileArgs> {
 export function getUserProfileDecoder(): Decoder<UserProfile> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["owner", getAddressDecoder()],
-    ["identity", getAddressDecoder()],
+    ["authority", getAddressDecoder()],
+    ["identity", getOptionDecoder(getAddressDecoder())],
     ["activeBooking", getOptionDecoder(getAddressDecoder())],
-    ["activeStay", getOptionDecoder(getAddressDecoder())],
     ["deposited", getU64Decoder()],
-    ["depositTimestamp", getI64Decoder()],
     ["lending", getU64Decoder()],
     ["staked", getU64Decoder()],
-    ["isVerified", getBooleanDecoder()],
     ["banned", getBooleanDecoder()],
     ["listings", getU16Decoder()],
     ["bump", getU8Decoder()],

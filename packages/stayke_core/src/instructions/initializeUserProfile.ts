@@ -35,21 +35,10 @@ import {
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import {
-  findIdentityPda,
-  findReputationProfilePda,
-  findUserProfilePda,
-} from "../pdas";
+import { findReputationProfilePda, findUserProfilePda } from "../pdas";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
-import {
-  getDocTypeDecoder,
-  getDocTypeEncoder,
-  type DocType,
-  type DocTypeArgs,
-} from "../types";
 
 export const INITIALIZE_USER_PROFILE_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([192, 144, 204, 140, 113, 25, 59, 102]);
@@ -62,10 +51,10 @@ export function getInitializeUserProfileDiscriminatorBytes(): ReadonlyUint8Array
 
 export type InitializeUserProfileInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
+  TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountUserProfile extends string | AccountMeta<string> = string,
   TAccountReputationProfile extends string | AccountMeta<string> = string,
-  TAccountIdentity extends string | AccountMeta<string> = string,
-  TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -73,19 +62,20 @@ export type InitializeUserProfileInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
+      TAccountAuthority extends string
+        ? WritableSignerAccount<TAccountAuthority> &
+            AccountSignerMeta<TAccountAuthority>
+        : TAccountAuthority,
       TAccountUserProfile extends string
         ? WritableAccount<TAccountUserProfile>
         : TAccountUserProfile,
       TAccountReputationProfile extends string
         ? WritableAccount<TAccountReputationProfile>
         : TAccountReputationProfile,
-      TAccountIdentity extends string
-        ? WritableAccount<TAccountIdentity>
-        : TAccountIdentity,
-      TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -95,25 +85,13 @@ export type InitializeUserProfileInstruction<
 
 export type InitializeUserProfileInstructionData = {
   discriminator: ReadonlyUint8Array;
-  id: ReadonlyUint8Array;
-  countryCode: ReadonlyUint8Array;
-  doctype: DocType;
 };
 
-export type InitializeUserProfileInstructionDataArgs = {
-  id: ReadonlyUint8Array;
-  countryCode: ReadonlyUint8Array;
-  doctype: DocTypeArgs;
-};
+export type InitializeUserProfileInstructionDataArgs = {};
 
 export function getInitializeUserProfileInstructionDataEncoder(): FixedSizeEncoder<InitializeUserProfileInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["id", fixEncoderSize(getBytesEncoder(), 32)],
-      ["countryCode", fixEncoderSize(getBytesEncoder(), 2)],
-      ["doctype", getDocTypeEncoder()],
-    ]),
+    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
     (value) => ({
       ...value,
       discriminator: INITIALIZE_USER_PROFILE_DISCRIMINATOR,
@@ -124,9 +102,6 @@ export function getInitializeUserProfileInstructionDataEncoder(): FixedSizeEncod
 export function getInitializeUserProfileInstructionDataDecoder(): FixedSizeDecoder<InitializeUserProfileInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["id", fixDecoderSize(getBytesDecoder(), 32)],
-    ["countryCode", fixDecoderSize(getBytesDecoder(), 2)],
-    ["doctype", getDocTypeDecoder()],
   ]);
 }
 
@@ -141,45 +116,42 @@ export function getInitializeUserProfileInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type InitializeUserProfileAsyncInput<
+  TAccountPayer extends string = string,
+  TAccountAuthority extends string = string,
   TAccountUserProfile extends string = string,
   TAccountReputationProfile extends string = string,
-  TAccountIdentity extends string = string,
-  TAccountAuthority extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
+  authority: TransactionSigner<TAccountAuthority>;
   userProfile?: Address<TAccountUserProfile>;
   reputationProfile?: Address<TAccountReputationProfile>;
-  identity?: Address<TAccountIdentity>;
-  authority: TransactionSigner<TAccountAuthority>;
   systemProgram?: Address<TAccountSystemProgram>;
-  id: InitializeUserProfileInstructionDataArgs["id"];
-  countryCode: InitializeUserProfileInstructionDataArgs["countryCode"];
-  doctype: InitializeUserProfileInstructionDataArgs["doctype"];
 };
 
 export async function getInitializeUserProfileInstructionAsync<
+  TAccountPayer extends string,
+  TAccountAuthority extends string,
   TAccountUserProfile extends string,
   TAccountReputationProfile extends string,
-  TAccountIdentity extends string,
-  TAccountAuthority extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
   input: InitializeUserProfileAsyncInput<
+    TAccountPayer,
+    TAccountAuthority,
     TAccountUserProfile,
     TAccountReputationProfile,
-    TAccountIdentity,
-    TAccountAuthority,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
   InitializeUserProfileInstruction<
     TProgramAddress,
+    TAccountPayer,
+    TAccountAuthority,
     TAccountUserProfile,
     TAccountReputationProfile,
-    TAccountIdentity,
-    TAccountAuthority,
     TAccountSystemProgram
   >
 > {
@@ -188,22 +160,19 @@ export async function getInitializeUserProfileInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
+    payer: { value: input.payer ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: true },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
     reputationProfile: {
       value: input.reputationProfile ?? null,
       isWritable: true,
     },
-    identity: { value: input.identity ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.userProfile.value) {
@@ -222,11 +191,6 @@ export async function getInitializeUserProfileInstructionAsync<
       ),
     });
   }
-  if (!accounts.identity.value) {
-    accounts.identity.value = await findIdentityPda({
-      id: getNonNullResolvedInstructionInput("id", args.id),
-    });
-  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -235,65 +199,60 @@ export async function getInitializeUserProfileInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
+      getAccountMeta("authority", accounts.authority),
       getAccountMeta("userProfile", accounts.userProfile),
       getAccountMeta("reputationProfile", accounts.reputationProfile),
-      getAccountMeta("identity", accounts.identity),
-      getAccountMeta("authority", accounts.authority),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeUserProfileInstructionDataEncoder().encode(
-      args as InitializeUserProfileInstructionDataArgs,
-    ),
+    data: getInitializeUserProfileInstructionDataEncoder().encode({}),
     programAddress,
   } as InitializeUserProfileInstruction<
     TProgramAddress,
+    TAccountPayer,
+    TAccountAuthority,
     TAccountUserProfile,
     TAccountReputationProfile,
-    TAccountIdentity,
-    TAccountAuthority,
     TAccountSystemProgram
   >);
 }
 
 export type InitializeUserProfileInput<
+  TAccountPayer extends string = string,
+  TAccountAuthority extends string = string,
   TAccountUserProfile extends string = string,
   TAccountReputationProfile extends string = string,
-  TAccountIdentity extends string = string,
-  TAccountAuthority extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
+  authority: TransactionSigner<TAccountAuthority>;
   userProfile: Address<TAccountUserProfile>;
   reputationProfile: Address<TAccountReputationProfile>;
-  identity: Address<TAccountIdentity>;
-  authority: TransactionSigner<TAccountAuthority>;
   systemProgram?: Address<TAccountSystemProgram>;
-  id: InitializeUserProfileInstructionDataArgs["id"];
-  countryCode: InitializeUserProfileInstructionDataArgs["countryCode"];
-  doctype: InitializeUserProfileInstructionDataArgs["doctype"];
 };
 
 export function getInitializeUserProfileInstruction<
+  TAccountPayer extends string,
+  TAccountAuthority extends string,
   TAccountUserProfile extends string,
   TAccountReputationProfile extends string,
-  TAccountIdentity extends string,
-  TAccountAuthority extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
   input: InitializeUserProfileInput<
+    TAccountPayer,
+    TAccountAuthority,
     TAccountUserProfile,
     TAccountReputationProfile,
-    TAccountIdentity,
-    TAccountAuthority,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): InitializeUserProfileInstruction<
   TProgramAddress,
+  TAccountPayer,
+  TAccountAuthority,
   TAccountUserProfile,
   TAccountReputationProfile,
-  TAccountIdentity,
-  TAccountAuthority,
   TAccountSystemProgram
 > {
   // Program address.
@@ -301,22 +260,19 @@ export function getInitializeUserProfileInstruction<
 
   // Original accounts.
   const originalAccounts = {
+    payer: { value: input.payer ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: true },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
     reputationProfile: {
       value: input.reputationProfile ?? null,
       isWritable: true,
     },
-    identity: { value: input.identity ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -327,22 +283,20 @@ export function getInitializeUserProfileInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
+      getAccountMeta("authority", accounts.authority),
       getAccountMeta("userProfile", accounts.userProfile),
       getAccountMeta("reputationProfile", accounts.reputationProfile),
-      getAccountMeta("identity", accounts.identity),
-      getAccountMeta("authority", accounts.authority),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeUserProfileInstructionDataEncoder().encode(
-      args as InitializeUserProfileInstructionDataArgs,
-    ),
+    data: getInitializeUserProfileInstructionDataEncoder().encode({}),
     programAddress,
   } as InitializeUserProfileInstruction<
     TProgramAddress,
+    TAccountPayer,
+    TAccountAuthority,
     TAccountUserProfile,
     TAccountReputationProfile,
-    TAccountIdentity,
-    TAccountAuthority,
     TAccountSystemProgram
   >);
 }
@@ -353,10 +307,10 @@ export type ParsedInitializeUserProfileInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    userProfile: TAccountMetas[0];
-    reputationProfile: TAccountMetas[1];
-    identity: TAccountMetas[2];
-    authority: TAccountMetas[3];
+    payer: TAccountMetas[0];
+    authority: TAccountMetas[1];
+    userProfile: TAccountMetas[2];
+    reputationProfile: TAccountMetas[3];
     systemProgram: TAccountMetas[4];
   };
   data: InitializeUserProfileInstructionData;
@@ -388,10 +342,10 @@ export function parseInitializeUserProfileInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
+      authority: getNextAccount(),
       userProfile: getNextAccount(),
       reputationProfile: getNextAccount(),
-      identity: getNextAccount(),
-      authority: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializeUserProfileInstructionDataDecoder().decode(

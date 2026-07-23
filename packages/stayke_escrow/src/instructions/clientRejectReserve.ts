@@ -29,6 +29,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -52,6 +53,7 @@ export function getClientRejectReserveDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type ClientRejectReserveInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountClient extends string | AccountMeta<string> = string,
   TAccountClientProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
@@ -61,8 +63,12 @@ export type ClientRejectReserveInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountClient extends string
-        ? WritableSignerAccount<TAccountClient> &
+        ? ReadonlySignerAccount<TAccountClient> &
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
@@ -111,11 +117,13 @@ export function getClientRejectReserveInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type ClientRejectReserveAsyncInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile?: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
@@ -123,6 +131,7 @@ export type ClientRejectReserveAsyncInput<
 };
 
 export async function getClientRejectReserveInstructionAsync<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountBooking extends string,
@@ -130,6 +139,7 @@ export async function getClientRejectReserveInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ClientRejectReserveAsyncInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountBooking,
@@ -139,6 +149,7 @@ export async function getClientRejectReserveInstructionAsync<
 ): Promise<
   ClientRejectReserveInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountBooking,
@@ -151,7 +162,8 @@ export async function getClientRejectReserveInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -185,6 +197,7 @@ export async function getClientRejectReserveInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("booking", accounts.booking),
@@ -194,6 +207,7 @@ export async function getClientRejectReserveInstructionAsync<
     programAddress,
   } as ClientRejectReserveInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountBooking,
@@ -202,11 +216,13 @@ export async function getClientRejectReserveInstructionAsync<
 }
 
 export type ClientRejectReserveInput<
+  TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
@@ -214,6 +230,7 @@ export type ClientRejectReserveInput<
 };
 
 export function getClientRejectReserveInstruction<
+  TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
   TAccountBooking extends string,
@@ -221,6 +238,7 @@ export function getClientRejectReserveInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ClientRejectReserveInput<
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountBooking,
@@ -229,6 +247,7 @@ export function getClientRejectReserveInstruction<
   config?: { programAddress?: TProgramAddress },
 ): ClientRejectReserveInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountClient,
   TAccountClientProfile,
   TAccountBooking,
@@ -240,7 +259,8 @@ export function getClientRejectReserveInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    client: { value: input.client ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -253,6 +273,7 @@ export function getClientRejectReserveInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("booking", accounts.booking),
@@ -262,6 +283,7 @@ export function getClientRejectReserveInstruction<
     programAddress,
   } as ClientRejectReserveInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
     TAccountBooking,
@@ -275,10 +297,11 @@ export type ParsedClientRejectReserveInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    client: TAccountMetas[0];
-    clientProfile: TAccountMetas[1];
-    booking: TAccountMetas[2];
-    bookingDays: TAccountMetas[3];
+    payer: TAccountMetas[0];
+    client: TAccountMetas[1];
+    clientProfile: TAccountMetas[2];
+    booking: TAccountMetas[3];
+    bookingDays: TAccountMetas[4];
   };
   data: ClientRejectReserveInstructionData;
 };
@@ -291,12 +314,12 @@ export function parseClientRejectReserveInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClientRejectReserveInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 5) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 5,
       },
     );
   }
@@ -309,6 +332,7 @@ export function parseClientRejectReserveInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       client: getNextAccount(),
       clientProfile: getNextAccount(),
       booking: getNextAccount(),

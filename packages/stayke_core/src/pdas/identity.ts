@@ -29,10 +29,10 @@ export async function findIdentityPda(
   return await getProgramDerivedAddress({
     programAddress,
     seeds: [
+      fixEncoderSize(getBytesEncoder(), 32).encode(seeds.id),
       getBytesEncoder().encode(
         new Uint8Array([105, 100, 101, 110, 116, 105, 116, 121]),
       ),
-      fixEncoderSize(getBytesEncoder(), 32).encode(seeds.id),
     ],
   });
 }

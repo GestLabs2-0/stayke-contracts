@@ -1,0 +1,104 @@
+use anchor_lang::prelude::*;
+use stayke_core::{state::UserProfile, USER_PROFILE_SEED};
+
+use stayke_escrow::{
+    cpi::{accounts::UpdateBookingStatusCpi, cpi_update_booking_status},
+    program::StaykeEscrow,
+    state::Booking,
+    BookingStatus,
+};
+
+use crate::{
+    constants::DISPUTE_PDA_SEED,
+    error::DisputeError,
+    events::DisputeOpened,
+    state::{Dispute, DisputeReason, DisputeStatus},
+};
+
+// ---------------------------------------------------------------------------
+// Open Dispute
+// ---------------------------------------------------------------------------
+
+#[derive(Accounts)]
+pub struct OpenDispute<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub initiator: Signer<'info>,
+
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), initiator.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = initiator_profile.bump,
+        constraint = !initiator_profile.banned @ DisputeError::UserBanned,
+        constraint = initiator_profile.identity.is_some() @ DisputeError::UserNotVerified,
+    )]
+    pub initiator_profile: Account<'info, UserProfile>,
+
+    /// We must mutate the booking state via CPI
+    #[account(mut)]
+    pub booking: Box<Account<'info, Booking>>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + Dispute::INIT_SPACE,
+        seeds = [DISPUTE_PDA_SEED.as_bytes(), booking.key().as_ref()],
+        bump,
+    )]
+    pub dispute: Box<Account<'info, Dispute>>,
+
+    pub stayke_escrow_program: Program<'info, StaykeEscrow>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) -> Result<()> {
+    require!(
+        ctx.accounts.booking.guest == ctx.accounts.initiator.key()
+            || ctx.accounts.booking.host == ctx.accounts.initiator.key(),
+        DisputeError::UnauthorizedDisputeInitiator
+    );
+    require!(
+        ctx.accounts.booking.status == BookingStatus::Active,
+        DisputeError::BookingNotActive
+    );
+
+    let initiator_key = ctx.accounts.initiator_profile.key();
+    let booking = &ctx.accounts.booking;
+
+    let guilty = if initiator_key == booking.host {
+        booking.host
+    } else {
+        booking.guest
+    };
+
+    let dispute = &mut ctx.accounts.dispute;
+    dispute.booking = ctx.accounts.booking.key();
+    dispute.property = ctx.accounts.booking.property;
+    dispute.initiator = initiator_key;
+    dispute.guilty = guilty;
+    dispute.reason = reason.clone();
+    dispute.status = DisputeStatus::Open;
+    dispute.created_at = Clock::get()?.unix_timestamp;
+    dispute.resolved_at = None;
+    dispute.bump = ctx.bumps.dispute;
+
+    // CPI to stayke-escrow to update booking status
+    let cpi_accounts = UpdateBookingStatusCpi {
+        booking: ctx.accounts.booking.to_account_info(),
+        authority: ctx.accounts.initiator.to_account_info(),
+    };
+    let cpi_ctx = CpiContext::new(ctx.accounts.stayke_escrow_program.key(), cpi_accounts);
+    cpi_update_booking_status(cpi_ctx, BookingStatus::Disputed)?;
+
+    emit!(DisputeOpened {
+        dispute: dispute.key(),
+        booking: dispute.booking,
+        property: dispute.property,
+        initiator: dispute.initiator,
+        reason,
+        timestamp: dispute.created_at,
+    });
+
+    Ok(())
+}

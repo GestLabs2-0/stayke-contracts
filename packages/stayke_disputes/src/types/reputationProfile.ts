@@ -10,8 +10,6 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
-  getI64Decoder,
-  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -27,46 +25,70 @@ import {
 } from "@solana/kit";
 
 export type ReputationProfile = {
-  owner: Address;
+  authority: Address;
+  /** Number of reviews received as host */
   hostReviews: number;
+  /** Total score from reviews (e.g., sum of ratings) */
   totalScoreHost: bigint;
+  /** Number of reviews received as client */
   clientReviews: number;
+  /** Total score from reviews (e.g., sum of ratings) */
   totalScoreClient: bigint;
+  /** Number of stays hosted */
   hostedStays: number;
+  /** Number of stays completed as a guest */
   completedStays: number;
+  /** Number of cancellations as host */
   hostCancellations: number;
+  /** Number of cancellations as client */
   clientCancellations: number;
+  /** Number of cancellations as host within 24 hours of the stay */
   hostCancellationsWithin48h: number;
+  /** Number of cancellations as host within 24 hours of the stay */
   clientCancellationsWithin48h: number;
+  /** Infraction counter */
   lowInfractions: number;
+  /** Infraction counter */
   mediumInfractions: number;
+  /** Infraction counter */
   highInfractions: number;
-  lastUpdated: bigint;
   bump: number;
 };
 
 export type ReputationProfileArgs = {
-  owner: Address;
+  authority: Address;
+  /** Number of reviews received as host */
   hostReviews: number;
+  /** Total score from reviews (e.g., sum of ratings) */
   totalScoreHost: number | bigint;
+  /** Number of reviews received as client */
   clientReviews: number;
+  /** Total score from reviews (e.g., sum of ratings) */
   totalScoreClient: number | bigint;
+  /** Number of stays hosted */
   hostedStays: number;
+  /** Number of stays completed as a guest */
   completedStays: number;
+  /** Number of cancellations as host */
   hostCancellations: number;
+  /** Number of cancellations as client */
   clientCancellations: number;
+  /** Number of cancellations as host within 24 hours of the stay */
   hostCancellationsWithin48h: number;
+  /** Number of cancellations as host within 24 hours of the stay */
   clientCancellationsWithin48h: number;
+  /** Infraction counter */
   lowInfractions: number;
+  /** Infraction counter */
   mediumInfractions: number;
+  /** Infraction counter */
   highInfractions: number;
-  lastUpdated: number | bigint;
   bump: number;
 };
 
 export function getReputationProfileEncoder(): FixedSizeEncoder<ReputationProfileArgs> {
   return getStructEncoder([
-    ["owner", getAddressEncoder()],
+    ["authority", getAddressEncoder()],
     ["hostReviews", getU32Encoder()],
     ["totalScoreHost", getU64Encoder()],
     ["clientReviews", getU32Encoder()],
@@ -80,14 +102,13 @@ export function getReputationProfileEncoder(): FixedSizeEncoder<ReputationProfil
     ["lowInfractions", getU8Encoder()],
     ["mediumInfractions", getU8Encoder()],
     ["highInfractions", getU8Encoder()],
-    ["lastUpdated", getI64Encoder()],
     ["bump", getU8Encoder()],
   ]);
 }
 
 export function getReputationProfileDecoder(): FixedSizeDecoder<ReputationProfile> {
   return getStructDecoder([
-    ["owner", getAddressDecoder()],
+    ["authority", getAddressDecoder()],
     ["hostReviews", getU32Decoder()],
     ["totalScoreHost", getU64Decoder()],
     ["clientReviews", getU32Decoder()],
@@ -101,7 +122,6 @@ export function getReputationProfileDecoder(): FixedSizeDecoder<ReputationProfil
     ["lowInfractions", getU8Decoder()],
     ["mediumInfractions", getU8Decoder()],
     ["highInfractions", getU8Decoder()],
-    ["lastUpdated", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

@@ -15,16 +15,12 @@ import {
   fetchEncodedAccounts,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getI64Decoder,
   getI64Encoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU8Decoder,
@@ -32,24 +28,16 @@ import {
   transformEncoder,
   type Account,
   type Address,
-  type Codec,
-  type Decoder,
   type EncodedAccount,
-  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
-  type Option,
-  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
-import {
-  getDocTypeDecoder,
-  getDocTypeEncoder,
-  type DocType,
-  type DocTypeArgs,
-} from "../types";
 
 export const IDENTITY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   58, 132, 5, 12, 176, 164, 85, 112,
@@ -61,45 +49,24 @@ export function getIdentityDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type Identity = {
   discriminator: ReadonlyUint8Array;
-  owner: Address;
-  countryCode: ReadonlyUint8Array;
-  id: ReadonlyUint8Array;
   verifiedAt: bigint;
-  verifier: Option<Address>;
-  docType: DocType;
-  isFrozen: boolean;
-  isBanned: boolean;
-  bannedAt: bigint;
+  linked: boolean;
   bump: number;
 };
 
 export type IdentityArgs = {
-  owner: Address;
-  countryCode: ReadonlyUint8Array;
-  id: ReadonlyUint8Array;
   verifiedAt: number | bigint;
-  verifier: OptionOrNullable<Address>;
-  docType: DocTypeArgs;
-  isFrozen: boolean;
-  isBanned: boolean;
-  bannedAt: number | bigint;
+  linked: boolean;
   bump: number;
 };
 
 /** Gets the encoder for {@link IdentityArgs} account data. */
-export function getIdentityEncoder(): Encoder<IdentityArgs> {
+export function getIdentityEncoder(): FixedSizeEncoder<IdentityArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["owner", getAddressEncoder()],
-      ["countryCode", fixEncoderSize(getBytesEncoder(), 2)],
-      ["id", fixEncoderSize(getBytesEncoder(), 32)],
       ["verifiedAt", getI64Encoder()],
-      ["verifier", getOptionEncoder(getAddressEncoder())],
-      ["docType", getDocTypeEncoder()],
-      ["isFrozen", getBooleanEncoder()],
-      ["isBanned", getBooleanEncoder()],
-      ["bannedAt", getI64Encoder()],
+      ["linked", getBooleanEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: IDENTITY_DISCRIMINATOR }),
@@ -107,24 +74,17 @@ export function getIdentityEncoder(): Encoder<IdentityArgs> {
 }
 
 /** Gets the decoder for {@link Identity} account data. */
-export function getIdentityDecoder(): Decoder<Identity> {
+export function getIdentityDecoder(): FixedSizeDecoder<Identity> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["owner", getAddressDecoder()],
-    ["countryCode", fixDecoderSize(getBytesDecoder(), 2)],
-    ["id", fixDecoderSize(getBytesDecoder(), 32)],
     ["verifiedAt", getI64Decoder()],
-    ["verifier", getOptionDecoder(getAddressDecoder())],
-    ["docType", getDocTypeDecoder()],
-    ["isFrozen", getBooleanDecoder()],
-    ["isBanned", getBooleanDecoder()],
-    ["bannedAt", getI64Decoder()],
+    ["linked", getBooleanDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
 
 /** Gets the codec for {@link Identity} account data. */
-export function getIdentityCodec(): Codec<IdentityArgs, Identity> {
+export function getIdentityCodec(): FixedSizeCodec<IdentityArgs, Identity> {
   return combineCodec(getIdentityEncoder(), getIdentityDecoder());
 }
 
@@ -179,4 +139,8 @@ export async function fetchAllMaybeIdentity(
 ): Promise<MaybeAccount<Identity>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeIdentity(maybeAccount));
+}
+
+export function getIdentitySize(): number {
+  return 18;
 }

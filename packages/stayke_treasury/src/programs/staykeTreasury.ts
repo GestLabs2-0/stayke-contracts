@@ -41,30 +41,18 @@ import {
   getCpiPenalizeTransferInstructionAsync,
   getDepositGuaranteeInstructionAsync,
   getInitializeTreasuryInstructionAsync,
-  getLendInstruction,
-  getStakeInstruction,
-  getWithdrawFromLendingInstruction,
   getWithdrawGuaranteeInstructionAsync,
   parseCpiPenalizeTransferInstruction,
   parseDepositGuaranteeInstruction,
   parseInitializeTreasuryInstruction,
-  parseLendInstruction,
-  parseStakeInstruction,
-  parseWithdrawFromLendingInstruction,
   parseWithdrawGuaranteeInstruction,
   type CpiPenalizeTransferAsyncInput,
   type DepositGuaranteeAsyncInput,
   type InitializeTreasuryAsyncInput,
-  type LendInput,
   type ParsedCpiPenalizeTransferInstruction,
   type ParsedDepositGuaranteeInstruction,
   type ParsedInitializeTreasuryInstruction,
-  type ParsedLendInstruction,
-  type ParsedStakeInstruction,
-  type ParsedWithdrawFromLendingInstruction,
   type ParsedWithdrawGuaranteeInstruction,
-  type StakeInput,
-  type WithdrawFromLendingInput,
   type WithdrawGuaranteeAsyncInput,
 } from "../instructions";
 import {
@@ -106,9 +94,6 @@ export enum StaykeTreasuryInstruction {
   CpiPenalizeTransfer,
   DepositGuarantee,
   InitializeTreasury,
-  Lend,
-  Stake,
-  WithdrawFromLending,
   WithdrawGuarantee,
 }
 
@@ -153,39 +138,6 @@ export function identifyStaykeTreasuryInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([89, 34, 75, 168, 122, 47, 185, 45]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeTreasuryInstruction.Lend;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([206, 176, 202, 18, 200, 209, 179, 108]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeTreasuryInstruction.Stake;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([11, 191, 231, 168, 105, 209, 8, 166]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeTreasuryInstruction.WithdrawFromLending;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([90, 175, 173, 229, 183, 148, 41, 242]),
       ),
       0,
@@ -211,15 +163,6 @@ export type ParsedStaykeTreasuryInstruction<
   | ({
       instructionType: StaykeTreasuryInstruction.InitializeTreasury;
     } & ParsedInitializeTreasuryInstruction<TProgram>)
-  | ({
-      instructionType: StaykeTreasuryInstruction.Lend;
-    } & ParsedLendInstruction<TProgram>)
-  | ({
-      instructionType: StaykeTreasuryInstruction.Stake;
-    } & ParsedStakeInstruction<TProgram>)
-  | ({
-      instructionType: StaykeTreasuryInstruction.WithdrawFromLending;
-    } & ParsedWithdrawFromLendingInstruction<TProgram>)
   | ({
       instructionType: StaykeTreasuryInstruction.WithdrawGuarantee;
     } & ParsedWithdrawGuaranteeInstruction<TProgram>);
@@ -248,27 +191,6 @@ export function parseStaykeTreasuryInstruction<TProgram extends string>(
       return {
         instructionType: StaykeTreasuryInstruction.InitializeTreasury,
         ...parseInitializeTreasuryInstruction(instruction),
-      };
-    }
-    case StaykeTreasuryInstruction.Lend: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeTreasuryInstruction.Lend,
-        ...parseLendInstruction(instruction),
-      };
-    }
-    case StaykeTreasuryInstruction.Stake: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeTreasuryInstruction.Stake,
-        ...parseStakeInstruction(instruction),
-      };
-    }
-    case StaykeTreasuryInstruction.WithdrawFromLending: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeTreasuryInstruction.WithdrawFromLending,
-        ...parseWithdrawFromLendingInstruction(instruction),
       };
     }
     case StaykeTreasuryInstruction.WithdrawGuarantee: {
@@ -312,16 +234,6 @@ export type StaykeTreasuryPluginInstructions = {
   initializeTreasury: (
     input: InitializeTreasuryAsyncInput,
   ) => ReturnType<typeof getInitializeTreasuryInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  lend: (
-    input: LendInput,
-  ) => ReturnType<typeof getLendInstruction> & SelfPlanAndSendFunctions;
-  stake: (
-    input: StakeInput,
-  ) => ReturnType<typeof getStakeInstruction> & SelfPlanAndSendFunctions;
-  withdrawFromLending: (
-    input: WithdrawFromLendingInput,
-  ) => ReturnType<typeof getWithdrawFromLendingInstruction> &
     SelfPlanAndSendFunctions;
   withdrawGuarantee: (
     input: WithdrawGuaranteeAsyncInput,
@@ -369,15 +281,6 @@ export function staykeTreasuryProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getInitializeTreasuryInstructionAsync(input),
-            ),
-          lend: (input) =>
-            addSelfPlanAndSendFunctions(client, getLendInstruction(input)),
-          stake: (input) =>
-            addSelfPlanAndSendFunctions(client, getStakeInstruction(input)),
-          withdrawFromLending: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getWithdrawFromLendingInstruction(input),
             ),
           withdrawGuarantee: (input) =>
             addSelfPlanAndSendFunctions(
