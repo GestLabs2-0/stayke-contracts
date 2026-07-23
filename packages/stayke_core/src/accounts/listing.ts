@@ -17,10 +17,10 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -32,16 +32,14 @@ import {
   transformEncoder,
   type Account,
   type Address,
-  type Codec,
-  type Decoder,
   type EncodedAccount,
-  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
-  type Option,
-  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
@@ -60,7 +58,7 @@ export type Listing = {
   totalReviews: bigint;
   rating: bigint;
   price: bigint;
-  isOccupied: Option<Address>;
+  isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   bump: number;
 };
@@ -71,13 +69,13 @@ export type ListingArgs = {
   totalReviews: number | bigint;
   rating: number | bigint;
   price: number | bigint;
-  isOccupied: OptionOrNullable<Address>;
+  isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   bump: number;
 };
 
 /** Gets the encoder for {@link ListingArgs} account data. */
-export function getListingEncoder(): Encoder<ListingArgs> {
+export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
@@ -86,7 +84,7 @@ export function getListingEncoder(): Encoder<ListingArgs> {
       ["totalReviews", getU64Encoder()],
       ["rating", getU64Encoder()],
       ["price", getU64Encoder()],
-      ["isOccupied", getOptionEncoder(getAddressEncoder())],
+      ["isOccupied", getBooleanEncoder()],
       ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
       ["bump", getU8Encoder()],
     ]),
@@ -95,7 +93,7 @@ export function getListingEncoder(): Encoder<ListingArgs> {
 }
 
 /** Gets the decoder for {@link Listing} account data. */
-export function getListingDecoder(): Decoder<Listing> {
+export function getListingDecoder(): FixedSizeDecoder<Listing> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
@@ -103,14 +101,14 @@ export function getListingDecoder(): Decoder<Listing> {
     ["totalReviews", getU64Decoder()],
     ["rating", getU64Decoder()],
     ["price", getU64Decoder()],
-    ["isOccupied", getOptionDecoder(getAddressDecoder())],
+    ["isOccupied", getBooleanDecoder()],
     ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
     ["bump", getU8Decoder()],
   ]);
 }
 
 /** Gets the codec for {@link Listing} account data. */
-export function getListingCodec(): Codec<ListingArgs, Listing> {
+export function getListingCodec(): FixedSizeCodec<ListingArgs, Listing> {
   return combineCodec(getListingEncoder(), getListingDecoder());
 }
 
@@ -165,4 +163,8 @@ export async function fetchAllMaybeListing(
 ): Promise<MaybeAccount<Listing>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeListing(maybeAccount));
+}
+
+export function getListingSize(): number {
+  return 100;
 }

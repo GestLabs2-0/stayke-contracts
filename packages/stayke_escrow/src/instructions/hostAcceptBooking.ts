@@ -29,6 +29,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -53,6 +54,7 @@ export function getHostAcceptBookingDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type HostAcceptBookingInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountHost extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
@@ -63,8 +65,12 @@ export type HostAcceptBookingInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
       TAccountHost extends string
-        ? WritableSignerAccount<TAccountHost> & AccountSignerMeta<TAccountHost>
+        ? ReadonlySignerAccount<TAccountHost> & AccountSignerMeta<TAccountHost>
         : TAccountHost,
       TAccountHostProfile extends string
         ? ReadonlyAccount<TAccountHostProfile>
@@ -112,12 +118,14 @@ export function getHostAcceptBookingInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type HostAcceptBookingAsyncInput<
+  TAccountPayer extends string = string,
   TAccountHost extends string = string,
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowConfig extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   host: TransactionSigner<TAccountHost>;
   hostProfile?: Address<TAccountHostProfile>;
   booking: Address<TAccountBooking>;
@@ -126,6 +134,7 @@ export type HostAcceptBookingAsyncInput<
 };
 
 export async function getHostAcceptBookingInstructionAsync<
+  TAccountPayer extends string,
   TAccountHost extends string,
   TAccountHostProfile extends string,
   TAccountBooking extends string,
@@ -134,6 +143,7 @@ export async function getHostAcceptBookingInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: HostAcceptBookingAsyncInput<
+    TAccountPayer,
     TAccountHost,
     TAccountHostProfile,
     TAccountBooking,
@@ -144,6 +154,7 @@ export async function getHostAcceptBookingInstructionAsync<
 ): Promise<
   HostAcceptBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountHost,
     TAccountHostProfile,
     TAccountBooking,
@@ -157,7 +168,8 @@ export async function getHostAcceptBookingInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    host: { value: input.host ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    host: { value: input.host ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
@@ -205,6 +217,7 @@ export async function getHostAcceptBookingInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("host", accounts.host),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("booking", accounts.booking),
@@ -215,6 +228,7 @@ export async function getHostAcceptBookingInstructionAsync<
     programAddress,
   } as HostAcceptBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountHost,
     TAccountHostProfile,
     TAccountBooking,
@@ -224,12 +238,14 @@ export async function getHostAcceptBookingInstructionAsync<
 }
 
 export type HostAcceptBookingInput<
+  TAccountPayer extends string = string,
   TAccountHost extends string = string,
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowConfig extends string = string,
 > = {
+  payer: TransactionSigner<TAccountPayer>;
   host: TransactionSigner<TAccountHost>;
   hostProfile: Address<TAccountHostProfile>;
   booking: Address<TAccountBooking>;
@@ -238,6 +254,7 @@ export type HostAcceptBookingInput<
 };
 
 export function getHostAcceptBookingInstruction<
+  TAccountPayer extends string,
   TAccountHost extends string,
   TAccountHostProfile extends string,
   TAccountBooking extends string,
@@ -246,6 +263,7 @@ export function getHostAcceptBookingInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: HostAcceptBookingInput<
+    TAccountPayer,
     TAccountHost,
     TAccountHostProfile,
     TAccountBooking,
@@ -255,6 +273,7 @@ export function getHostAcceptBookingInstruction<
   config?: { programAddress?: TProgramAddress },
 ): HostAcceptBookingInstruction<
   TProgramAddress,
+  TAccountPayer,
   TAccountHost,
   TAccountHostProfile,
   TAccountBooking,
@@ -267,7 +286,8 @@ export function getHostAcceptBookingInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    host: { value: input.host ?? null, isWritable: true },
+    payer: { value: input.payer ?? null, isWritable: true },
+    host: { value: input.host ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
@@ -281,6 +301,7 @@ export function getHostAcceptBookingInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("host", accounts.host),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("booking", accounts.booking),
@@ -291,6 +312,7 @@ export function getHostAcceptBookingInstruction<
     programAddress,
   } as HostAcceptBookingInstruction<
     TProgramAddress,
+    TAccountPayer,
     TAccountHost,
     TAccountHostProfile,
     TAccountBooking,
@@ -305,11 +327,12 @@ export type ParsedHostAcceptBookingInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    host: TAccountMetas[0];
-    hostProfile: TAccountMetas[1];
-    booking: TAccountMetas[2];
-    globalConfig: TAccountMetas[3];
-    escrowConfig: TAccountMetas[4];
+    payer: TAccountMetas[0];
+    host: TAccountMetas[1];
+    hostProfile: TAccountMetas[2];
+    booking: TAccountMetas[3];
+    globalConfig: TAccountMetas[4];
+    escrowConfig: TAccountMetas[5];
   };
   data: HostAcceptBookingInstructionData;
 };
@@ -322,12 +345,12 @@ export function parseHostAcceptBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedHostAcceptBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -340,6 +363,7 @@ export function parseHostAcceptBookingInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      payer: getNextAccount(),
       host: getNextAccount(),
       hostProfile: getNextAccount(),
       booking: getNextAccount(),

@@ -12,10 +12,10 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -25,11 +25,9 @@ import {
   getU8Decoder,
   getU8Encoder,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
-  type Option,
-  type OptionOrNullable,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
@@ -39,7 +37,7 @@ export type Listing = {
   totalReviews: bigint;
   rating: bigint;
   price: bigint;
-  isOccupied: Option<Address>;
+  isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   bump: number;
 };
@@ -50,37 +48,37 @@ export type ListingArgs = {
   totalReviews: number | bigint;
   rating: number | bigint;
   price: number | bigint;
-  isOccupied: OptionOrNullable<Address>;
+  isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   bump: number;
 };
 
-export function getListingEncoder(): Encoder<ListingArgs> {
+export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
   return getStructEncoder([
     ["owner", getAddressEncoder()],
     ["listingId", getU16Encoder()],
     ["totalReviews", getU64Encoder()],
     ["rating", getU64Encoder()],
     ["price", getU64Encoder()],
-    ["isOccupied", getOptionEncoder(getAddressEncoder())],
+    ["isOccupied", getBooleanEncoder()],
     ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
     ["bump", getU8Encoder()],
   ]);
 }
 
-export function getListingDecoder(): Decoder<Listing> {
+export function getListingDecoder(): FixedSizeDecoder<Listing> {
   return getStructDecoder([
     ["owner", getAddressDecoder()],
     ["listingId", getU16Decoder()],
     ["totalReviews", getU64Decoder()],
     ["rating", getU64Decoder()],
     ["price", getU64Decoder()],
-    ["isOccupied", getOptionDecoder(getAddressDecoder())],
+    ["isOccupied", getBooleanDecoder()],
     ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
     ["bump", getU8Decoder()],
   ]);
 }
 
-export function getListingCodec(): Codec<ListingArgs, Listing> {
+export function getListingCodec(): FixedSizeCodec<ListingArgs, Listing> {
   return combineCodec(getListingEncoder(), getListingDecoder());
 }

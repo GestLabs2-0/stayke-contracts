@@ -14,10 +14,6 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
-  getU64Decoder,
-  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -39,28 +35,28 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
   getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findListingPda, findUserProfilePda } from "../pdas";
+import { findConfigPda, findIdentityPda } from "../pdas";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
 
-export const INITIALIZE_LISTING_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([170, 54, 135, 232, 166, 202, 75, 54]);
+export const INIT_IDENTITY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  56, 12, 37, 133, 27, 121, 5, 155,
+]);
 
-export function getInitializeListingDiscriminatorBytes(): ReadonlyUint8Array {
+export function getInitIdentityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    INITIALIZE_LISTING_DISCRIMINATOR,
+    INIT_IDENTITY_DISCRIMINATOR,
   );
 }
 
-export type InitializeListingInstruction<
+export type InitIdentityInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
-  TAccountListing extends string | AccountMeta<string> = string,
-  TAccountUserProfile extends string | AccountMeta<string> = string,
+  TAccountIdentity extends string | AccountMeta<string> = string,
+  TAccountConfig extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -76,12 +72,12 @@ export type InitializeListingInstruction<
         ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountListing extends string
-        ? WritableAccount<TAccountListing>
-        : TAccountListing,
-      TAccountUserProfile extends string
-        ? WritableAccount<TAccountUserProfile>
-        : TAccountUserProfile,
+      TAccountIdentity extends string
+        ? WritableAccount<TAccountIdentity>
+        : TAccountIdentity,
+      TAccountConfig extends string
+        ? ReadonlyAccount<TAccountConfig>
+        : TAccountConfig,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -89,85 +85,78 @@ export type InitializeListingInstruction<
     ]
   >;
 
-export type InitializeListingInstructionData = {
+export type InitIdentityInstructionData = {
   discriminator: ReadonlyUint8Array;
-  price: bigint;
-  listingId: number;
+  id: ReadonlyUint8Array;
 };
 
-export type InitializeListingInstructionDataArgs = {
-  price: number | bigint;
-  listingId: number;
-};
+export type InitIdentityInstructionDataArgs = { id: ReadonlyUint8Array };
 
-export function getInitializeListingInstructionDataEncoder(): FixedSizeEncoder<InitializeListingInstructionDataArgs> {
+export function getInitIdentityInstructionDataEncoder(): FixedSizeEncoder<InitIdentityInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["price", getU64Encoder()],
-      ["listingId", getU16Encoder()],
+      ["id", fixEncoderSize(getBytesEncoder(), 32)],
     ]),
-    (value) => ({ ...value, discriminator: INITIALIZE_LISTING_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: INIT_IDENTITY_DISCRIMINATOR }),
   );
 }
 
-export function getInitializeListingInstructionDataDecoder(): FixedSizeDecoder<InitializeListingInstructionData> {
+export function getInitIdentityInstructionDataDecoder(): FixedSizeDecoder<InitIdentityInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["price", getU64Decoder()],
-    ["listingId", getU16Decoder()],
+    ["id", fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 
-export function getInitializeListingInstructionDataCodec(): FixedSizeCodec<
-  InitializeListingInstructionDataArgs,
-  InitializeListingInstructionData
+export function getInitIdentityInstructionDataCodec(): FixedSizeCodec<
+  InitIdentityInstructionDataArgs,
+  InitIdentityInstructionData
 > {
   return combineCodec(
-    getInitializeListingInstructionDataEncoder(),
-    getInitializeListingInstructionDataDecoder(),
+    getInitIdentityInstructionDataEncoder(),
+    getInitIdentityInstructionDataDecoder(),
   );
 }
 
-export type InitializeListingAsyncInput<
+export type InitIdentityAsyncInput<
   TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
-  TAccountListing extends string = string,
-  TAccountUserProfile extends string = string,
+  TAccountIdentity extends string = string,
+  TAccountConfig extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
-  listing?: Address<TAccountListing>;
-  userProfile?: Address<TAccountUserProfile>;
+  identity?: Address<TAccountIdentity>;
+  config?: Address<TAccountConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
-  price: InitializeListingInstructionDataArgs["price"];
-  listingId: InitializeListingInstructionDataArgs["listingId"];
+  id: InitIdentityInstructionDataArgs["id"];
 };
 
-export async function getInitializeListingInstructionAsync<
+export async function getInitIdentityInstructionAsync<
   TAccountPayer extends string,
   TAccountAuthority extends string,
-  TAccountListing extends string,
-  TAccountUserProfile extends string,
+  TAccountIdentity extends string,
+  TAccountConfig extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: InitializeListingAsyncInput<
+  input: InitIdentityAsyncInput<
     TAccountPayer,
     TAccountAuthority,
-    TAccountListing,
-    TAccountUserProfile,
+    TAccountIdentity,
+    TAccountConfig,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  InitializeListingInstruction<
+  InitIdentityInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountAuthority,
-    TAccountListing,
-    TAccountUserProfile,
+    TAccountIdentity,
+    TAccountConfig,
     TAccountSystemProgram
   >
 > {
@@ -178,8 +167,8 @@ export async function getInitializeListingInstructionAsync<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
-    listing: { value: input.listing ?? null, isWritable: true },
-    userProfile: { value: input.userProfile ?? null, isWritable: true },
+    identity: { value: input.identity ?? null, isWritable: true },
+    config: { value: input.config ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -191,25 +180,13 @@ export async function getInitializeListingInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.userProfile.value) {
-    accounts.userProfile.value = await findUserProfilePda({
-      authority: getAddressFromResolvedInstructionAccount(
-        "authority",
-        accounts.authority.value,
-      ),
+  if (!accounts.identity.value) {
+    accounts.identity.value = await findIdentityPda({
+      id: getNonNullResolvedInstructionInput("id", args.id),
     });
   }
-  if (!accounts.listing.value) {
-    accounts.listing.value = await findListingPda({
-      userProfile: getAddressFromResolvedInstructionAccount(
-        "userProfile",
-        accounts.userProfile.value,
-      ),
-      listingId: getNonNullResolvedInstructionInput(
-        "listingId",
-        args.listingId,
-      ),
-    });
+  if (!accounts.config.value) {
+    accounts.config.value = await findConfigPda();
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -221,62 +198,61 @@ export async function getInitializeListingInstructionAsync<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("listing", accounts.listing),
-      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("identity", accounts.identity),
+      getAccountMeta("config", accounts.config),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeListingInstructionDataEncoder().encode(
-      args as InitializeListingInstructionDataArgs,
+    data: getInitIdentityInstructionDataEncoder().encode(
+      args as InitIdentityInstructionDataArgs,
     ),
     programAddress,
-  } as InitializeListingInstruction<
+  } as InitIdentityInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountAuthority,
-    TAccountListing,
-    TAccountUserProfile,
+    TAccountIdentity,
+    TAccountConfig,
     TAccountSystemProgram
   >);
 }
 
-export type InitializeListingInput<
+export type InitIdentityInput<
   TAccountPayer extends string = string,
   TAccountAuthority extends string = string,
-  TAccountListing extends string = string,
-  TAccountUserProfile extends string = string,
+  TAccountIdentity extends string = string,
+  TAccountConfig extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   authority: TransactionSigner<TAccountAuthority>;
-  listing: Address<TAccountListing>;
-  userProfile: Address<TAccountUserProfile>;
+  identity: Address<TAccountIdentity>;
+  config: Address<TAccountConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
-  price: InitializeListingInstructionDataArgs["price"];
-  listingId: InitializeListingInstructionDataArgs["listingId"];
+  id: InitIdentityInstructionDataArgs["id"];
 };
 
-export function getInitializeListingInstruction<
+export function getInitIdentityInstruction<
   TAccountPayer extends string,
   TAccountAuthority extends string,
-  TAccountListing extends string,
-  TAccountUserProfile extends string,
+  TAccountIdentity extends string,
+  TAccountConfig extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: InitializeListingInput<
+  input: InitIdentityInput<
     TAccountPayer,
     TAccountAuthority,
-    TAccountListing,
-    TAccountUserProfile,
+    TAccountIdentity,
+    TAccountConfig,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): InitializeListingInstruction<
+): InitIdentityInstruction<
   TProgramAddress,
   TAccountPayer,
   TAccountAuthority,
-  TAccountListing,
-  TAccountUserProfile,
+  TAccountIdentity,
+  TAccountConfig,
   TAccountSystemProgram
 > {
   // Program address.
@@ -286,8 +262,8 @@ export function getInitializeListingInstruction<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
-    listing: { value: input.listing ?? null, isWritable: true },
-    userProfile: { value: input.userProfile ?? null, isWritable: true },
+    identity: { value: input.identity ?? null, isWritable: true },
+    config: { value: input.config ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -309,25 +285,25 @@ export function getInitializeListingInstruction<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("listing", accounts.listing),
-      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("identity", accounts.identity),
+      getAccountMeta("config", accounts.config),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeListingInstructionDataEncoder().encode(
-      args as InitializeListingInstructionDataArgs,
+    data: getInitIdentityInstructionDataEncoder().encode(
+      args as InitIdentityInstructionDataArgs,
     ),
     programAddress,
-  } as InitializeListingInstruction<
+  } as InitIdentityInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountAuthority,
-    TAccountListing,
-    TAccountUserProfile,
+    TAccountIdentity,
+    TAccountConfig,
     TAccountSystemProgram
   >);
 }
 
-export type ParsedInitializeListingInstruction<
+export type ParsedInitIdentityInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -335,21 +311,21 @@ export type ParsedInitializeListingInstruction<
   accounts: {
     payer: TAccountMetas[0];
     authority: TAccountMetas[1];
-    listing: TAccountMetas[2];
-    userProfile: TAccountMetas[3];
+    identity: TAccountMetas[2];
+    config: TAccountMetas[3];
     systemProgram: TAccountMetas[4];
   };
-  data: InitializeListingInstructionData;
+  data: InitIdentityInstructionData;
 };
 
-export function parseInitializeListingInstruction<
+export function parseInitIdentityInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedInitializeListingInstruction<TProgram, TAccountMetas> {
+): ParsedInitIdentityInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -370,10 +346,10 @@ export function parseInitializeListingInstruction<
     accounts: {
       payer: getNextAccount(),
       authority: getNextAccount(),
-      listing: getNextAccount(),
-      userProfile: getNextAccount(),
+      identity: getNextAccount(),
+      config: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getInitializeListingInstructionDataDecoder().decode(instruction.data),
+    data: getInitIdentityInstructionDataDecoder().decode(instruction.data),
   };
 }

@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -270,7 +271,7 @@ export type StaykeDisputesPluginInstructions = {
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
     SelfPlanAndSendFunctions;
   openDispute: (
-    input: OpenDisputeAsyncInput,
+    input: MakeOptional<OpenDisputeAsyncInput, "payer">,
   ) => ReturnType<typeof getOpenDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
   penalizeUser: (
@@ -291,6 +292,7 @@ export type StaykeDisputesPluginPdas = {
 export type StaykeDisputesPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -318,7 +320,10 @@ export function staykeDisputesProgram() {
           openDispute: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getOpenDisputeInstructionAsync(input),
+              getOpenDisputeInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           penalizeUser: (input) =>
             addSelfPlanAndSendFunctions(
@@ -336,3 +341,5 @@ export function staykeDisputesProgram() {
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

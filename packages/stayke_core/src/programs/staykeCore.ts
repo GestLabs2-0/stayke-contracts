@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -56,32 +57,36 @@ import {
   getInitializeConfigInstructionAsync,
   getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
+  getInitIdentityInstructionAsync,
+  getLinkIdentityInstructionAsync,
   getUpdateDepositInstruction,
-  getVerifyIdentityInstructionAsync,
   parseAddInfractionInstruction,
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
   parseInitializeConfigInstruction,
   parseInitializeListingInstruction,
   parseInitializeUserProfileInstruction,
+  parseInitIdentityInstruction,
+  parseLinkIdentityInstruction,
   parseUpdateDepositInstruction,
-  parseVerifyIdentityInstruction,
   type AddInfractionInput,
   type ClearActiveBookingInput,
   type ClearListingBookingInput,
   type InitializeConfigAsyncInput,
   type InitializeListingAsyncInput,
   type InitializeUserProfileAsyncInput,
+  type InitIdentityAsyncInput,
+  type LinkIdentityAsyncInput,
   type ParsedAddInfractionInstruction,
   type ParsedClearActiveBookingInstruction,
   type ParsedClearListingBookingInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeListingInstruction,
   type ParsedInitializeUserProfileInstruction,
+  type ParsedInitIdentityInstruction,
+  type ParsedLinkIdentityInstruction,
   type ParsedUpdateDepositInstruction,
-  type ParsedVerifyIdentityInstruction,
   type UpdateDepositInput,
-  type VerifyIdentityAsyncInput,
 } from "../instructions";
 import {
   findConfigPda,
@@ -171,11 +176,12 @@ export enum StaykeCoreInstruction {
   AddInfraction,
   ClearActiveBooking,
   ClearListingBooking,
+  InitIdentity,
   InitializeConfig,
   InitializeListing,
   InitializeUserProfile,
+  LinkIdentity,
   UpdateDeposit,
-  VerifyIdentity,
 }
 
 export function identifyStaykeCoreInstruction(
@@ -219,6 +225,17 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([56, 12, 37, 133, 27, 121, 5, 155]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.InitIdentity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([208, 127, 21, 1, 194, 190, 196, 70]),
       ),
       0,
@@ -252,23 +269,23 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([175, 194, 103, 122, 161, 65, 174, 142]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.LinkIdentity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([126, 116, 15, 164, 238, 179, 155, 59]),
       ),
       0,
     )
   ) {
     return StaykeCoreInstruction.UpdateDeposit;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([177, 162, 9, 111, 44, 84, 80, 21]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeCoreInstruction.VerifyIdentity;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
@@ -289,6 +306,9 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.ClearListingBooking;
     } & ParsedClearListingBookingInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.InitIdentity;
+    } & ParsedInitIdentityInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
   | ({
@@ -298,11 +318,11 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.InitializeUserProfile;
     } & ParsedInitializeUserProfileInstruction<TProgram>)
   | ({
-      instructionType: StaykeCoreInstruction.UpdateDeposit;
-    } & ParsedUpdateDepositInstruction<TProgram>)
+      instructionType: StaykeCoreInstruction.LinkIdentity;
+    } & ParsedLinkIdentityInstruction<TProgram>)
   | ({
-      instructionType: StaykeCoreInstruction.VerifyIdentity;
-    } & ParsedVerifyIdentityInstruction<TProgram>);
+      instructionType: StaykeCoreInstruction.UpdateDeposit;
+    } & ParsedUpdateDepositInstruction<TProgram>);
 
 export function parseStaykeCoreInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -330,6 +350,13 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseClearListingBookingInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.InitIdentity: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.InitIdentity,
+        ...parseInitIdentityInstruction(instruction),
+      };
+    }
     case StaykeCoreInstruction.InitializeConfig: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -351,18 +378,18 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseInitializeUserProfileInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.LinkIdentity: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.LinkIdentity,
+        ...parseLinkIdentityInstruction(instruction),
+      };
+    }
     case StaykeCoreInstruction.UpdateDeposit: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeCoreInstruction.UpdateDeposit,
         ...parseUpdateDepositInstruction(instruction),
-      };
-    }
-    case StaykeCoreInstruction.VerifyIdentity: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeCoreInstruction.VerifyIdentity,
-        ...parseVerifyIdentityInstruction(instruction),
       };
     }
     default:
@@ -408,39 +435,44 @@ export type StaykeCorePluginInstructions = {
     input: ClearListingBookingInput,
   ) => ReturnType<typeof getClearListingBookingInstruction> &
     SelfPlanAndSendFunctions;
+  initIdentity: (
+    input: MakeOptional<InitIdentityAsyncInput, "payer">,
+  ) => ReturnType<typeof getInitIdentityInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeConfig: (
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeListing: (
-    input: InitializeListingAsyncInput,
+    input: MakeOptional<InitializeListingAsyncInput, "payer">,
   ) => ReturnType<typeof getInitializeListingInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeUserProfile: (
-    input: InitializeUserProfileAsyncInput,
+    input: MakeOptional<InitializeUserProfileAsyncInput, "payer">,
   ) => ReturnType<typeof getInitializeUserProfileInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  linkIdentity: (
+    input: MakeOptional<LinkIdentityAsyncInput, "payer">,
+  ) => ReturnType<typeof getLinkIdentityInstructionAsync> &
     SelfPlanAndSendFunctions;
   updateDeposit: (
     input: UpdateDepositInput,
   ) => ReturnType<typeof getUpdateDepositInstruction> &
     SelfPlanAndSendFunctions;
-  verifyIdentity: (
-    input: VerifyIdentityAsyncInput,
-  ) => ReturnType<typeof getVerifyIdentityInstructionAsync> &
-    SelfPlanAndSendFunctions;
 };
 
 export type StaykeCorePluginPdas = {
+  identity: typeof findIdentityPda;
   config: typeof findConfigPda;
   listing: typeof findListingPda;
   userProfile: typeof findUserProfilePda;
   reputationProfile: typeof findReputationProfilePda;
-  identity: typeof findIdentityPda;
 };
 
 export type StaykeCorePluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -476,6 +508,14 @@ export function staykeCoreProgram() {
               client,
               getClearListingBookingInstruction(input),
             ),
+          initIdentity: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitIdentityInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
           initializeConfig: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -484,32 +524,43 @@ export function staykeCoreProgram() {
           initializeListing: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getInitializeListingInstructionAsync(input),
+              getInitializeListingInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           initializeUserProfile: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getInitializeUserProfileInstructionAsync(input),
+              getInitializeUserProfileInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
+          linkIdentity: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLinkIdentityInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
           updateDeposit: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getUpdateDepositInstruction(input),
             ),
-          verifyIdentity: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getVerifyIdentityInstructionAsync(input),
-            ),
         },
         pdas: {
+          identity: findIdentityPda,
           config: findConfigPda,
           listing: findListingPda,
           userProfile: findUserProfilePda,
           reputationProfile: findReputationProfilePda,
-          identity: findIdentityPda,
         },
       },
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
