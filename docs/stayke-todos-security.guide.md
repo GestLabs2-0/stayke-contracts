@@ -1,57 +1,59 @@
-# 📋 Sistema Stayke: Lista de TODOs y Análisis de Seguridad
+# TODOs y seguridad — Stayke contracts (as implemented)
 
-Este documento recopila todos los comentarios `TODO` encontrados a lo largo de los contratos inteligentes (Anchor/Rust) de Stayke y provee un análisis sobre las brechas de seguridad y mejoras pendientes en cada caso.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
----
+Inventario de TODOs de seguridad/autorización y lógica pendiente alineado al código. Índice: [README.md](./README.md).
 
-## 🔒 Brechas de Seguridad y Autorización Críticas (CPI)
+## Camino rápido
 
-Las siguientes notas representan vulnerabilidades potenciales donde la lógica de los contratos no está completamente sellada frente a interacciones maliciosas.
+1. Prioriza brechas CPI / firmantes (sección crítica).
+2. Recuerda: `GlobalConfig` **no** está completo (sin program IDs) — no asumas registro central de programas.
+3. Gaps de política bond vs gate → guías escrow/config, no “fix” de producto aquí.
 
-### 1. Falta de validación de llamadas cruzadas (CPI) en `stayke-core`
-- **Ubicación:** `stayke-core/src/instructions/user_profile_mutators.rs:5`
-  > _"TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand"_
-- **Ubicación:** `stayke-core/src/instructions/listing_mutator.rs:41`
-  > _"TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand"_ (y línea 45 relacionada con los seeds).
-- **Riesgo:** Actualmente las funciones mutadoras (`update_deposit`, `clear_listing_booking`, etc.) aceptan mutar el estado si la instrucción es firmada, pero no validan firmemente que la firma de autoridad provenga estrictamente de un PDA autorizado (ej. el contrato Escrow o Disputes). Un atacante podría firmar con su wallet y falsificar su saldo u ocupación.
-- **Solución:** Requerir que la `authority` que firme estos mutadores sea la dirección aprobada e inmutable definida en el nuevo `GlobalConfig`.
+## Detalles
 
-### 2. Validación de Cuentas de Tokens Débil en `stayke-disputes`
-- **Ubicación:** `stayke-disputes/src/instructions/manage_disputes.rs:150`
-  > _"TODO: add validations for token accounts. Platform and usdc_mint need to be equal to the other config files"_
-- **Riesgo:** Si un contrato no verifica estrictamente el `mint` o las cuentas de tesorería (`platform_vault`), un atacante durante una resolución de disputa podría insertar una cuenta falsa y desviar fondos hacia otro lado en lugar del vault de la plataforma.
-- **Solución:** Consumir la cuenta `GlobalConfig` en esta instrucción y hacer un constraint duro: `constraint = platform.key() == global_config.platform_vault`.
+### Brechas críticas (CPI / autorización)
 
-### 3. Riesgo de Centralización / Uso de Signers Inadecuados en `stayke-disputes`
-- **Ubicación:** `stayke-disputes/src/instructions/manage_disputes.rs:253`
-  > _"TODO: instead of the admin users, we must only use the account PDA as the signer, but for simplicity we can just use the admin signer for now."_
-- **Riesgo:** Usar llaves privadas ("Admin Users") para firmar operaciones internas en lugar del PDA rompe la descentralización y presenta un punto de falla único (single point of failure) si el admin pierde su llave privada. Los CPIs deberían ser firmados autónomamente por semillas (PDA seeds).
+#### 1. Mutadores Core sin enforcement CPI duro
 
----
+- **Ubicación:** `stayke-core` mutators / listing clear (TODOs «enforce security»).
+- **Riesgo:** Mutaciones de `deposited`, booking flags, listing occupancy pueden no exigir firmante = programa autorizado vía `GlobalConfig`.
+- **Nota:** El remedio deseado (program IDs en GlobalConfig) **aún no está** en `GlobalConfig` — ver [config](./stayke-config.guide.md).
 
-## ⚙️ Tareas de Desarrollo y Lógica Pendiente
+#### 2. Token accounts en `resolve_dispute`
 
-### `stayke-config`
-- **Ubicación:** `stayke-config/src/state.rs:3`
-  > _"TODO: add stayke contracts to Global Config"_
-  - **Acción:** Relacionado directamente con la seguridad de la Sección 1. Hay que añadir los `Pubkeys` oficiales de los demás programas en `GlobalConfig` para que actúe como "Single Source of Truth".
-- **Ubicación:** `stayke-config/src/lib.rs:26`
-  > _"TODO: create instruction to withdraw fees from vault"_
-  - **Acción:** El sistema recauda dinero, pero aún no tiene una función lógica para que el administrador retire la rentabilidad desde el `platform_vault`.
+- **Ubicación:** `stayke-disputes` `resolve_dispute.rs` (TODO validaciones mint/vault).
+- **Riesgo:** Cuentas de token incorrectas en la resolución del escrow del booking.
 
-### `stayke-escrow`
-- **Ubicación:** `stayke-escrow/src/instructions/booking.rs:709`
-  > _"TODO: should I implement somekind of conditional if the host is banned. What happens to the money if the host is banned after the stay is completed but before the booking is closed?"_
-  - **Acción:** Caso borde lógico. Definir el flujo de rescate de fondos en el caso muy específico de que al anfitrión se le bloquee la cuenta (ban) en medio de la finalización de una reserva.
+#### 3. Admin signer vs PDA en disputes
 
-### `stayke-core`
-- **Ubicación:** `stayke-core/src/state/users.rs:27`
-  > _"TODO: is this field required?"_
-  - **Acción:** Revisar la estructura del estado de usuarios para eliminar bytes innecesarios en la PDA y ahorrar renta.
+- **Ubicación:** `close_dispute` / flujo disputes (TODO usar PDA del programa).
+- **Riesgo:** Dependencia de wallets admin para firmar CPIs.
 
-### `stayke-treasury` (Nuevos features de DeFi)
-- **Ubicación:** `stayke-treasury/src/instructions/lending.rs` (Múltiples TODOs, líneas 8, 15, 25, 31, 41, 47)
-  > _"TODO: In the future this instruction will allow users to lend their USDC..."_
-  > _"TODO: Liquid staking placeholder..."_
-  > _"TODO: Add lending/staking protocol accounts"_
-  - **Acción:** El contrato tiene los stubs (cascarones) para integrar `staking` y `lending` usando protocolos composables de Solana (ej. Kamino o Marginfi). Queda pendiente agregar la lógica CPI correspondiente.
+### Desarrollo pendiente (no afirmar como hecho)
+
+| Área | Estado as implemented |
+|------|----------------------|
+| Program IDs en `GlobalConfig` | TODO — **incompleto** |
+| Withdraw fees (`stayke-config`) | TODO — instrucción ausente |
+| `penalize_user` → `cpi_penalize_transfer` | **Implementado** (no listar como “falta cablear”) |
+| Host ban mid-settlement (escrow) | TODO de caso borde |
+| Lending / staking (treasury) | Stubs; no en `#[program]`; SoT [ADR-010](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-010-yield-deferred-stage-2.md) |
+
+### Hechos corregidos vs docs antiguas
+
+- Disputes **sí** llama `cpi_penalize_transfer` desde `penalize_user`.
+- `resolve_dispute` **no** es esa llamada.
+- Core identity: `init_identity` / `link_identity` únicamente en API pública.
+
+## Gaps
+
+- Seguridad CPI acoplada a GlobalConfig completo → bloqueada hasta registrar program IDs.
+- Política SoT de bond opcional vs gates `minimum_deposit` → ver callouts en escrow/architecture-flow (fuera del alcance de “cerrar” en este archivo).
+
+## Checklist
+
+- [ ] No afirmé GlobalConfig completo
+- [ ] No marqué `cpi_penalize_transfer` como TODO de cableado
+- [ ] Enlacé esta guía desde el hub

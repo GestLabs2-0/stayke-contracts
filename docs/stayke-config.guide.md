@@ -1,28 +1,59 @@
-# 📖 Guía del Contrato `stayke-config`
+# Guía `stayke-config` (as implemented)
 
-El contrato `stayke-config` actúa como la configuración global ("Global Config") y bóveda central del sistema. Su propósito es ser la fuente única de verdad (Single Source of Truth) para el ecosistema completo, eliminando la necesidad de variables fijas y consolidando el control de acceso, los tesoros y las comisiones en un solo lugar.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
-## 🛠️ Funciones (Instrucciones)
+Parámetros globales compartidos y vault de comisiones de plataforma.
 
-A continuación, se describen las funciones principales expuestas por este contrato:
+## Camino rápido
 
-### 1. Inicialización Global
-- **`initialize_config`**
-  - **Propósito:** Configura los parámetros maestros del sistema. Acepta:
-    - `minimum_deposit`: El monto de depósito mínimo requerido a un usuario para operar en Stayke.
-    - `fee_bps`: El porcentaje de comisión general (en basis points) que cobra la plataforma en cada estadía exitosa.
-  - **Efectos y PDAs:** Al ser llamado también inicializa un estado llamado `GlobalConfig` el cual almacena la identidad de la autoridad (`authority`), la moneda autorizada del protocolo (`usdc_mint`), y crea la `Platform Vault` (junto a su autoridad derivada), que es la cuenta en donde se van a recibir todas las utilidades extraídas del Escrow por comisiones.
+1. Admin llama una vez `initialize_config(minimum_deposit, fee_bps)` → `GlobalConfig` + platform vault.
+2. Otros programas **leen** `GlobalConfig` (mint, fees, vault, `minimum_deposit`).
+3. Hoy **no** hay instrucción de withdraw de fees; **no** hay program IDs de Core/Escrow/Disputes/Treasury en la cuenta.
 
-### 2. Futuras Funciones (Pendientes en TODO)
-- **Extracción de Comisiones (Withdraw Fees)**:
-  - Existe un "TODO" que indica la necesidad de crear una instrucción que le permita a la `authority` retirar el dinero recolectado en la `platform_vault`.
+## Detalles
 
----
+### Instrucciones
 
-## 🔄 Flujo de Ejecución (Rol en el sistema)
+| Instrucción | Estado |
+|-------------|--------|
+| `initialize_config` | Implementada |
+| Withdraw fees desde `platform_vault` | TODO en `lib.rs` — no existe |
 
-Este contrato es pasivo a nivel de interacción de usuario, pero activamente vital para el sistema:
+### `GlobalConfig` (campos actuales)
 
-1. **Fase de Despliegue:** El admin del sistema manda a inicializar `stayke-config`, creando así la única fuente de estado de la cual derivarán las reglas.
-2. **Autorización y CPIs Seguros:**  Como lo anotaste en el código, el propósito clave de este contrato es que cada vez que `stayke-core`, `stayke-escrow` o cualquier otro contrato haga un CPI, no se tengan que hardcodear direcciones. En lugar de eso, referencian los public keys registrados on-chain en el `GlobalConfig`.
-3. **Distribución Escrow:** Cuando el `stayke-escrow` cierra una reserva (`complete_stay`), ahora envía la tarifa final pre-establecida (`fee_bps`) a la token account única de la plataforma guardada y administrada por `stayke-config`.
+| Campo | Uso |
+|-------|-----|
+| `authority` | Admin |
+| `minimum_deposit` | Umbral leído por treasury/escrow |
+| `fee_bps` | Comisión en liquidaciones |
+| `usdc_mint` | Mint autorizado |
+| `platform_vault` / bump | Destino de fees |
+| `is_initialized`, `bump` | Guardas PDA |
+
+**Ausente:** Pubkeys de los programas Stayke. El TODO en `state.rs` pide registrarlos para validar firmantes CPI sin hardcodear.
+
+### Objetivo SoT / seguridad vs estado actual
+
+| Objetivo (diseño CPI) | As implemented |
+|-----------------------|----------------|
+| `GlobalConfig` como registro de program IDs para CPIs seguros | **Incompleto** — solo params económicos + vault |
+| Withdraw de fees por authority | **Pendiente** |
+
+Esto afecta cómo se endurecen mutadores en Core (ver [security](./stayke-todos-security.guide.md)): no afirmar que GlobalConfig ya es “single source of truth” completa para identidades de programas.
+
+### Policy SoT vs On-chain gate
+
+`minimum_deposit` en config es el número que Escrow/Treasury usan como gate. La política de cuándo ese depósito es obligatorio u opcional vive en [ECONOMIC-MODEL](https://github.com/GestLabs2-0/docs/blob/main/architecture/ECONOMIC-MODEL.md) (L1–L6), no en este programa. Ver callouts en [escrow](./stayke-escrow.guide.md) y [architecture-flow](./stayke-architecture-flow.guide.md).
+
+## Gaps
+
+- GlobalConfig incompleto (sin program IDs).
+- Sin withdraw fees.
+- Valor de `minimum_deposit` vs política de bond opcional = gap de producto↔código (otros changes).
+
+## Checklist
+
+- [ ] No afirmé que GlobalConfig ya guarda program IDs
+- [ ] Sé que withdraw fees no existe
+- [ ] Enlacé el umbral a los callouts de escrow/treasury

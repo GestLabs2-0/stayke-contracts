@@ -1,58 +1,64 @@
-# 📖 Guía del Contrato `stayke-core`
+# Guía `stayke-core` (as implemented)
 
-El contrato `stayke-core` es la base del ecosistema Stayke. Su propósito principal es gestionar el estado fundamental de los usuarios, incluyendo sus perfiles, sistemas de reputación, identidades (KYC/KYB base) y la gestión de propiedades (Listings). Funciona como la "fuente de verdad" para los demás contratos a la hora de verificar quién es un usuario y cuál es su historial.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
----
+Estado de usuarios, reputación, identity y listings. Otros programas leen o mutan vía CPI.
 
-## 🛠️ Funciones (Instrucciones)
+## Camino rápido
 
-A continuación, se describen las funciones principales expuestas por este contrato:
+1. Admin: `initialize_config` → `ConfigAcc`.
+2. Usuario: `initialize_user_profile` → `UserProfile` + `ReputationProfile` (sin Identity aún).
+3. Authority: `init_identity` → PDA Identity; luego `link_identity` enlaza al perfil.
+4. Host: `initialize_listing`. Mutadores CPI: `update_deposit`, `clear_active_booking`, `add_infraction`, `clear_listing_booking`.
 
-### 1. Inicialización y Configuración
-- **`initialize_config`**
-  - **Propósito:** Crea la cuenta global de configuración (`ConfigAcc`). Define la autoridad del sistema, que será quien pueda verificar identidades.
-  - **Uso Común:** Llamado una sola vez por el administrador del protocolo en el despliegue.
+## Detalles
 
-### 2. Gestión de Usuarios e Identidad
-- **`handler_initialize_user_profile`**
-  - **Propósito:** Registra a un nuevo usuario en la plataforma. Crea tres PDAs vitales: `UserProfile`, `ReputationProfile`, y su cuenta de `Identity` ligada a un documento (ej. pasaporte o ID).
-  - **Flujo:** Inicializa los datos en estado "no verificado".
-- **`handler_verify_identity`**
-  - **Propósito:** Verifica la cuenta de identidad de un usuario.
-  - **Restricción:** Solo puede ser llamada por la `authority` definida en la configuración global. Cambia el estado del usuario (`is_verified = true`) y registra la fecha de verificación.
+### Instrucciones expuestas (`lib.rs`)
 
-### 3. Gestión de Propiedades (Listings)
-- **`initialize_listing`**
-  - **Propósito:** Crea un nuevo listado (Listing) de una propiedad o alojamiento asociado a un usuario ya verificado.
-- **`update_listing_price` / `update_listing_state`**
-  - **Propósito:** Permiten al dueño del listado actualizar el precio o cambiar el estado (a través de un hash) de la propiedad respectiva.
-- **`clear_listing_booking`**
-  - **Propósito:** Libera un alojamiento marcándolo como `is_occupied = None`. Típicamente llamado cuando una estadía finaliza o se cancela.
+| Instrucción | Quién | Efecto |
+|-------------|-------|--------|
+| `initialize_config` | Admin | Crea `ConfigAcc` (authority) |
+| `initialize_user_profile` | Usuario | Crea `UserProfile` + `ReputationProfile` |
+| `initialize_listing` | Host | Crea `Listing` |
+| `init_identity` | Authority de Core | Crea `Identity` (`verified_at`, `linked=false`) |
+| `link_identity` | Authority de Core | Enlaza Identity → `UserProfile.identity` |
+| `update_deposit` | CPI / caller | ± `UserProfile.deposited` |
+| `clear_active_booking` | CPI / caller | Limpia booking activo del perfil |
+| `add_infraction` | CPI / caller | Incrementa contadores en `ReputationProfile` |
+| `clear_listing_booking` | CPI / caller | `Listing.is_occupied = None` |
 
-### 4. Mutadores de Estado (Diseñados para CPI)
-*Nota: Estas funciones mutan el estado base del usuario y están pensadas para ser llamadas por otros contratos (como Escrow o Disputes) de forma interconectada.*
-- **`update_deposit`**
-  - **Propósito:** Aumenta o disminuye el monto depositado (`deposited`) en el perfil de un usuario.
-- **`set_host_status`**
-  - **Propósito:** Cambia la bandera boolean `is_host` para designar si un usuario puede operar como anfitrión.
-- **`clear_active_booking`**
-  - **Propósito:** Remueve cualquier reserva activa en el perfil de un usuario, dejándolo libre para crear nuevas reservas.
-- **`add_infraction`**
-  - **Propósito:** Añade una infracción al `ReputationProfile` especificando la severidad (Baja, Media, Alta). Ideal para ser llamada desde el contrato de Disputas si un usuario es encontrado culpable de mal comportamiento.
+**No existen** en el programa actual: `verify_identity`, `set_host_status`. La “verificación” operativa para escrow es `UserProfile.identity.is_some()` tras `link_identity`.
 
----
+### Cuentas clave
 
-## 🔄 Flujo de Ejecución (Flow) Específico de Core
+| Cuenta | Seeds (resumen) | Campos útiles |
+|--------|-----------------|---------------|
+| `UserProfile` | `user_profile` + authority | `identity`, `deposited`, `banned`, `listings` |
+| `ReputationProfile` | `reputation_profile` + authority | reviews, infractions |
+| `Identity` | id hash + `identity` | `verified_at`, `linked` |
+| `Listing` | `listing` + owner + listing_id | `price`, `is_occupied` |
 
-El flujo de este contrato es lineal en cuanto a la integración al sistema, y se esquematiza así:
+### Flujo identity (as implemented)
 
-1. **Setup Inicial:** El Admin llama a `initialize_config` para parametrizar el núcleo.
-2. **Onboarding de Usuario:** 
-   - Un usuario llama a `initialize_user_profile` proporcionando su ID. 
-   - Se crean sus perfiles de estado paralelos (`UserProfile` para datos, `ReputationProfile` para penalizaciones, e `Identity` para KYC).
-3. **Verificación Manual (Off-chain + On-chain):** 
-   - El sistema valida los datos de KYC de manera externa.
-   - El Admin/Wallet Autorizada ejecuta `verify_identity` para activar al usuario.
-4. **Interacción con el Ecosistema:**
-   - Si el usuario quiere ser anfitrión, se registra y se agregan "Listings".
-   - A lo largo del tiempo, contratos de terceros (como Escrow y Disputas) llamarán a los mutadores (como `update_deposit` o `add_infraction`) vía CPI para mantener actualizado el saldo garantizado (`deposit`) o el ranking de conducta moral en el protocolo.
+```
+initialize_user_profile
+        ↓
+init_identity (authority)  →  Identity PDA
+        ↓
+link_identity (authority)  →  UserProfile.identity = Some(...)
+        ↓
+Escrow puede exigir identity.is_some() en create_booking
+```
+
+## Gaps
+
+- Mutadores CPI aún con TODOs de autorización dura (ver [security](./stayke-todos-security.guide.md)).
+- Handlers de update listing pueden existir en módulos; **solo** documentamos lo expuesto en `lib.rs` como API pública del programa.
+- Política KYC de producto (Didit, etc.) → SoT / ADR-008; on-chain solo `init_identity` + `link_identity`.
+
+## Checklist
+
+- [ ] Usé `init_identity` / `link_identity`, no APIs inventadas
+- [ ] No documenté `verify_identity` ni `set_host_status` como existentes
+- [ ] Sé que escrow mira `identity` + `deposited`, no un flag `is_verified` legacy
