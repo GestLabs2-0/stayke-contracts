@@ -1,46 +1,54 @@
-# 📖 Guía del Contrato `stayke-escrow`
+# Guía `stayke-escrow` (as implemented)
 
-El contrato `stayke-escrow` es el motor transaccional del flujo de reservas de Stayke. Asegura los pagos entre los huéspedes y anfitriones, bloqueando ("escrowing") el dinero durante la estadía para garantizar la confianza de ambas partes.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
----
+Motor del booking: calendario, vault USDC por reserva y liquidación (feliz o vía disputa).
 
-## 🛠️ Funciones (Instrucciones)
+## Camino rápido
 
-A continuación, se describen las funciones principales expuestas por este contrato:
+1. `initialize_escrow` enlaza a `GlobalConfig`.
+2. Guest: `create_booking` (sin mover fondos aún) → host accept/reject → guest `client_accept_reserve` (USDC al vault).
+3. Happy path: `review_completed` → `complete_stay` (host + fee a platform vault).
+4. Disputa: Escrow solo reacciona a CPIs desde Disputes (`cpi_update_booking_status`, `cpi_resolve_dispute_transfer`).
 
-### 1. Inicialización
-- **`initialize_escrow`**
-  - **Propósito:** Fija los parámetros base de la bóveda de escrow. Recibe comisiones (`fee_bps`) y otras configuraciones.
+## Detalles
 
-### 2. Ciclo de Vida de la Reserva (Booking Lifecycle)
-Todo el flujo de una renta vacacional ocurre en los siguientes pasos:
-- **`create_booking`**
-  - **Propósito:** El huésped crea una solicitud de reserva especificando un periodo (`check_in` y `check_out`). Se reserva el calendario temporalmente, pero AÚN NO se mueven los fondos.
-- **`host_accept_booking` / `host_reject_booking`**
-  - **Propósito:** El anfitrión revisa la solicitud de reserva y decide aceptarla o rechazarla.
-- **`client_accept_reserve` / `client_reject_reserve`**
-  - **Propósito:** Una vez que el anfitrión aceptó, el cliente confirma la reserva llamando a `client_accept_reserve` (lo cual transfiere los fondos de USDC a la bóveda de Escrow asegurada) o puede cancelarla preventivamente con `client_reject_reserve`.
-- **`review_completed`**
-  - **Propósito:** Una vez finalizada la estadía, el huésped deja una calificación (score) de la experiencia. Modifica el estado a `ReviewCompleted` y actualiza la reputación del anfitrión de manera automática vía CPI interno.
-- **`complete_stay`**
-  - **Propósito:** Finaliza el proceso. Toma la reserva ya revisada, libera el dinero depositado en Escrow pagándole el total correspondiente al anfitrión (omitiendo la comisión que va a la bóveda de `Platform`) y cierra definitivamente las cuentas transaccionales de la reserva.
+### Instrucciones
 
-### 3. Integración CPI (Para Disputas)
-- **`cpi_update_booking_status`**
-  - **Propósito:** El contrato de Disputas llama a esta función para cambiar el estatus de la reserva (ej. a 'En Disputa') y evitar que `complete_stay` y transferencias normales se efectúen.
-- **`cpi_resolve_dispute_transfer`**
-  - **Propósito:** Cuando una disputa concluye en `stayke-disputes`, aquel contrato llama a esta función para dividir el botín según los porcentajes definidos y repartir los remanentes.
+| Instrucción | Rol |
+|-------------|-----|
+| `initialize_escrow` | Config del programa |
+| `create_booking` | Guest crea `Pending`; gates de perfil/depósito |
+| `host_accept_booking` / `host_reject_booking` | Host responde |
+| `client_accept_reserve` / `client_reject_reserve` | Guest confirma (paga) o cancela |
+| `review_completed` | Score 1–5; escribe reputación host |
+| `complete_stay` | Distribuye escrow → host + `fee_bps` a platform |
+| `cpi_update_booking_status` | CPI Disputes → congela booking |
+| `cpi_resolve_dispute_transfer` | CPI Disputes → reparte vault y cierra |
 
----
+### Policy SoT vs On-chain gate — `minimum_deposit`
 
-## 🔄 Flujo de Ejecución (Flow) Específico de Escrow
+| Capa | Qué dice |
+|------|----------|
+| **SoT** | Bond de comportamiento opcional en Stage 1 para listar/reservar (L1, L4); escrow de reserva obligatorio al confirmar ([ECONOMIC-MODEL](https://github.com/GestLabs2-0/docs/blob/main/architecture/ECONOMIC-MODEL.md), [ADR-007](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-007-bond-escrow-separation.md)). |
+| **On-chain** | En `create_booking`, guest y host deben cumplir `deposited >= global_config.minimum_deposit`. El mismo umbral reaparece en `host_accept_booking` y `client_accept_reserve` (guest). También se exige `identity.is_some()` y no banned. |
+| **Gap** | El depósito en treasury actúa como gate duro de booking; la SoT no exige bond para esas acciones en Stage 1. **No** interpretar el gate como política SoT ya cumplida. Fix de código → fuera de este change. |
 
-1. **Intención de Reserva:** El Cliente llama a `create_booking`. Se generan los registros de días, pero la plata sigue con el cliente.
-2. **Confirmación del Host:** El Host revisa y aprueba con `host_accept_booking`.
-3. **Bloqueo Monasterial (Pago):** El Cliente entonces ejecuta `client_accept_reserve`. Aquí es donde pasa la magia de seguridad: los fondos en USDC se mueven a una bóveda temporal única generada para esa reserva (Escrow Token Account).
-4. **Periodo de Reserva:** El dinero permanece "escroweado" e intocable durante toda la estadía.
-5. **Finalización Feliz:**
-   - La estadía termina y el cliente llama a `review_completed(score)`.
-   - Luego, se ejecuta `complete_stay` para liquidar las cuentas: el vault extrae su % de comisión y el Host recibe su pago directamente a su bóveda de USDC. Las cuentas temporales se destruyen limpiando la memoria del protocolo.
-6. **Finalización Conflictiva (CPI Flow):** 
-   - Si se levanta una disputa antes de finalizar, el estado de `Booking` se paraliza. Luego, Escrow acata ciegamente a `cpi_resolve_dispute_transfer` llamado desde `stayke-disputes` para redirigir la plata.
+### Lifecycle (estados)
+
+`Pending` → `HostAccepted` → `Active` → `ReviewCompleted` → `Completed`  
+Ramas: `Cancelled`; `Disputed` → `DisputeResolved` | `DisputeRejected`.
+
+Fondos de booking se mueven en `client_accept_reserve` (entrada) y `complete_stay` / `cpi_resolve_dispute_transfer` (salida). El bond/treasury es instrumento distinto (ADR-007).
+
+## Gaps
+
+- Gate `minimum_deposit` vs política L1/L4 (callout arriba).
+- Caso borde host baneado mid-settlement: TODO en código (ver [security](./stayke-todos-security.guide.md)).
+
+## Checklist
+
+- [ ] Distingo escrow de booking vs depósito treasury
+- [ ] Leí el callout Policy SoT vs On-chain gate
+- [ ] Sé que disputa liquida vía CPI, no vía `complete_stay`

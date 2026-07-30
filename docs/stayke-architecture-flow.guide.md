@@ -1,55 +1,56 @@
-# 🏰 Arquitectura Global y Flujo de Interconexiones de Stayke
+# Arquitectura on-chain — flujo CPI (as implemented)
 
-A pesar de existir de manera independiente, los 5 contratos inteligentes de Stayke forman un ecosistema sumamente interconectado y modular donde todos confían en uno: la información es validada principalmente por el **Core**, y dictaminada estructuralmente por el **Global Config**.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
-En este diagrama conceptual se detallan las principales responsabilidades de cada componente y cómo se comunican entre sí.
+Vista corta de los cinco programas y cómo se invocan entre sí. La norma de producto y el System Design viven en stayke-docs; esta guía no los replica.
 
----
+## Camino rápido
 
-## 🔄 Rol de Cada Componente en el Ecosistema
+1. Config parametriza mint, fees y `minimum_deposit`; los demás programas **leen** `GlobalConfig`.
+2. Core guarda perfiles, identity y listings; Treasury actualiza `deposited` vía CPI.
+3. Escrow corre el lifecycle del booking; Disputes congela/reparte escrow y, por separado, puede penalizar treasury+reputación.
+4. Detalle de cuentas/CPI → [stayke-global.guide.md](./stayke-global.guide.md); diagramas → [stayke-flow-diagram.md](./stayke-flow-diagram.md).
 
-1. **⚙️ Config (`stayke-config`)**
-   - **Es la única fuente de verdad y de configuración global.**
-   - Mantiene los permisos, los valores de comisiones (`fee_bps`), el depósito mínimo y funciona como bóveda general de las utilidades (Platform Vault). Centraliza la seguridad para evitar la falsificación de CPIs.
-2. **🌍 Core (`stayke-core`)**
-   - **Es el cerebro de estado de los usuarios.**
-   - Mantiene perfiles, listas de propiedades (listings) y registros de reputación KYC.
-3. **💰 Treasury (`stayke-treasury`)**
-   - **Actúa como la base monetaria general (Garantías/Colaterales).**
-   - Maneja el dinero de alto nivel y el fondo de riesgo aportado por los usuarios para siquiera abrir la app.
-4. **🏦 Escrow (`stayke-escrow`)**
-   - **Opera como el intermediario transaccional de "corto plazo".**
-   - Solamente resguarda los pagos relacionados al flujo efímero de una reserva (`Booking`).
-5. **⚖️ Disputes (`stayke-disputes`)**
-   - **Actúa como el Tribunal Supremo Judicial.**
-   - Congela movimientos de dinero, impone veredictos alterando pagos directos, golpea la reputación y absorbe partes de depósitos.
+## Detalles
 
----
+### Roles (ángulo on-chain)
 
-## 🔗 Matriz de Interacciones y Flujos de Lógica Transversal
+| Programa | Rol as implemented |
+|----------|-------------------|
+| `stayke-config` | `GlobalConfig` + platform vault; **sin** program IDs registrados aún |
+| `stayke-core` | `UserProfile`, `ReputationProfile`, `Identity`, `Listing` |
+| `stayke-treasury` | Depósito/retiro de garantía; endpoint CPI `cpi_penalize_transfer` |
+| `stayke-escrow` | Booking + vault por reserva; CPIs de disputa |
+| `stayke-disputes` | Abrir/resolver/cerrar disputa; `penalize_user` aparte |
 
-El ecosistema Stayke maneja un diseño donde los procesos dependen de "Cross-Program Invocations" (CPI) para su completitud. El flujo general integrado se concibe de la siguiente manera:
+### CPI relevantes (resumen)
 
-### Flujo 1: Registro Onboarding Completo
-- **A -> Usuario:** Llama e inicializa su Identidad y Perfil en `stayke-core`.
-- **B -> Usuario:** Ejecuta un depósito en `stayke-treasury` aportando su capital de garantía mínimo. 
-- **C -> Core:** Internamente gracias al CPI emitido por `treasury`, el registro del core del usuario eleva su límite de `deposited`.
+| Origen → destino | Instrucción / CPI | Cuándo |
+|------------------|-------------------|--------|
+| Treasury → Core | `update_deposit` | `deposit_guarantee` / `withdraw_guarantee` |
+| Disputes → Escrow | `cpi_update_booking_status` | `open_dispute` |
+| Disputes → Escrow | `cpi_resolve_dispute_transfer` | `resolve_dispute` (solo escrow) |
+| Disputes → Treasury | `cpi_penalize_transfer` | `penalize_user` (no en `resolve`) |
+| Disputes → Core | `update_deposit`, `add_infraction` | `penalize_user` |
+| Disputes → Core | `clear_active_booking`, `clear_listing_booking` | `close_dispute` |
 
-### Flujo 2: Creación del Viaje Feliz (Reserva Perfecta)
-- **A -> Core:** Ambas partes demuestran ser actrices válidos (Están verificados, no baneados, cuentas con buen standing).
-- **B -> Escrow:** Se abre la puerta en `stayke-escrow` para aceptar los fondos en el vault temporal por los días solicitados por el listado alojado en el `Core`.
-- **C -> Escrow:** Cuando los días acaban, y la estadía se marca como "Completada", el Host recibe los fondos desde la bóveda de escrow. Nadie es alertado; todo funciona en paz.
-- **D -> Core:** En la finalización, la propiedad (`is_occupied`) se desmarca por CPI. 
+### Policy SoT vs On-chain gate — bond / `minimum_deposit`
 
-### Flujo 3: El Flujo Crítico de Conflictos (Disputa en la Milla Extra)
-*Este es el momento de máxima interconexión de todo el protocolo Stayke:*
+| Capa | Qué dice |
+|------|----------|
+| **SoT** | Bond ≠ escrow ([ADR-007](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-007-bond-escrow-separation.md)); L1/L4 permiten host/guest sin bond en Stage 1 ([ECONOMIC-MODEL](https://github.com/GestLabs2-0/docs/blob/main/architecture/ECONOMIC-MODEL.md)). |
+| **On-chain** | `create_booking` exige `UserProfile.deposited >= GlobalConfig.minimum_deposit` para **guest y host**. |
+| **Gap** | El gate on-chain trata el depósito de treasury como prerequisito de reserva; la política SoT no exige bond para listar/reservar en Stage 1. Alineación de código → otros changes MVP. |
 
-1. **La Ruptura (`stayke-disputes`):** Al generarse un problema, la supuesta víctima abre formalmente un caso.
-2. **Aviso de Alto Nivel (`stayke-disputes` ➔ `stayke-escrow`):** Inmediatamente, la disputa pide mediante CPI paralizar el estatus del Booking (`cpi_update_booking_status`), amarrando las manos y paralizando el escrow.
-3. **Sentencia y Dinero (`stayke-disputes` ➔ `stayke-escrow`):** Al dictaminar un fallo con `resolve_dispute`, el juez instruye vía CPI (`cpi_resolve_dispute_transfer`) cómo repartir el botín que estaba secuestrado en Escrow.
-4. **Deducciones de Riesgo (`stayke-disputes` ➔ `stayke-treasury`):** Si hay una multa o es necesario, la disputa entra al tesoro en sí y solicita transferir plata desde la "Garantía Base" llamando `cpi_penalize_transfer`. 
-5. **Dedo Acusador (`stayke-disputes` ➔ `stayke-core`):** Finalmente el jurado mancha permanentemente la métrica del infractor mutando su cantidad de "Infractions" en el perfil centralizado con todo el poder moral y sistemático.
+## Gaps
 
----
-> [!NOTE] 
-> Todas las flechas de ejecución asumen un protocolo subyacente donde las firmas entre PDAs (Program Derived Addresses) actúan con base en configuraciones seguras verificadas contra estado para evitar inyecciones maliciosas. Esto es posible al hacer referencia cruzada a la Configuración Global en `stayke-config`.
+- `GlobalConfig` incompleto (sin Pubkeys de programas) → validación CPI vía program IDs aún no centralizada.
+- `resolve_dispute` no llama a treasury ni reputación; la penalización económica es instrucción separada (`penalize_user`).
+- Yield/lending → diferido SoT ([ADR-010](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-010-yield-deferred-stage-2.md)); stubs en treasury no están expuestos en `lib.rs`.
+
+## Checklist
+
+- [ ] No usé esta guía como norma de producto
+- [ ] Sé que resolve ≠ penalize
+- [ ] Conocí el gap de `minimum_deposit` vs L1/L4

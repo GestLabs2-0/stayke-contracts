@@ -1,42 +1,66 @@
-# 📖 Guía del Contrato `stayke-disputes`
+# Guía `stayke-disputes` (as implemented)
 
-El contrato `stayke-disputes` es el árbitro del sistema. Su responsabilidad principal es escuchar y procesar casos en los que la estadía entre un huésped (client) y un anfitrión (host) no sale como se esperaba, resolviendo el conflicto financiero y penalizando reputacionalmente si es necesario.
+> **As implemented** — documenta el código on-chain actual (`programs/**`), no la política de producto.
+> **SoT (norma):** [stayke-docs](https://github.com/GestLabs2-0/docs/blob/main/README.md). Si hay conflicto, manda la SoT; aquí solo se describen gaps explícitos.
 
----
+Arbitraje admin del booking: congelar escrow, repartir fondos de la reserva y — en instrucción aparte — penalizar depósito + reputación.
 
-## 🛠️ Funciones (Instrucciones)
+## Camino rápido
 
-A continuación, se describen las funciones principales expuestas por este contrato:
+1. Guest/host: `open_dispute` → CPI Escrow `cpi_update_booking_status(Disputed)`.
+2. Admin: `resolve_dispute` → **solo** CPI Escrow `cpi_resolve_dispute_transfer` (reparte vault del booking). **No** toca treasury ni reputación.
+3. Admin (opcional, separada): `penalize_user` → CPI Treasury `cpi_penalize_transfer` + Core `update_deposit` + `add_infraction`.
+4. Admin: `close_dispute` → CPI Core limpia perfiles/listing.
 
-### 1. Configuración de Administrador
-- **`initialize_config`**
-  - **Propósito:** Configura los parámetros iniciales del contrato de disputas (como las wallets de sistema y autoridades permitidas para resolver conflictos).
-- **`penalize_user`**
-  - **Propósito:** Permite a un administrador del sistema emitir una penalización directa a un usuario (y CPI hacia su `ReputationProfile` en `stayke-core`). Recibe un nivel de severidad (`PenaltySeverity`).
+## Detalles
 
-### 2. Gestión de Disputas
-- **`open_dispute`**
-  - **Propósito:** Abre un caso de disputa formal. Puede ser llamado por el huésped o el anfitrión vinculado a una reserva específica (`booking`). Requiere un `DisputeReason` que categorice el problema.
-  - **Efecto Secundario:** Cambia el estado de la reserva en `stayke-escrow` para evitar que los fondos de garantía sean liberados hasta que se dicte un veredicto.
-- **`resolve_dispute`**
-  - **Propósito:** Llamado por el Administrador/Votante para emitir una sentencia sobre la disputa abierta.
-  - **Parámetros Clave:** 
-    - `host_share_bps`: Porcentaje de los fondos bloqueados que le corresponde al anfitrión. El resto va al huésped.
-    - `rejected`: Un boolean que indica si la disputa fue completamente rechazada (inválida).
-  - **Efecto Secundario:** Realiza una llamada CPI a `stayke-escrow` (`cpi_resolve_dispute_transfer`) para mover el dinero y a `stayke-core` para penalizar reputacionalmente al infractor.
-- **`close_dispute`**
-  - **Propósito:** Cierra y archiva una cuenta de disputa una vez que todos los fondos han sido repartidos y las penalizaciones aplicadas, liberando el estado.
+### Instrucciones
 
----
+| Instrucción | Efecto principal |
+|-------------|------------------|
+| `initialize_config` | `DisputeConfig` (admins, `retribution_bps_*`) |
+| `open_dispute` | Crea `Dispute`; congela booking vía Escrow |
+| `resolve_dispute(host_share_bps, rejected)` | Solo escrow: reparte / rechaza |
+| `penalize_user(severity)` | Treasury transfer + baja `deposited` + infracción |
+| `close_dispute` | Cierra cuenta Dispute; limpia Core |
 
-## 🔄 Flujo de Ejecución (Flow) Específico de Disputas
+### `resolve_dispute` ≠ `penalize_user`
 
-1. **Problema en la Estadía:** Durante o después del check-in, un usuario nota un incumplimiento y llama a `open_dispute` junto con la razón.
-2. **Congelamiento:** El contrato de disputas notifica mediante CPI a `stayke-escrow` para que el dinero de la reserva quede en estado de "Disputado" (Frozen).
-3. **Análisis:** El problema es examinado off-chain por el equipo de moderación o sistema descentralizado.
-4. **Resolución:** El Admin llama a `resolve_dispute`, pasando los `basis points (bps)` y decidiendo la distribución de la plata. 
-5. **Transferencias y Castigos:** Al resolver, el contrato se encarga de:
-   - Pedirle a `stayke-escrow` que envíe los fondos a quien corresponda.
-   - Pedirle a `stayke-treasury` penalizaciones extra de los depósitos según la gravedad.
-   - Pedirle a `stayke-core` aumentar el nivel de infracciones de quien tuvo la culpa.
-6. **Conclusión:** Se limpia el estado del sistema mediante `close_dispute`.
+| | `resolve_dispute` | `penalize_user` |
+|--|-------------------|-----------------|
+| Escrow booking | Sí (`cpi_resolve_dispute_transfer`) | No |
+| Treasury / bond | No | Sí (`cpi_penalize_transfer`) |
+| Reputación | No | Sí (`add_infraction`) |
+| Depósito Core | No | Sí (`update_deposit` restando) |
+
+El endpoint `cpi_penalize_transfer` **sí está cableado** desde `penalize_user` (no es TODO pendiente de “conectar”). Lo pendiente de producto/flujo es cuándo el admin debe llamar `penalize_user` respecto al ciclo de disputa (comentario en código: aplicar en disputa abierta / antes de cerrar).
+
+### Flujo típico
+
+```
+open_dispute ──CPI──> Escrow status=Disputed
+        │
+        ▼
+resolve_dispute ──CPI──> Escrow reparte vault booking
+        │
+        ├── (opcional) penalize_user ──CPI──> Treasury + Core
+        │
+        ▼
+close_dispute ──CPI──> Core clear profiles / listing
+```
+
+## Gaps
+
+- Validaciones de token accounts en `resolve_dispute` incompletas (TODO).
+- Firmantes admin en vez de PDA del programa (TODO).
+- `penalize_user` no está acoplado automáticamente a `resolve_dispute`.
+
+### Policy SoT vs On-chain gate (contexto)
+
+Slash de bond (tesorería) vs liquidación de escrow son instrumentos distintos ([ADR-007](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-007-bond-escrow-separation.md)). On-chain ya los separa en dos instrucciones; la política de montos/severidad vive en SoT / OPEN-QUESTIONS, no aquí.
+
+## Checklist
+
+- [ ] No asumí que `resolve` penaliza treasury
+- [ ] Documenté `penalize_user` → `cpi_penalize_transfer` como implementado
+- [ ] Sé el orden open → resolve → (penalize) → close
