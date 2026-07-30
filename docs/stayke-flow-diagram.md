@@ -78,10 +78,7 @@ stateDiagram-v2
     ReviewCompleted --> Completed: complete_stay
     Disputed --> DisputeResolved: resolve_dispute rejected=false
     Disputed --> DisputeRejected: resolve_dispute rejected=true
-    note right of DisputeResolved
-      close_dispute → clear Core
-      penalize_user es instrucción aparte
-    end
+    note right of DisputeResolved : close_dispute → clear Core / penalize_user es instrucción aparte
     Completed --> [*]
     Cancelled --> [*]
     DisputeResolved --> [*]
