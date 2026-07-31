@@ -2,10 +2,8 @@
 	"compilerOptions": {
 		"outDir": "./dist",
 		"rootDir": ".",
-		"tsBuildInfoFile": "./dist/.tsbuildinfo",
 		"target": "ES2022",
 		"module": "ESNext",
-		"incremental": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"moduleResolution": "bundler",
@@ -21,7 +19,6 @@
 
 		/* Transpiling with TypeScript: */
 		"declaration": true,
-		"composite": true,
 		"sourceMap": true,
 		"declarationMap": true
 	},

@@ -1,24 +1,23 @@
 {
   "name": "@GestLabs2-0/stayke-config",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "./dist/src",
-    "./dist/types",
-    "./src/"
+    "./dist"
   ],
 
 "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --build"
+    "build": "tsup src/index.ts --format esm --dts --clean"
   },
-"exports": {
+  "exports": {
     ".": {
-       "import": "./dist/src/index.js",
-       "types": "./dist/src/index.d.ts"
-     }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "keywords": [],
   "author": "",
