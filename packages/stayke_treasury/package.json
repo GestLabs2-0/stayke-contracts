@@ -1,6 +1,6 @@
 {
   "name": "@GestLabs2-0/stayke-treasury",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -9,7 +9,7 @@
     "./dist/types",
     "./src/"
   ],
-  "type": "module",
+
 "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc --build"
