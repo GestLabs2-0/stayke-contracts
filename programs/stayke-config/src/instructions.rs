@@ -49,6 +49,11 @@ pub fn handler_initialize_config(
     global_config.usdc_mint = ctx.accounts.usdc_mint.key();
     global_config.platform_vault = ctx.accounts.platform_vault.key();
     global_config.platform_vault_bump = ctx.bumps.platform_vault_pda;
+    // Embedded declare_id! values — deterministic SoT for CPI allowlisting (B1).
+    global_config.core_program = pubkey!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
+    global_config.escrow_program = pubkey!("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ");
+    global_config.disputes_program = pubkey!("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB");
+    global_config.treasury_program = pubkey!("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu");
     global_config.is_initialized = true;
 
     Ok(())

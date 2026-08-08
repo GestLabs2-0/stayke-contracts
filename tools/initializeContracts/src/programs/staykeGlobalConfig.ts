@@ -18,8 +18,14 @@ import { confirmTx } from "../utils";
 import {
 	getInitializeConfigInstructionAsync,
 	findGlobalConfigPda,
+	fetchMaybeGlobalConfig,
 } from "@GestLabs2-0/stayke-config";
 
+/**
+ * B1: GlobalConfig layout is adopted via wipe/re-init only (no migrate instruction).
+ * If an account already exists at the GlobalConfig PDA, refuse and instruct operators
+ * to close/wipe it on localnet before re-initializing.
+ */
 export async function initializeGlobalConfig(
 	connection: SolanaRpcType,
 	payer: KeyPairSigner,
@@ -37,6 +43,15 @@ export async function initializeGlobalConfig(
 		throw Error("Debes pasar --mint-address");
 	}
 	const configPda = await findGlobalConfigPda();
+
+	const existing = await fetchMaybeGlobalConfig(connection, configPda[0]);
+	if (existing.exists) {
+		throw new Error(
+			`GlobalConfig already exists at ${configPda[0]}. ` +
+				`B1 requires wipe/re-init for layout changes (no migrate instruction). ` +
+				`Close or wipe the account on localnet, then re-run initialize.`
+		);
+	}
 
 	const instruction = await getInitializeConfigInstructionAsync({
 		authority: payer,

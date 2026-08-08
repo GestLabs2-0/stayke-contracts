@@ -34,6 +34,14 @@ export type GlobalConfig = {
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
   platformVaultBump: number;
+  /** Stayke core program ID (CPI allowlist SoT). */
+  coreProgram: Address;
+  /** Stayke escrow program ID (CPI allowlist SoT). */
+  escrowProgram: Address;
+  /** Stayke disputes program ID (CPI allowlist SoT). */
+  disputesProgram: Address;
+  /** Stayke treasury program ID (CPI allowlist SoT). */
+  treasuryProgram: Address;
   bump: number;
 };
 
@@ -47,6 +55,14 @@ export type GlobalConfigArgs = {
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
   platformVaultBump: number;
+  /** Stayke core program ID (CPI allowlist SoT). */
+  coreProgram: Address;
+  /** Stayke escrow program ID (CPI allowlist SoT). */
+  escrowProgram: Address;
+  /** Stayke disputes program ID (CPI allowlist SoT). */
+  disputesProgram: Address;
+  /** Stayke treasury program ID (CPI allowlist SoT). */
+  treasuryProgram: Address;
   bump: number;
 };
 
@@ -59,6 +75,10 @@ export function getGlobalConfigEncoder(): FixedSizeEncoder<GlobalConfigArgs> {
     ["isInitialized", getBooleanEncoder()],
     ["platformVault", getAddressEncoder()],
     ["platformVaultBump", getU8Encoder()],
+    ["coreProgram", getAddressEncoder()],
+    ["escrowProgram", getAddressEncoder()],
+    ["disputesProgram", getAddressEncoder()],
+    ["treasuryProgram", getAddressEncoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -72,6 +92,10 @@ export function getGlobalConfigDecoder(): FixedSizeDecoder<GlobalConfig> {
     ["isInitialized", getBooleanDecoder()],
     ["platformVault", getAddressDecoder()],
     ["platformVaultBump", getU8Decoder()],
+    ["coreProgram", getAddressDecoder()],
+    ["escrowProgram", getAddressDecoder()],
+    ["disputesProgram", getAddressDecoder()],
+    ["treasuryProgram", getAddressDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
