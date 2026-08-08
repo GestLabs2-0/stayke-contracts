@@ -1,5 +1,6 @@
 #![allow(clippy::diverging_sub_expression)]
 pub mod constants;
+pub mod cpi_authority;
 pub mod error;
 pub mod instructions;
 pub mod state;
@@ -7,6 +8,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use cpi_authority::*;
 pub use instructions::{cpi::*, *};
 pub use state::*;
 
@@ -32,7 +34,7 @@ pub mod stayke_core {
         handler_initialize_listing(ctx, price, listing_id)
     }
     // ---------------------------------------------------------------------------
-    // User profile mutations — callable directly or via CPI
+    // Privileged CPI mutators — require A2 CPI authority PDA + GlobalConfig allowlist
     // ---------------------------------------------------------------------------
 
     pub fn update_deposit(
@@ -56,6 +58,14 @@ pub mod stayke_core {
 
     pub fn clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
         handle_clear_listing_booking(ctx)
+    }
+
+    pub fn set_listing_occupied(ctx: Context<SetListingOccupied>, occupied: bool) -> Result<()> {
+        handler_set_listing_occupied(ctx, occupied)
+    }
+
+    pub fn update_host_review(ctx: Context<UpdateHostReview>, score: u8) -> Result<()> {
+        handler_update_host_review(ctx, score)
     }
 
     // --------------------------------------------------------------------------

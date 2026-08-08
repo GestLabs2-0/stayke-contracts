@@ -20,4 +20,7 @@ pub enum StaykeError {
 
     #[msg("Max listings reached")]
     MaxListingsReached,
+
+    #[msg("Invalid review score: must be between 1 and 5")]
+    InvalidScore,
 }

@@ -6,7 +6,7 @@ use anchor_spl::{
 use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
 use stayke_core::program::StaykeCore;
 use stayke_core::UserProfile;
-use stayke_core::{cpi::accounts::UpdateUserProfile, USER_PROFILE_SEED};
+use stayke_core::{cpi::accounts::UpdateUserProfile, CPI_AUTHORITY_SEED, USER_PROFILE_SEED};
 
 use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED};
 
@@ -14,14 +14,13 @@ use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED};
 // Deposit guarantee
 // ---------------------------------------------------------------------------
 // 1. Transfers USDC from the user's wallet into the treasury vault.
-// 2. CPIs into stayke-core to increment `UserProfile.deposited`.
+// 2. CPIs into stayke-core to increment `UserProfile.deposited` with A2 PDA signer.
 
 #[derive(Accounts)]
 pub struct DepositGuarantee<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    // ---- Treasury config ----
     #[account(
         seeds = [TREASURY_CONFIG_SEED.as_bytes()],
         bump = config.bump,
@@ -36,12 +35,9 @@ pub struct DepositGuarantee<'info> {
     )]
     pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 
-    // ---- Token accounts ----
-    /// Source: the user's own USDC token account.
     #[account(mut)]
     pub sender_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    /// Destination: the treasury vault (must match config).
     #[account(
         mut,
         constraint = treasury_vault.key() == config.treasury_vault @ TreasuryError::InvalidTreasuryVault,
@@ -53,8 +49,6 @@ pub struct DepositGuarantee<'info> {
 
     pub token_program: Interface<'info, TokenInterface>,
 
-    // ---- stayke-core CPI ----
-    /// The user's UserProfile PDA in stayke-core — will be mutated via CPI.
     #[account(
         mut,
         seeds = [USER_PROFILE_SEED.as_bytes(), signer.key().as_ref()],
@@ -63,6 +57,10 @@ pub struct DepositGuarantee<'info> {
         constraint = user_profile.authority == signer.key() @ TreasuryError::Unauthorized,
     )]
     pub user_profile: Account<'info, UserProfile>,
+
+    /// CHECK: Treasury CPI authority PDA — signs privileged core mutators (A2).
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
 
     pub stayke_core_program: Program<'info, StaykeCore>,
 }
@@ -75,7 +73,6 @@ pub fn handler_deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) ->
         TreasuryError::DepositTooLow
     );
 
-    // 1. Transfer USDC into the treasury vault.
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.sender_token_account.to_account_info(),
         to: ctx.accounts.treasury_vault.to_account_info(),
@@ -85,16 +82,18 @@ pub fn handler_deposit_guarantee(ctx: Context<DepositGuarantee>, amount: u64) ->
     let cpi_ctx = CpiContext::new(ctx.accounts.token_program.key(), cpi_accounts);
     transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
-    // 2. CPI → stayke-core: increment deposited balance.
     let cpi_program = ctx.accounts.stayke_core_program.key();
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
     let cpi_accounts = UpdateUserProfile {
         user_profile: ctx.accounts.user_profile.to_account_info(),
-        authority: ctx.accounts.signer.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
     };
     stayke_core::cpi::update_deposit(
-        CpiContext::new(cpi_program, cpi_accounts),
+        CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds),
         amount,
-        true, // is_deposit = true → add to deposited
+        true,
     )?;
 
     Ok(())

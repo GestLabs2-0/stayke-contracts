@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 
 #[derive(Accounts)]
-pub struct ClearListingBooking<'info> {
+pub struct SetListingOccupied<'info> {
     pub user_profile: Account<'info, UserProfile>,
 
     #[account(
@@ -30,15 +30,13 @@ pub struct ClearListingBooking<'info> {
     pub cpi_authority: Signer<'info>,
 }
 
-pub fn handle_clear_listing_booking(ctx: Context<ClearListingBooking>) -> Result<()> {
+pub fn handler_set_listing_occupied(ctx: Context<SetListingOccupied>, occupied: bool) -> Result<()> {
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
-        &[AllowedCaller::Disputes],
+        &[AllowedCaller::Escrow],
     )?;
 
-    let listing = &mut ctx.accounts.listing;
-    listing.is_occupied = false;
-
+    ctx.accounts.listing.is_occupied = occupied;
     Ok(())
 }

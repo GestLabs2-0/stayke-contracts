@@ -14,7 +14,7 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "stayke-core/idl-build", 'stayke-treasury/idl-build', 'stayke-escrow/idl-build']
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "stayke-core/idl-build", 'stayke-treasury/idl-build', 'stayke-escrow/idl-build', 'stayke-config/idl-build']
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -23,6 +23,7 @@ custom-panic = []
 [dependencies]
 anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
 anchor-spl = "1.0.2"
+stayke-config = { path = "../stayke-config", features = ["cpi"] }
 stayke-core = { path = "../stayke-core", features = ["cpi"] }
 stayke-escrow = { path = "../stayke-escrow", features = ["cpi"] }
 stayke-treasury = { path = "../stayke-treasury", features = ["cpi"] }
