@@ -34,7 +34,7 @@ pub mod stayke_core {
         handler_initialize_listing(ctx, price, listing_id)
     }
     // ---------------------------------------------------------------------------
-    // Privileged CPI mutators — require A2 CPI authority PDA + GlobalConfig allowlist
+    // Privileged CPI mutators — require `cpi_authority` PDA signer + GlobalConfig allowlist
     // ---------------------------------------------------------------------------
 
     pub fn update_deposit(

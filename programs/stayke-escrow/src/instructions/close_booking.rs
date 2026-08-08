@@ -65,7 +65,7 @@ pub struct CloseBooking<'info> {
     )]
     pub global_config: Account<'info, GlobalConfig>,
 
-    /// CHECK: Escrow CPI authority PDA — signs privileged core mutators (A2).
+    /// CHECK: Escrow CPI authority PDA — signs privileged core mutators.
     #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
     pub cpi_authority: UncheckedAccount<'info>,
 

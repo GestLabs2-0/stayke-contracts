@@ -40,7 +40,7 @@ fn penalize_user_typed_treasury_link_and_mint_constraints() {
 #[test]
 fn docs_and_booking_status_allowlist_untouched_marker() {
     // Scope lock: this change must not implement cpi_update_booking_status allowlist
-    // or edit docs/**. Residual lives in contracts-cpi-escrow-booking-status-allowlist.
+    // or edit docs/**. The allowlist for `cpi_update_booking_status` is handled in a separate change.
     let open = include_str!("../src/instructions/open_dispute.rs");
     assert!(
         open.contains("cpi_update_booking_status"),

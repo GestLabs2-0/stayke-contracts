@@ -1,4 +1,4 @@
-//! LiteSVM tests for stayke-config GlobalConfig program-ID registry (B1).
+//! LiteSVM tests for stayke-config GlobalConfig program-ID registry.
 
 use {
     anchor_lang::{

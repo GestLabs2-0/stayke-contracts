@@ -1,4 +1,4 @@
-//! LiteSVM: wallet cannot call privileged core mutators (A2).
+//! LiteSVM: wallet cannot call privileged core mutators.
 
 use {
     anchor_lang::{

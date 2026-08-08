@@ -14,7 +14,7 @@ use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED};
 // Deposit guarantee
 // ---------------------------------------------------------------------------
 // 1. Transfers USDC from the user's wallet into the treasury vault.
-// 2. CPIs into stayke-core to increment `UserProfile.deposited` with A2 PDA signer.
+// 2. CPIs into stayke-core to increment `UserProfile.deposited` via the `cpi_authority` PDA signer.
 
 #[derive(Accounts)]
 pub struct DepositGuarantee<'info> {
@@ -58,7 +58,7 @@ pub struct DepositGuarantee<'info> {
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    /// CHECK: Treasury CPI authority PDA — signs privileged core mutators (A2).
+    /// CHECK: Treasury CPI authority PDA — signs privileged core mutators.
     #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
     pub cpi_authority: UncheckedAccount<'info>,
 

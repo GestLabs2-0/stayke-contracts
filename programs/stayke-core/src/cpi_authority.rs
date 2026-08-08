@@ -3,7 +3,7 @@ use stayke_config::GlobalConfig;
 
 use crate::{error::StaykeError, CPI_AUTHORITY_SEED};
 
-/// Which Stayke programs may invoke a given core CPI mutator (A2 allowlist matrix).
+/// Which Stayke programs may invoke a given core CPI mutator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AllowedCaller {
     Treasury,
@@ -47,7 +47,7 @@ pub fn resolve_cpi_caller(
     err!(StaykeError::Unauthorized)
 }
 
-/// Enforce A2: `cpi_authority` must be the CPI PDA of an allowlisted registry program.
+/// Verify the allowlist: `cpi_authority` must be the CPI PDA of an allowlisted registry program.
 pub fn assert_cpi_authority(
     global_config: &GlobalConfig,
     cpi_authority: &Pubkey,

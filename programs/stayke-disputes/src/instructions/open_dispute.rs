@@ -94,7 +94,7 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
     Ok(())
 }
 
-/// Accused counterparty PDA at open (ADR-009): guest opens → host; host opens → guest.
+/// Accused counterparty PDA at open: guest opens → host; host opens → guest.
 pub(crate) fn guilty_counterparty(
     initiator_profile: Pubkey,
     guest: Pubkey,

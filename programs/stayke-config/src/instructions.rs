@@ -49,7 +49,7 @@ pub fn handler_initialize_config(
     global_config.usdc_mint = ctx.accounts.usdc_mint.key();
     global_config.platform_vault = ctx.accounts.platform_vault.key();
     global_config.platform_vault_bump = ctx.bumps.platform_vault_pda;
-    // Embedded declare_id! values — deterministic SoT for CPI allowlisting (B1).
+    // Embedded declare_id! values — used as the canonical registry for CPI allowlisting.
     global_config.core_program = pubkey!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
     global_config.escrow_program = pubkey!("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ");
     global_config.disputes_program = pubkey!("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB");

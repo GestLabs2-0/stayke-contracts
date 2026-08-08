@@ -23,7 +23,7 @@ pub struct UpdateUserProfile<'info> {
     )]
     pub global_config: Account<'info, GlobalConfig>,
 
-    /// CPI authority PDA of an allowlisted Stayke program (A2).
+    /// CPI authority PDA of an allowlisted Stayke program.
     pub cpi_authority: Signer<'info>,
 }
 
