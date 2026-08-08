@@ -15,10 +15,6 @@ use crate::{
     state::{Dispute, DisputeReason, DisputeStatus},
 };
 
-// ---------------------------------------------------------------------------
-// Open Dispute
-// ---------------------------------------------------------------------------
-
 #[derive(Accounts)]
 pub struct OpenDispute<'info> {
     #[account(mut)]
@@ -35,7 +31,6 @@ pub struct OpenDispute<'info> {
     )]
     pub initiator_profile: Account<'info, UserProfile>,
 
-    /// We must mutate the booking state via CPI
     #[account(mut)]
     pub booking: Box<Account<'info, Booking>>,
 
@@ -53,9 +48,10 @@ pub struct OpenDispute<'info> {
 }
 
 pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) -> Result<()> {
+    let initiator_profile_key = ctx.accounts.initiator_profile.key();
     require!(
-        ctx.accounts.booking.guest == ctx.accounts.initiator.key()
-            || ctx.accounts.booking.host == ctx.accounts.initiator.key(),
+        ctx.accounts.booking.guest == initiator_profile_key
+            || ctx.accounts.booking.host == initiator_profile_key,
         DisputeError::UnauthorizedDisputeInitiator
     );
     require!(
@@ -63,19 +59,15 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
         DisputeError::BookingNotActive
     );
 
-    let initiator_key = ctx.accounts.initiator_profile.key();
     let booking = &ctx.accounts.booking;
 
-    let guilty = if initiator_key == booking.host {
-        booking.host
-    } else {
-        booking.guest
-    };
+    // Guilty at open = accused counterparty (non-initiator).
+    let guilty = guilty_counterparty(initiator_profile_key, booking.guest, booking.host)?;
 
     let dispute = &mut ctx.accounts.dispute;
     dispute.booking = ctx.accounts.booking.key();
     dispute.property = ctx.accounts.booking.property;
-    dispute.initiator = initiator_key;
+    dispute.initiator = initiator_profile_key;
     dispute.guilty = guilty;
     dispute.reason = reason.clone();
     dispute.status = DisputeStatus::Open;
@@ -83,7 +75,6 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
     dispute.resolved_at = None;
     dispute.bump = ctx.bumps.dispute;
 
-    // CPI to stayke-escrow to update booking status
     let cpi_accounts = UpdateBookingStatusCpi {
         booking: ctx.accounts.booking.to_account_info(),
         authority: ctx.accounts.initiator.to_account_info(),
@@ -101,4 +92,48 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
     });
 
     Ok(())
+}
+
+/// Accused counterparty PDA at open (ADR-009): guest opens → host; host opens → guest.
+pub(crate) fn guilty_counterparty(
+    initiator_profile: Pubkey,
+    guest: Pubkey,
+    host: Pubkey,
+) -> Result<Pubkey> {
+    require!(
+        initiator_profile == guest || initiator_profile == host,
+        DisputeError::UnauthorizedDisputeInitiator
+    );
+    Ok(if initiator_profile == guest {
+        host
+    } else {
+        guest
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guest_open_sets_guilty_to_host() {
+        let guest = Pubkey::new_unique();
+        let host = Pubkey::new_unique();
+        assert_eq!(guilty_counterparty(guest, guest, host).unwrap(), host);
+    }
+
+    #[test]
+    fn host_open_sets_guilty_to_guest() {
+        let guest = Pubkey::new_unique();
+        let host = Pubkey::new_unique();
+        assert_eq!(guilty_counterparty(host, guest, host).unwrap(), guest);
+    }
+
+    #[test]
+    fn non_party_open_fails() {
+        let guest = Pubkey::new_unique();
+        let host = Pubkey::new_unique();
+        let stranger = Pubkey::new_unique();
+        assert!(guilty_counterparty(stranger, guest, host).is_err());
+    }
 }

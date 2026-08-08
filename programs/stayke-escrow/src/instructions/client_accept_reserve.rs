@@ -4,9 +4,11 @@ use anchor_spl::{
     token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 use stayke_core::{
-    constants::{LISTING_SEED, USER_PROFILE_SEED},
+    constants::{LISTING_SEED, USER_PROFILE_SEED, CPI_AUTHORITY_SEED},
+    cpi::accounts::SetListingOccupied,
     Listing, UserProfile,
 };
+use stayke_core::program::StaykeCore;
 
 use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
 
@@ -17,10 +19,6 @@ use crate::{
     events::BookingStatusUpdated,
     state::{Booking, BookingStatus},
 };
-
-// ---------------------------------------------------------------------------
-// Client: accept (confirm) reservation — locks USDC into escrow
-// ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
 pub struct ClientAcceptReserve<'info> {
@@ -55,7 +53,16 @@ pub struct ClientAcceptReserve<'info> {
         bump = listing.bump,
         constraint = booking.property == listing.key() @ EscrowError::InvalidBookingProperty
     )]
-    pub listing: Account<'info, Listing>,
+    pub listing: Box<Account<'info, Listing>>,
+
+    /// Host profile that owns the listing (required for set_listing_occupied CPI seeds).
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = listing.owner == host_profile.key() @ EscrowError::InvalidHostBooking,
+    )]
+    pub host_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
@@ -69,14 +76,14 @@ pub struct ClientAcceptReserve<'info> {
     pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(mut, constraint = mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = client,
     )]
-    pub client_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub client_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -86,8 +93,13 @@ pub struct ClientAcceptReserve<'info> {
         seeds = [ESCROW_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump,
     )]
-    pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
+    /// CHECK: Escrow CPI authority PDA — signs privileged core mutators (A2).
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
+
+    pub stayke_core_program: Program<'info, StaykeCore>,
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -95,7 +107,6 @@ pub struct ClientAcceptReserve<'info> {
 
 pub fn handler_client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
-    let listing = &mut ctx.accounts.listing;
     let now = Clock::get()?.unix_timestamp;
     if now < booking.check_in - 86400 {
         return err!(EscrowError::TooEarlyToActivate);
@@ -115,7 +126,24 @@ pub fn handler_client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Resul
         ctx.accounts.mint.decimals,
     )?;
 
-    listing.is_occupied = true;
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+    let set_occupied_accounts = SetListingOccupied {
+        user_profile: ctx.accounts.host_profile.to_account_info(),
+        listing: ctx.accounts.listing.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
+    };
+    stayke_core::cpi::set_listing_occupied(
+        CpiContext::new_with_signer(
+            ctx.accounts.stayke_core_program.key(),
+            set_occupied_accounts,
+            signer_seeds,
+        ),
+        true,
+    )?;
+
+    let booking = &mut ctx.accounts.booking;
     booking.status = BookingStatus::Active;
     booking.escrow_bump = ctx.bumps.escrow_token_account;
 
