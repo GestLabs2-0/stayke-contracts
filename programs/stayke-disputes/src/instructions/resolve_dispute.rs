@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-
+use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_escrow::{
     cpi::{accounts::ResolveDisputeTransferCpi, cpi_resolve_dispute_transfer},
     program::StaykeEscrow,
-    state::Booking,
+    state::{Booking, EscrowConfig},
+    constants::ESCROW_CONFIG_SEED,
 };
 
 use crate::{
@@ -13,10 +14,6 @@ use crate::{
     events::DisputeResolved,
     state::{Dispute, DisputeConfig, DisputeStatus},
 };
-
-// ---------------------------------------------------------------------------
-// Resolve Dispute (Admin determines blame and routes funds)
-// ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
 pub struct ResolveDispute<'info> {
@@ -41,23 +38,37 @@ pub struct ResolveDispute<'info> {
     #[account(mut)]
     pub booking: Box<Account<'info, Booking>>,
 
-    // Escrow Accounts needed for the CPI:
-    /// CHECK: Escrow config validated by stayke-escrow program during CPI.
-    pub escrow_config: UncheckedAccount<'info>,
+    #[account(
+        seeds = [ESCROW_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_escrow_program.key(),
+        bump = escrow_config.bump,
+        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
+    )]
+    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
-    /// CHECK: Global config validated by stayke-escrow program during CPI.
-    pub global_config: UncheckedAccount<'info>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    // TODO: add validations for token accounts. Platform and usdc_mint need to be equal to the other config files
     #[account(mut)]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = platform_vault_token_account.key() == global_config.platform_vault @ StaykeConfigError::InvalidVaultAccount,
+    )]
     pub platform_vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = usdc_mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint,
+    )]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub stayke_escrow_program: Program<'info, StaykeEscrow>,
@@ -69,7 +80,6 @@ pub fn handler_resolve_dispute(
     host_share_bps: u16,
     rejected: bool,
 ) -> Result<()> {
-    // Escrow transfer CPI
     let cpi_accounts = ResolveDisputeTransferCpi {
         authority: ctx.accounts.admin.to_account_info(),
         booking: ctx.accounts.booking.to_account_info(),

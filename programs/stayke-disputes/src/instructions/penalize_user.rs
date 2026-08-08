@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_core::{
     cpi::{
         accounts::{UpdateReputationProfile, UpdateUserProfile},
@@ -7,21 +8,18 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{ReputationProfile, UserProfile},
-    PenaltySeverity,
+    CPI_AUTHORITY_SEED, PenaltySeverity,
 };
 use stayke_treasury::{
     cpi::{accounts::PenalizeTransferCpi, cpi_penalize_transfer},
     program::StaykeTreasury,
+    TreasuryConfig, TREASURY_CONFIG_SEED,
 };
 
 use crate::{
     constants::DISPUTE_CONFIG_PDA_SEED, error::DisputeError, events::UserPenalized,
     state::DisputeConfig,
 };
-
-// ---------------------------------------------------------------------------
-// Penalize user
-// ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
 pub struct PenalizeUser<'info> {
@@ -33,54 +31,64 @@ pub struct PenalizeUser<'info> {
         constraint = config.admins.contains(&admin.key()) @ DisputeError::UnauthorizedAdmin,
         bump = config.bump,
     )]
-    pub config: Account<'info, DisputeConfig>,
+    pub config: Box<Account<'info, DisputeConfig>>,
 
-    /// The offending user's UserProfile (requires stayke-core CPI to mutate deposit).
     #[account(
         mut,
         constraint = !penalized_user_profile.banned @ DisputeError::UserBanned,
     )]
-    pub penalized_user_profile: Account<'info, UserProfile>,
+    pub penalized_user_profile: Box<Account<'info, UserProfile>>,
 
-    /// The offending user's ReputationProfile (requires stayke-core CPI to mutate infractions).
     #[account(mut)]
-    pub penalized_reputation_profile: Account<'info, ReputationProfile>,
+    pub penalized_reputation_profile: Box<Account<'info, ReputationProfile>>,
 
-    /// The affected user's USDC account to receive the retribution.
     #[account(mut)]
-    pub affected_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub affected_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: Wallet of the affected user, used for logging/events.
     pub affected_wallet: UncheckedAccount<'info>,
 
-    /// The treasury program config.
-    /// CHECK: Used strictly for CPI validation on treasury side.
-    pub treasury_config: UncheckedAccount<'info>,
+    #[account(
+        seeds = [TREASURY_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_treasury_program.key(),
+        bump = treasury_config.bump,
+    )]
+    pub treasury_config: Box<Account<'info, TreasuryConfig>>,
 
-    /// CHECK: Used strictly for CPI validation on treasury side.
-    pub global_config: UncheckedAccount<'info>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+        constraint = treasury_config.global_config == global_config.key() @ DisputeError::UnlinkedTreasuryConfig,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    /// The global treasury vault from stayke-treasury.
     #[account(mut)]
-    pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: Treasury PDA to sign the transfer (managed inside stayke-treasury).
     pub treasury_pda: UncheckedAccount<'info>,
 
-    #[account(mut)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = usdc_mint.key() == global_config.usdc_mint @ DisputeError::InvalidTokenMint,
+    )]
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
+
+    /// CHECK: Disputes CPI authority PDA — signs privileged core mutators (A2).
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
 
     pub stayke_core_program: Program<'info, StaykeCore>,
     pub stayke_treasury_program: Program<'info, StaykeTreasury>,
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-// WE MUST MOVE USER PENALIZATION TO DISPUTES FLOW BEFORE ENDING THE DISPUTE OR AT LEAST APPLY IT ONLY WHEN THE DISPUTE IS OPEN
 pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeverity) -> Result<()> {
     let config = &ctx.accounts.config;
     let penalized = &ctx.accounts.penalized_user_profile;
 
-    // 1. Determine retribution amount from severity
     let bps = match severity {
         PenaltySeverity::Low => config.retribution_bps_low,
         PenaltySeverity::Medium => config.retribution_bps_medium,
@@ -93,7 +101,9 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
 
     let actual_retribution = retribution.min(penalized.deposited);
 
-    // 2. Perform transfer from treasury to affected via stayke-treasury CPI
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+
     if actual_retribution > 0 {
         let cpi_accounts = PenalizeTransferCpi {
             authority: ctx.accounts.admin.to_account_info(),
@@ -108,24 +118,29 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
         let cpi_ctx = CpiContext::new(ctx.accounts.stayke_treasury_program.key(), cpi_accounts);
         cpi_penalize_transfer(cpi_ctx, actual_retribution)?;
 
-        // 3. Subtract deposit via stayke-core CPI
         let update_deposit_cpi_accounts = UpdateUserProfile {
             user_profile: ctx.accounts.penalized_user_profile.to_account_info(),
-            authority: ctx.accounts.admin.to_account_info(),
+            global_config: ctx.accounts.global_config.to_account_info(),
+            cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
         };
-        let update_deposit_ctx = CpiContext::new(
+        let update_deposit_ctx = CpiContext::new_with_signer(
             ctx.accounts.stayke_core_program.key(),
             update_deposit_cpi_accounts,
+            signer_seeds,
         );
         update_deposit(update_deposit_ctx, actual_retribution, false)?;
     }
 
-    // 4. Update infraction counters via stayke-core CPI
     let add_inf_cpi_accounts = UpdateReputationProfile {
         reputation_profile: ctx.accounts.penalized_reputation_profile.to_account_info(),
-        authority: ctx.accounts.admin.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
     };
-    let add_inf_ctx = CpiContext::new(ctx.accounts.stayke_core_program.key(), add_inf_cpi_accounts);
+    let add_inf_ctx = CpiContext::new_with_signer(
+        ctx.accounts.stayke_core_program.key(),
+        add_inf_cpi_accounts,
+        signer_seeds,
+    );
     add_infraction(add_inf_ctx, severity)?;
 
     emit!(UserPenalized {
