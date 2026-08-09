@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
     cpi::{
         accounts::{ClearListingBooking, UpdateUserProfile},
@@ -7,7 +7,6 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{Listing, UserProfile},
-    CPI_AUTHORITY_SEED,
 };
 
 use stayke_escrow::state::Booking;

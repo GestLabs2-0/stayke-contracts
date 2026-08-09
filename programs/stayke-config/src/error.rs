@@ -13,4 +13,7 @@ pub enum StaykeConfigError {
     InvalidVaultAccount,
     #[msg("The token mint does not match the configured USDC mint")]
     InvalidTokenMint,
+
+    #[msg("Unauthorized: Only the authority can perform this action")]
+    Unauthorized,
 }

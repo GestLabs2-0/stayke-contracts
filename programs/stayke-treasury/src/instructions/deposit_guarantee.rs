@@ -3,10 +3,10 @@ use anchor_spl::{
     token::{transfer_checked, TransferChecked},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
+use stayke_config::{error::StaykeConfigError, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::program::StaykeCore;
 use stayke_core::UserProfile;
-use stayke_core::{cpi::accounts::UpdateUserProfile, CPI_AUTHORITY_SEED, USER_PROFILE_SEED};
+use stayke_core::{cpi::accounts::UpdateUserProfile, USER_PROFILE_SEED};
 
 use crate::{error::TreasuryError, TreasuryConfig, TREASURY_CONFIG_SEED};
 
@@ -31,7 +31,6 @@ pub struct DepositGuarantee<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = global_config.key() == config.global_config @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 

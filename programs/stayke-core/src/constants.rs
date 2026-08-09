@@ -14,7 +14,3 @@ pub const IDENTITY_SEED: &str = "identity";
 
 #[constant]
 pub const CORE_CONFIG_SEED: &str = "config";
-
-/// Seed used by treasury/escrow/disputes to derive their CPI authority PDA.
-#[constant]
-pub const CPI_AUTHORITY_SEED: &str = "cpi_authority";

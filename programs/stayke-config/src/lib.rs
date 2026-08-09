@@ -1,5 +1,6 @@
 #![allow(clippy::diverging_sub_expression)]
 pub mod constants;
+pub mod cpi_authority;
 pub mod error;
 pub mod instructions;
 pub mod state;
@@ -7,6 +8,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use cpi_authority::*;
 pub use instructions::*;
 pub use state::*;
 

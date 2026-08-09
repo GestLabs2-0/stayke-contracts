@@ -4,7 +4,9 @@ use anchor_spl::{
     token::{transfer_checked, TransferChecked},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    assert_cpi_authority, error::StaykeConfigError, AllowedCaller, GLOBAL_CONFIG_SEED,
+};
 
 // ---------------------------------------------------------------------------
 // CPI Endpoint: Penalize Transfer (Used by stayke-disputes)
@@ -14,7 +16,7 @@ use stayke_config::{error::StaykeConfigError, GLOBAL_CONFIG_SEED};
 
 #[derive(Accounts)]
 pub struct PenalizeTransferCpi<'info> {
-    pub authority: Signer<'info>,
+    pub cpi_authority: Signer<'info>,
 
     #[account(
         seeds = [TREASURY_CONFIG_SEED.as_bytes()],
@@ -26,7 +28,6 @@ pub struct PenalizeTransferCpi<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = global_config.key() == config.global_config @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, stayke_config::GlobalConfig>>,
 
@@ -51,6 +52,11 @@ pub struct PenalizeTransferCpi<'info> {
 }
 
 pub fn handler_cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: u64) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Disputes],
+    )?;
     let config = &ctx.accounts.config;
 
     require!(amount > 0, TreasuryError::ZeroWithdrawal);

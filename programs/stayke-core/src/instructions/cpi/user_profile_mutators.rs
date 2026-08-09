@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    cpi_authority::{assert_cpi_authority, AllowedCaller},
+    GlobalConfig, GLOBAL_CONFIG_SEED,
+};
 
 use crate::{
-    cpi_authority::{assert_cpi_authority, AllowedCaller},
     PenaltySeverity, ReputationProfile, UserProfile, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
 };
 

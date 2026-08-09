@@ -3,14 +3,16 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
+use stayke_core::program::StaykeCore;
 use stayke_core::{
-    constants::{LISTING_SEED, USER_PROFILE_SEED, CPI_AUTHORITY_SEED},
+    constants::{LISTING_SEED, USER_PROFILE_SEED},
     cpi::accounts::SetListingOccupied,
     Listing, UserProfile,
 };
-use stayke_core::program::StaykeCore;
 
-use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    error::StaykeConfigError, GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED,
+};
 
 use crate::EscrowConfig;
 use crate::{
@@ -68,7 +70,6 @@ pub struct ClientAcceptReserve<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
 

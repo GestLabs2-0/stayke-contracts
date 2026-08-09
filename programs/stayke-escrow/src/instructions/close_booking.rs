@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
-    constants::{REPUTATION_PROFILE_SEED, USER_PROFILE_SEED, CPI_AUTHORITY_SEED},
+    constants::{REPUTATION_PROFILE_SEED, USER_PROFILE_SEED},
     cpi::accounts::UpdateHostReview,
     program::StaykeCore,
     ReputationProfile, UserProfile,

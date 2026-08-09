@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
     cpi::{
         accounts::{UpdateReputationProfile, UpdateUserProfile},
@@ -8,7 +8,7 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{ReputationProfile, UserProfile},
-    CPI_AUTHORITY_SEED, PenaltySeverity,
+    PenaltySeverity,
 };
 use stayke_treasury::{
     cpi::{accounts::PenalizeTransferCpi, cpi_penalize_transfer},
@@ -59,8 +59,6 @@ pub struct PenalizeUser<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         seeds::program = stayke_config::ID,
         bump = global_config.bump,
-        constraint = global_config.is_initialized,
-        constraint = treasury_config.global_config == global_config.key() @ DisputeError::UnlinkedTreasuryConfig,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
 
@@ -106,7 +104,7 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
 
     if actual_retribution > 0 {
         let cpi_accounts = PenalizeTransferCpi {
-            authority: ctx.accounts.admin.to_account_info(),
+            cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
             config: ctx.accounts.treasury_config.to_account_info(),
             global_config: ctx.accounts.global_config.to_account_info(),
             treasury_vault: ctx.accounts.treasury_vault.to_account_info(),
@@ -115,7 +113,11 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
             usdc_mint: ctx.accounts.usdc_mint.to_account_info(),
             token_program: ctx.accounts.token_program.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new(ctx.accounts.stayke_treasury_program.key(), cpi_accounts);
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.stayke_treasury_program.key(),
+            cpi_accounts,
+            signer_seeds,
+        );
         cpi_penalize_transfer(cpi_ctx, actual_retribution)?;
 
         let update_deposit_cpi_accounts = UpdateUserProfile {

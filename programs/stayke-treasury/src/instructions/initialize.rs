@@ -64,7 +64,6 @@ pub fn handler_initialize_treasury(ctx: Context<InitializeTreasury>) -> Result<(
     config.authority = ctx.accounts.authority.key();
     config.treasury_vault = ctx.accounts.treasury_vault.key();
     config.treasury_bump = ctx.bumps.treasury_pda;
-    config.global_config = ctx.accounts.global_config.key();
     config.is_initialized = true;
     config.bump = ctx.bumps.config;
 

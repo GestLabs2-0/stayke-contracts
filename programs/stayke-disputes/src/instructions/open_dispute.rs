@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_core::{state::UserProfile, USER_PROFILE_SEED};
 
 use stayke_escrow::{
@@ -9,7 +10,7 @@ use stayke_escrow::{
 };
 
 use crate::{
-    constants::DISPUTE_PDA_SEED,
+    constants::{CPI_AUTHORITY_SEED, DISPUTE_PDA_SEED},
     error::DisputeError,
     events::DisputeOpened,
     state::{Dispute, DisputeReason, DisputeStatus},
@@ -43,6 +44,17 @@ pub struct OpenDispute<'info> {
     )]
     pub dispute: Box<Account<'info, Dispute>>,
 
+    /// CHECK: CPI authority PDA of an allowlisted Stayke program.
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
+
     pub stayke_escrow_program: Program<'info, StaykeEscrow>,
     pub system_program: Program<'info, System>,
 }
@@ -75,11 +87,19 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
     dispute.resolved_at = None;
     dispute.bump = ctx.bumps.dispute;
 
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+
     let cpi_accounts = UpdateBookingStatusCpi {
         booking: ctx.accounts.booking.to_account_info(),
-        authority: ctx.accounts.initiator.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
     };
-    let cpi_ctx = CpiContext::new(ctx.accounts.stayke_escrow_program.key(), cpi_accounts);
+    let cpi_ctx = CpiContext::new_with_signer(
+        ctx.accounts.stayke_escrow_program.key(),
+        cpi_accounts,
+        signer_seeds,
+    );
     cpi_update_booking_status(cpi_ctx, BookingStatus::Disputed)?;
 
     emit!(DisputeOpened {

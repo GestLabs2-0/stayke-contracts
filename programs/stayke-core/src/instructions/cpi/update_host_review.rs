@@ -1,10 +1,11 @@
 use crate::{
-    cpi_authority::{assert_cpi_authority, AllowedCaller},
-    error::StaykeError,
-    ReputationProfile, UserProfile, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
+    error::StaykeError, ReputationProfile, UserProfile, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
 };
 use anchor_lang::prelude::*;
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    cpi_authority::{assert_cpi_authority, AllowedCaller},
+    GlobalConfig, GLOBAL_CONFIG_SEED,
+};
 
 #[derive(Accounts)]
 pub struct UpdateHostReview<'info> {

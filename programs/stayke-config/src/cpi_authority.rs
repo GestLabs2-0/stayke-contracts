@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use stayke_config::GlobalConfig;
 
-use crate::{error::StaykeError, CPI_AUTHORITY_SEED};
+use crate::{error::StaykeConfigError, state::GlobalConfig, CPI_AUTHORITY_SEED};
 
 /// Which Stayke programs may invoke a given core CPI mutator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -9,6 +8,7 @@ pub enum AllowedCaller {
     Treasury,
     Escrow,
     Disputes,
+    Core,
 }
 
 impl AllowedCaller {
@@ -17,6 +17,7 @@ impl AllowedCaller {
             AllowedCaller::Treasury => global_config.treasury_program,
             AllowedCaller::Escrow => global_config.escrow_program,
             AllowedCaller::Disputes => global_config.disputes_program,
+            AllowedCaller::Core => global_config.core_program,
         }
     }
 }
@@ -27,14 +28,12 @@ pub fn cpi_authority_pda(program_id: &Pubkey) -> (Pubkey, u8) {
 }
 
 /// Resolve which registered Stayke program signed via its CPI PDA, if any.
-pub fn resolve_cpi_caller(
-    global_config: &GlobalConfig,
-    cpi_authority: &Pubkey,
-) -> Result<Pubkey> {
+pub fn resolve_cpi_caller(global_config: &GlobalConfig, cpi_authority: &Pubkey) -> Result<Pubkey> {
     for program_id in [
         global_config.treasury_program,
         global_config.escrow_program,
         global_config.disputes_program,
+        global_config.core_program,
     ] {
         if program_id == Pubkey::default() {
             continue;
@@ -44,7 +43,7 @@ pub fn resolve_cpi_caller(
             return Ok(program_id);
         }
     }
-    err!(StaykeError::Unauthorized)
+    err!(StaykeConfigError::Unauthorized)
 }
 
 /// Verify the allowlist: `cpi_authority` must be the CPI PDA of an allowlisted registry program.
@@ -60,7 +59,7 @@ pub fn assert_cpi_authority(
         .collect();
     require!(
         allowed_ids.iter().any(|id| *id == caller),
-        StaykeError::Unauthorized
+        StaykeConfigError::Unauthorized
     );
     Ok(())
 }
@@ -68,7 +67,6 @@ pub fn assert_cpi_authority(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use stayke_config::GlobalConfig;
 
     fn sample_config(treasury: Pubkey, escrow: Pubkey, disputes: Pubkey) -> GlobalConfig {
         GlobalConfig {

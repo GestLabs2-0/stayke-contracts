@@ -1,11 +1,13 @@
 use crate::{
     constants::LISTING_SEED,
-    cpi_authority::{assert_cpi_authority, AllowedCaller},
     error::StaykeError,
     state::{Listing, UserProfile},
 };
 use anchor_lang::prelude::*;
-use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    cpi_authority::{assert_cpi_authority, AllowedCaller},
+    GlobalConfig, GLOBAL_CONFIG_SEED,
+};
 
 #[derive(Accounts)]
 pub struct SetListingOccupied<'info> {
@@ -30,7 +32,10 @@ pub struct SetListingOccupied<'info> {
     pub cpi_authority: Signer<'info>,
 }
 
-pub fn handler_set_listing_occupied(ctx: Context<SetListingOccupied>, occupied: bool) -> Result<()> {
+pub fn handler_set_listing_occupied(
+    ctx: Context<SetListingOccupied>,
+    occupied: bool,
+) -> Result<()> {
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
