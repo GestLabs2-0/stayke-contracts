@@ -10,7 +10,7 @@ stayke_contracts = "4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB"
 
 [provider]
 cluster = "localnet"
-wallet = "./test-keypair.json"
+wallet = "./keypair.json"
 
 [scripts]
 test = "cargo test"
