@@ -206,6 +206,7 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
         price: 1_000_000,
         is_occupied: true,
         state_hash: [0u8; 32],
+        content_ref: [0u8; 32],
         bump: listing_bump,
     };
     svm.set_account(

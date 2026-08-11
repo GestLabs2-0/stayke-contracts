@@ -39,6 +39,13 @@ export type Listing = {
   price: bigint;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
+  /**
+   * Arweave transaction ID (32 bytes, Base64url-encoded off-chain).
+   * Backend URL
+   * IPFS CID v1
+   * Resolves to: https://arweave.net/{base64url(arweave_tx_id)}
+   */
+  contentRef: ReadonlyUint8Array;
   bump: number;
 };
 
@@ -50,6 +57,13 @@ export type ListingArgs = {
   price: number | bigint;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
+  /**
+   * Arweave transaction ID (32 bytes, Base64url-encoded off-chain).
+   * Backend URL
+   * IPFS CID v1
+   * Resolves to: https://arweave.net/{base64url(arweave_tx_id)}
+   */
+  contentRef: ReadonlyUint8Array;
   bump: number;
 };
 
@@ -62,6 +76,7 @@ export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
     ["price", getU64Encoder()],
     ["isOccupied", getBooleanEncoder()],
     ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
+    ["contentRef", fixEncoderSize(getBytesEncoder(), 32)],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -75,6 +90,7 @@ export function getListingDecoder(): FixedSizeDecoder<Listing> {
     ["price", getU64Decoder()],
     ["isOccupied", getBooleanDecoder()],
     ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
+    ["contentRef", fixDecoderSize(getBytesDecoder(), 32)],
     ["bump", getU8Decoder()],
   ]);
 }

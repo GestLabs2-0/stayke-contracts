@@ -364,6 +364,7 @@ pub fn setup_listing(svm: &mut LiteSVM, owner: Pubkey, host_profile: Pubkey) -> 
         listing_id,
         total_reviews: 0,
         rating: 0,
+        content_ref: [0; 32],
         price: 100_000,
         is_occupied: true,
         state_hash: [0u8; 32],

@@ -28,8 +28,11 @@ pub mod stayke_core {
         ctx: Context<InitializeListing>,
         price: u64,
         listing_id: u16,
+
+        state_hash: [u8; 32],
+        content_ref: [u8; 32],
     ) -> Result<()> {
-        handler_initialize_listing(ctx, price, listing_id)
+        handler_initialize_listing(ctx, price, listing_id, state_hash, content_ref)
     }
     // ---------------------------------------------------------------------------
     // Privileged CPI mutators — require `cpi_authority` PDA signer + GlobalConfig allowlist

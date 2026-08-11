@@ -36,6 +36,8 @@ pub fn handler_initialize_listing(
     ctx: Context<InitializeListing>,
     price: u64,
     listing_id: u16,
+    state_hash: [u8; 32],
+    content_ref: [u8; 32],
 ) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     let user_profile = &mut ctx.accounts.user_profile;
@@ -47,6 +49,8 @@ pub fn handler_initialize_listing(
     listing.owner = user_profile.key();
     listing.listing_id = listing_id;
     listing.price = price;
+    listing.content_ref = content_ref;
+    listing.state_hash = state_hash;
 
     Ok(())
 }

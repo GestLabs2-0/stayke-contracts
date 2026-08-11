@@ -69,6 +69,7 @@ fn make_listing(svm: &mut LiteSVM, host_profile_pda: Pubkey) -> Pubkey {
         total_reviews: 0,
         rating: 0,
         price: 100_000,
+        content_ref: [0u8; 32],
         is_occupied: true,
         state_hash: [0u8; 32],
         bump,
