@@ -17,3 +17,6 @@ export * from "./linkIdentity";
 export * from "./setListingOccupied";
 export * from "./updateDeposit";
 export * from "./updateHostReview";
+export * from "./updateListingPrice";
+export * from "./updateListingPublish";
+export * from "./updateListingState";

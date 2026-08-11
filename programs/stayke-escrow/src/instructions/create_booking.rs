@@ -60,7 +60,7 @@ pub struct CreateBooking<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [LISTING_SEED.as_bytes(), property.owner.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
+    #[account(seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump)]
     pub property: Account<'info, Listing>,
 
     #[account(

@@ -80,4 +80,24 @@ pub mod stayke_core {
     pub fn init_identity(ctx: Context<InitIdentity>, _id: [u8; 32]) -> Result<()> {
         handler_init_identity(ctx)
     }
+
+    //-----------------------------------------------------------
+    // Listing mutators
+    //----------------------------------------------------------
+
+    pub fn update_listing_state(
+        ctx: Context<UpdateListing>,
+        state: [u8; 32],
+        content_ref: [u8; 32],
+    ) -> Result<()> {
+        handler_update_listing_state(ctx, state, content_ref)
+    }
+
+    pub fn update_listing_price(ctx: Context<UpdateListing>, price: u64) -> Result<()> {
+        handler_update_listing_price(ctx, price)
+    }
+
+    pub fn update_listing_publish(ctx: Context<UpdateListing>, active: bool) -> Result<()> {
+        handler_update_listing_publish(ctx, active)
+    }
 }

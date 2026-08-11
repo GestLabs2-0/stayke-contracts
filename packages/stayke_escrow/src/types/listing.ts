@@ -10,8 +10,6 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
   getBytesDecoder,
@@ -24,7 +22,6 @@ import {
   getU64Encoder,
   getU8Decoder,
   getU8Encoder,
-  type Address,
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
@@ -32,11 +29,11 @@ import {
 } from "@solana/kit";
 
 export type Listing = {
-  owner: Address;
   listingId: number;
   totalReviews: bigint;
   rating: bigint;
   price: bigint;
+  isActive: boolean;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   /**
@@ -50,11 +47,11 @@ export type Listing = {
 };
 
 export type ListingArgs = {
-  owner: Address;
   listingId: number;
   totalReviews: number | bigint;
   rating: number | bigint;
   price: number | bigint;
+  isActive: boolean;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   /**
@@ -69,11 +66,11 @@ export type ListingArgs = {
 
 export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
   return getStructEncoder([
-    ["owner", getAddressEncoder()],
     ["listingId", getU16Encoder()],
     ["totalReviews", getU64Encoder()],
     ["rating", getU64Encoder()],
     ["price", getU64Encoder()],
+    ["isActive", getBooleanEncoder()],
     ["isOccupied", getBooleanEncoder()],
     ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
     ["contentRef", fixEncoderSize(getBytesEncoder(), 32)],
@@ -83,11 +80,11 @@ export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
 
 export function getListingDecoder(): FixedSizeDecoder<Listing> {
   return getStructDecoder([
-    ["owner", getAddressDecoder()],
     ["listingId", getU16Decoder()],
     ["totalReviews", getU64Decoder()],
     ["rating", getU64Decoder()],
     ["price", getU64Decoder()],
+    ["isActive", getBooleanDecoder()],
     ["isOccupied", getBooleanDecoder()],
     ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
     ["contentRef", fixDecoderSize(getBytesDecoder(), 32)],

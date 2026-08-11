@@ -17,7 +17,6 @@ pub struct UpdateListing<'info> {
         mut,
         seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
         bump = listing.bump,
-        constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,
 
@@ -33,8 +32,19 @@ pub fn handler_update_listing_price(ctx: Context<UpdateListing>, price: u64) -> 
     Ok(())
 }
 
-pub fn handler_update_listing_state(ctx: Context<UpdateListing>, state: [u8; 32]) -> Result<()> {
+pub fn handler_update_listing_state(
+    ctx: Context<UpdateListing>,
+    state: [u8; 32],
+    content_ref: [u8; 32],
+) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     listing.state_hash = state;
+    listing.content_ref = content_ref;
+    Ok(())
+}
+
+pub fn handler_update_listing_publish(ctx: Context<UpdateListing>, active: bool) -> Result<()> {
+    let listing = &mut ctx.accounts.listing;
+    listing.is_active = active;
     Ok(())
 }

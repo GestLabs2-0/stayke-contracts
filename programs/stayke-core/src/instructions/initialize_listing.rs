@@ -46,11 +46,11 @@ pub fn handler_initialize_listing(
         .listings
         .checked_add(1)
         .ok_or(StaykeError::MaxListingsReached)?;
-    listing.owner = user_profile.key();
     listing.listing_id = listing_id;
     listing.price = price;
     listing.content_ref = content_ref;
     listing.state_hash = state_hash;
+    listing.is_active = true;
 
     Ok(())
 }

@@ -1,6 +1,5 @@
 use crate::{
     constants::LISTING_SEED,
-    error::StaykeError,
     state::{Listing, UserProfile},
 };
 use anchor_lang::prelude::*;
@@ -17,7 +16,6 @@ pub struct SetListingOccupied<'info> {
         mut,
         seeds = [LISTING_SEED.as_bytes(), user_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
         bump = listing.bump,
-        constraint = listing.owner == user_profile.key() @ StaykeError::Unauthorized,
     )]
     pub listing: Account<'info, Listing>,
 

@@ -199,7 +199,7 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
         &core_id,
     );
     let listing = Listing {
-        owner: profile_pda,
+        is_active: true,
         listing_id,
         total_reviews: 0,
         rating: 0,

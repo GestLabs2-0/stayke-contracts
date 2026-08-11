@@ -360,7 +360,7 @@ pub fn setup_listing(svm: &mut LiteSVM, owner: Pubkey, host_profile: Pubkey) -> 
     );
 
     let listing = core::state::Listing {
-        owner,
+        is_active: true,
         listing_id,
         total_reviews: 0,
         rating: 0,

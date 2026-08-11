@@ -62,6 +62,9 @@ import {
   getSetListingOccupiedInstructionAsync,
   getUpdateDepositInstructionAsync,
   getUpdateHostReviewInstructionAsync,
+  getUpdateListingPriceInstructionAsync,
+  getUpdateListingPublishInstructionAsync,
+  getUpdateListingStateInstructionAsync,
   parseAddInfractionInstruction,
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
@@ -73,6 +76,9 @@ import {
   parseSetListingOccupiedInstruction,
   parseUpdateDepositInstruction,
   parseUpdateHostReviewInstruction,
+  parseUpdateListingPriceInstruction,
+  parseUpdateListingPublishInstruction,
+  parseUpdateListingStateInstruction,
   type AddInfractionAsyncInput,
   type ClearActiveBookingAsyncInput,
   type ClearListingBookingAsyncInput,
@@ -92,9 +98,15 @@ import {
   type ParsedSetListingOccupiedInstruction,
   type ParsedUpdateDepositInstruction,
   type ParsedUpdateHostReviewInstruction,
+  type ParsedUpdateListingPriceInstruction,
+  type ParsedUpdateListingPublishInstruction,
+  type ParsedUpdateListingStateInstruction,
   type SetListingOccupiedAsyncInput,
   type UpdateDepositAsyncInput,
   type UpdateHostReviewAsyncInput,
+  type UpdateListingPriceAsyncInput,
+  type UpdateListingPublishAsyncInput,
+  type UpdateListingStateAsyncInput,
 } from "../instructions";
 import {
   findConfigPda,
@@ -192,6 +204,9 @@ export enum StaykeCoreInstruction {
   SetListingOccupied,
   UpdateDeposit,
   UpdateHostReview,
+  UpdateListingPrice,
+  UpdateListingPublish,
+  UpdateListingState,
 }
 
 export function identifyStaykeCoreInstruction(
@@ -319,6 +334,39 @@ export function identifyStaykeCoreInstruction(
   ) {
     return StaykeCoreInstruction.UpdateHostReview;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([103, 80, 184, 80, 159, 24, 94, 138]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateListingPrice;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([168, 202, 247, 130, 113, 8, 109, 99]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateListingPublish;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([54, 223, 116, 48, 168, 240, 133, 49]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateListingState;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "staykeCore" },
@@ -360,7 +408,16 @@ export type ParsedStaykeCoreInstruction<
     } & ParsedUpdateDepositInstruction<TProgram>)
   | ({
       instructionType: StaykeCoreInstruction.UpdateHostReview;
-    } & ParsedUpdateHostReviewInstruction<TProgram>);
+    } & ParsedUpdateHostReviewInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateListingPrice;
+    } & ParsedUpdateListingPriceInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateListingPublish;
+    } & ParsedUpdateListingPublishInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateListingState;
+    } & ParsedUpdateListingStateInstruction<TProgram>);
 
 export function parseStaykeCoreInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -444,6 +501,27 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseUpdateHostReviewInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.UpdateListingPrice: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateListingPrice,
+        ...parseUpdateListingPriceInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.UpdateListingPublish: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateListingPublish,
+        ...parseUpdateListingPublishInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.UpdateListingState: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateListingState,
+        ...parseUpdateListingStateInstruction(instruction),
+      };
+    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -518,6 +596,18 @@ export type StaykeCorePluginInstructions = {
   updateHostReview: (
     input: UpdateHostReviewAsyncInput,
   ) => ReturnType<typeof getUpdateHostReviewInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateListingPrice: (
+    input: MakeOptional<UpdateListingPriceAsyncInput, "payer">,
+  ) => ReturnType<typeof getUpdateListingPriceInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateListingPublish: (
+    input: MakeOptional<UpdateListingPublishAsyncInput, "payer">,
+  ) => ReturnType<typeof getUpdateListingPublishInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateListingState: (
+    input: MakeOptional<UpdateListingStateAsyncInput, "payer">,
+  ) => ReturnType<typeof getUpdateListingStateInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
 
@@ -619,6 +709,30 @@ export function staykeCoreProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getUpdateHostReviewInstructionAsync(input),
+            ),
+          updateListingPrice: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateListingPriceInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
+          updateListingPublish: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateListingPublishInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
+          updateListingState: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateListingStateInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
             ),
         },
         pdas: {

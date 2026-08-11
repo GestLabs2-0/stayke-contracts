@@ -15,8 +15,6 @@ import {
   fetchEncodedAccounts,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
   getBytesDecoder,
@@ -53,11 +51,11 @@ export function getListingDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type Listing = {
   discriminator: ReadonlyUint8Array;
-  owner: Address;
   listingId: number;
   totalReviews: bigint;
   rating: bigint;
   price: bigint;
+  isActive: boolean;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   /**
@@ -71,11 +69,11 @@ export type Listing = {
 };
 
 export type ListingArgs = {
-  owner: Address;
   listingId: number;
   totalReviews: number | bigint;
   rating: number | bigint;
   price: number | bigint;
+  isActive: boolean;
   isOccupied: boolean;
   stateHash: ReadonlyUint8Array;
   /**
@@ -93,11 +91,11 @@ export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["owner", getAddressEncoder()],
       ["listingId", getU16Encoder()],
       ["totalReviews", getU64Encoder()],
       ["rating", getU64Encoder()],
       ["price", getU64Encoder()],
+      ["isActive", getBooleanEncoder()],
       ["isOccupied", getBooleanEncoder()],
       ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
       ["contentRef", fixEncoderSize(getBytesEncoder(), 32)],
@@ -111,11 +109,11 @@ export function getListingEncoder(): FixedSizeEncoder<ListingArgs> {
 export function getListingDecoder(): FixedSizeDecoder<Listing> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["owner", getAddressDecoder()],
     ["listingId", getU16Decoder()],
     ["totalReviews", getU64Decoder()],
     ["rating", getU64Decoder()],
     ["price", getU64Decoder()],
+    ["isActive", getBooleanDecoder()],
     ["isOccupied", getBooleanDecoder()],
     ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
     ["contentRef", fixDecoderSize(getBytesDecoder(), 32)],
@@ -182,5 +180,5 @@ export async function fetchAllMaybeListing(
 }
 
 export function getListingSize(): number {
-  return 132;
+  return 101;
 }

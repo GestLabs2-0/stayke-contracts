@@ -64,7 +64,7 @@ fn make_listing(svm: &mut LiteSVM, host_profile_pda: Pubkey) -> Pubkey {
         &stayke_core::id(),
     );
     let l = stayke_core::state::Listing {
-        owner: host_profile_pda,
+        is_active: true,
         listing_id,
         total_reviews: 0,
         rating: 0,
