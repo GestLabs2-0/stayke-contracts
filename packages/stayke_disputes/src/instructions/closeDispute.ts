@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -37,7 +38,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findDisputePda } from "../pdas";
+import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 
 export const CLOSE_DISPUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -59,6 +60,8 @@ export type CloseDisputeInstruction<
   TAccountGuestProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountListing extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -88,6 +91,12 @@ export type CloseDisputeInstruction<
       TAccountListing extends string
         ? WritableAccount<TAccountListing>
         : TAccountListing,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountStaykeCoreProgram extends string
         ? ReadonlyAccount<TAccountStaykeCoreProgram>
         : TAccountStaykeCoreProgram,
@@ -130,6 +139,8 @@ export type CloseDisputeAsyncInput<
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
   TAccountListing extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
@@ -139,6 +150,8 @@ export type CloseDisputeAsyncInput<
   guestProfile: Address<TAccountGuestProfile>;
   hostProfile: Address<TAccountHostProfile>;
   listing: Address<TAccountListing>;
+  globalConfig?: Address<TAccountGlobalConfig>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
 };
 
@@ -150,6 +163,8 @@ export async function getCloseDisputeInstructionAsync<
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
   TAccountListing extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
@@ -161,6 +176,8 @@ export async function getCloseDisputeInstructionAsync<
     TAccountGuestProfile,
     TAccountHostProfile,
     TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -174,6 +191,8 @@ export async function getCloseDisputeInstructionAsync<
     TAccountGuestProfile,
     TAccountHostProfile,
     TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >
 > {
@@ -190,6 +209,8 @@ export async function getCloseDisputeInstructionAsync<
     guestProfile: { value: input.guestProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -212,6 +233,22 @@ export async function getCloseDisputeInstructionAsync<
       ),
     });
   }
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
       "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
@@ -227,6 +264,8 @@ export async function getCloseDisputeInstructionAsync<
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getCloseDisputeInstructionDataEncoder().encode({}),
@@ -240,6 +279,8 @@ export async function getCloseDisputeInstructionAsync<
     TAccountGuestProfile,
     TAccountHostProfile,
     TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -252,6 +293,8 @@ export type CloseDisputeInput<
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
   TAccountListing extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
@@ -261,6 +304,8 @@ export type CloseDisputeInput<
   guestProfile: Address<TAccountGuestProfile>;
   hostProfile: Address<TAccountHostProfile>;
   listing: Address<TAccountListing>;
+  globalConfig: Address<TAccountGlobalConfig>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
 };
 
@@ -272,6 +317,8 @@ export function getCloseDisputeInstruction<
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
   TAccountListing extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
@@ -283,6 +330,8 @@ export function getCloseDisputeInstruction<
     TAccountGuestProfile,
     TAccountHostProfile,
     TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -295,6 +344,8 @@ export function getCloseDisputeInstruction<
   TAccountGuestProfile,
   TAccountHostProfile,
   TAccountListing,
+  TAccountGlobalConfig,
+  TAccountCpiAuthority,
   TAccountStaykeCoreProgram
 > {
   // Program address.
@@ -310,6 +361,8 @@ export function getCloseDisputeInstruction<
     guestProfile: { value: input.guestProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -336,6 +389,8 @@ export function getCloseDisputeInstruction<
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getCloseDisputeInstructionDataEncoder().encode({}),
@@ -349,6 +404,8 @@ export function getCloseDisputeInstruction<
     TAccountGuestProfile,
     TAccountHostProfile,
     TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -366,7 +423,9 @@ export type ParsedCloseDisputeInstruction<
     guestProfile: TAccountMetas[4];
     hostProfile: TAccountMetas[5];
     listing: TAccountMetas[6];
-    staykeCoreProgram: TAccountMetas[7];
+    globalConfig: TAccountMetas[7];
+    cpiAuthority: TAccountMetas[8];
+    staykeCoreProgram: TAccountMetas[9];
   };
   data: CloseDisputeInstructionData;
 };
@@ -379,12 +438,12 @@ export function parseCloseDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCloseDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 8,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -404,6 +463,8 @@ export function parseCloseDisputeInstruction<
       guestProfile: getNextAccount(),
       hostProfile: getNextAccount(),
       listing: getNextAccount(),
+      globalConfig: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
     },
     data: getCloseDisputeInstructionDataDecoder().decode(instruction.data),

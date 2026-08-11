@@ -29,7 +29,9 @@ fn penalize_user_unauthorized_admin_fails() {
         &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
         &stayke_config::id(),
     );
+    // TODO: consider use setup_global_config fn
     let gcfg = stayke_config::state::GlobalConfig {
+        max_operations: 0,
         authority: Pubkey::new_unique(),
         minimum_deposit: 100_000,
         fee_bps: 200,
@@ -168,6 +170,7 @@ fn penalize_user_banned_fails() {
         minimum_deposit: 100_000,
         fee_bps: 200,
         usdc_mint,
+        max_operations: 4,
         is_initialized: true,
         platform_vault: Pubkey::new_unique(),
         platform_vault_bump: global_bump,

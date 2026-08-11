@@ -63,7 +63,12 @@ import {
   type PenalizeUserAsyncInput,
   type ResolveDisputeAsyncInput,
 } from "../instructions";
-import { findConfigPda, findDisputePda } from "../pdas";
+import {
+  findConfigPda,
+  findCpiAuthorityPda,
+  findDisputePda,
+  findTreasuryConfigPda,
+} from "../pdas";
 
 export const STAYKE_DISPUTES_PROGRAM_ADDRESS =
   "7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB" as Address<"7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB">;
@@ -287,6 +292,8 @@ export type StaykeDisputesPluginInstructions = {
 export type StaykeDisputesPluginPdas = {
   config: typeof findConfigPda;
   dispute: typeof findDisputePda;
+  cpiAuthority: typeof findCpiAuthorityPda;
+  treasuryConfig: typeof findTreasuryConfigPda;
 };
 
 export type StaykeDisputesPluginRequirements = ClientWithRpc<
@@ -336,7 +343,12 @@ export function staykeDisputesProgram() {
               getResolveDisputeInstructionAsync(input),
             ),
         },
-        pdas: { config: findConfigPda, dispute: findDisputePda },
+        pdas: {
+          config: findConfigPda,
+          dispute: findDisputePda,
+          cpiAuthority: findCpiAuthorityPda,
+          treasuryConfig: findTreasuryConfigPda,
+        },
       },
     });
   };

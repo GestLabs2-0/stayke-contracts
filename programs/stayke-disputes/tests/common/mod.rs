@@ -47,6 +47,7 @@ pub fn setup_global_config(
 
     let config = config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
+        max_operations: 4,
         minimum_deposit: 100_000,
         fee_bps: 200,
         usdc_mint: Pubkey::new_unique(),
@@ -89,6 +90,8 @@ pub fn setup_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
     );
 
     let profile = core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority,
         identity: Some(Pubkey::new_unique()),
         active_booking: None,
@@ -125,6 +128,8 @@ pub fn setup_banned_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey
     );
 
     let profile = core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority,
         identity: Some(Pubkey::new_unique()),
         active_booking: None,
@@ -161,6 +166,8 @@ pub fn setup_unverified_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pu
     );
 
     let profile = core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority,
         identity: None,
         active_booking: None,
@@ -397,8 +404,6 @@ pub fn setup_reputation_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey 
         total_score_host: 0,
         client_reviews: 0,
         total_score_client: 0,
-        hosted_stays: 0,
-        completed_stays: 0,
         host_cancellations: 0,
         client_cancellations: 0,
         host_cancellations_within_48h: 0,

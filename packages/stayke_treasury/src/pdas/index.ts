@@ -7,6 +7,7 @@
  */
 
 export * from "./config";
+export * from "./cpiAuthority";
 export * from "./treasuryPda";
 export * from "./treasuryVault";
 export * from "./userProfile";

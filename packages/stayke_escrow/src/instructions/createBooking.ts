@@ -43,11 +43,7 @@ import {
   getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import {
-  findBookingDaysPda,
-  findBookingPda,
-  findEscrowConfigPda,
-} from "../pdas";
+import { findBookingDaysPda, findBookingPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const CREATE_BOOKING_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -68,7 +64,6 @@ export type CreateBookingInstruction<
   TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountProperty extends string | AccountMeta<string> = string,
-  TAccountEscrowConfig extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -98,9 +93,6 @@ export type CreateBookingInstruction<
       TAccountProperty extends string
         ? ReadonlyAccount<TAccountProperty>
         : TAccountProperty,
-      TAccountEscrowConfig extends string
-        ? ReadonlyAccount<TAccountEscrowConfig>
-        : TAccountEscrowConfig,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -161,7 +153,6 @@ export type CreateBookingAsyncInput<
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountProperty extends string = string,
-  TAccountEscrowConfig extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
@@ -174,7 +165,6 @@ export type CreateBookingAsyncInput<
   hostProfile: Address<TAccountHostProfile>;
   booking?: Address<TAccountBooking>;
   property: Address<TAccountProperty>;
-  escrowConfig?: Address<TAccountEscrowConfig>;
   globalConfig?: Address<TAccountGlobalConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
   bookingDays?: Address<TAccountBookingDays>;
@@ -189,7 +179,6 @@ export async function getCreateBookingInstructionAsync<
   TAccountHostProfile extends string,
   TAccountBooking extends string,
   TAccountProperty extends string,
-  TAccountEscrowConfig extends string,
   TAccountGlobalConfig extends string,
   TAccountSystemProgram extends string,
   TAccountBookingDays extends string,
@@ -202,7 +191,6 @@ export async function getCreateBookingInstructionAsync<
     TAccountHostProfile,
     TAccountBooking,
     TAccountProperty,
-    TAccountEscrowConfig,
     TAccountGlobalConfig,
     TAccountSystemProgram,
     TAccountBookingDays
@@ -217,7 +205,6 @@ export async function getCreateBookingInstructionAsync<
     TAccountHostProfile,
     TAccountBooking,
     TAccountProperty,
-    TAccountEscrowConfig,
     TAccountGlobalConfig,
     TAccountSystemProgram,
     TAccountBookingDays
@@ -235,7 +222,6 @@ export async function getCreateBookingInstructionAsync<
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     property: { value: input.property ?? null, isWritable: false },
-    escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -281,9 +267,6 @@ export async function getCreateBookingInstructionAsync<
       checkIn: getNonNullResolvedInstructionInput("checkIn", args.checkIn),
     });
   }
-  if (!accounts.escrowConfig.value) {
-    accounts.escrowConfig.value = await findEscrowConfigPda();
-  }
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
@@ -320,7 +303,6 @@ export async function getCreateBookingInstructionAsync<
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("property", accounts.property),
-      getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("bookingDays", accounts.bookingDays),
@@ -337,7 +319,6 @@ export async function getCreateBookingInstructionAsync<
     TAccountHostProfile,
     TAccountBooking,
     TAccountProperty,
-    TAccountEscrowConfig,
     TAccountGlobalConfig,
     TAccountSystemProgram,
     TAccountBookingDays
@@ -351,7 +332,6 @@ export type CreateBookingInput<
   TAccountHostProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountProperty extends string = string,
-  TAccountEscrowConfig extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
@@ -364,7 +344,6 @@ export type CreateBookingInput<
   hostProfile: Address<TAccountHostProfile>;
   booking: Address<TAccountBooking>;
   property: Address<TAccountProperty>;
-  escrowConfig: Address<TAccountEscrowConfig>;
   globalConfig: Address<TAccountGlobalConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
   bookingDays: Address<TAccountBookingDays>;
@@ -379,7 +358,6 @@ export function getCreateBookingInstruction<
   TAccountHostProfile extends string,
   TAccountBooking extends string,
   TAccountProperty extends string,
-  TAccountEscrowConfig extends string,
   TAccountGlobalConfig extends string,
   TAccountSystemProgram extends string,
   TAccountBookingDays extends string,
@@ -392,7 +370,6 @@ export function getCreateBookingInstruction<
     TAccountHostProfile,
     TAccountBooking,
     TAccountProperty,
-    TAccountEscrowConfig,
     TAccountGlobalConfig,
     TAccountSystemProgram,
     TAccountBookingDays
@@ -406,7 +383,6 @@ export function getCreateBookingInstruction<
   TAccountHostProfile,
   TAccountBooking,
   TAccountProperty,
-  TAccountEscrowConfig,
   TAccountGlobalConfig,
   TAccountSystemProgram,
   TAccountBookingDays
@@ -423,7 +399,6 @@ export function getCreateBookingInstruction<
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     property: { value: input.property ?? null, isWritable: false },
-    escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -451,7 +426,6 @@ export function getCreateBookingInstruction<
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("property", accounts.property),
-      getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("bookingDays", accounts.bookingDays),
@@ -468,7 +442,6 @@ export function getCreateBookingInstruction<
     TAccountHostProfile,
     TAccountBooking,
     TAccountProperty,
-    TAccountEscrowConfig,
     TAccountGlobalConfig,
     TAccountSystemProgram,
     TAccountBookingDays
@@ -489,10 +462,9 @@ export type ParsedCreateBookingInstruction<
     hostProfile: TAccountMetas[3];
     booking: TAccountMetas[4];
     property: TAccountMetas[5];
-    escrowConfig: TAccountMetas[6];
-    globalConfig: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
-    bookingDays: TAccountMetas[9];
+    globalConfig: TAccountMetas[6];
+    systemProgram: TAccountMetas[7];
+    bookingDays: TAccountMetas[8];
   };
   data: CreateBookingInstructionData;
 };
@@ -505,12 +477,12 @@ export function parseCreateBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -529,7 +501,6 @@ export function parseCreateBookingInstruction<
       hostProfile: getNextAccount(),
       booking: getNextAccount(),
       property: getNextAccount(),
-      escrowConfig: getNextAccount(),
       globalConfig: getNextAccount(),
       systemProgram: getNextAccount(),
       bookingDays: getNextAccount(),

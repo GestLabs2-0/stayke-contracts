@@ -19,4 +19,6 @@ pub struct Listing {
     pub state_hash: [u8; 32],
 
     pub bump: u8,
+    // TODO: add new field for storing address from Arweave
+    // state_address: [u8; 32]
 }

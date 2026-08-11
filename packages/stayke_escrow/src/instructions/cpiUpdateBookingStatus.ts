@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -26,6 +27,7 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -54,20 +56,24 @@ export function getCpiUpdateBookingStatusDiscriminatorBytes(): ReadonlyUint8Arra
 
 export type CpiUpdateBookingStatusInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
-      TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountCpiAuthority extends string
+        ? ReadonlySignerAccount<TAccountCpiAuthority> &
+            AccountSignerMeta<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       ...TRemainingAccounts,
     ]
   >;
@@ -111,26 +117,36 @@ export function getCpiUpdateBookingStatusInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type CpiUpdateBookingStatusInput<
+export type CpiUpdateBookingStatusAsyncInput<
+  TAccountGlobalConfig extends string = string,
   TAccountBooking extends string = string,
-  TAccountAuthority extends string = string,
+  TAccountCpiAuthority extends string = string,
 > = {
+  globalConfig?: Address<TAccountGlobalConfig>;
   booking: Address<TAccountBooking>;
-  authority: TransactionSigner<TAccountAuthority>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   status: CpiUpdateBookingStatusInstructionDataArgs["status"];
 };
 
-export function getCpiUpdateBookingStatusInstruction<
+export async function getCpiUpdateBookingStatusInstructionAsync<
+  TAccountGlobalConfig extends string,
   TAccountBooking extends string,
-  TAccountAuthority extends string,
+  TAccountCpiAuthority extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: CpiUpdateBookingStatusInput<TAccountBooking, TAccountAuthority>,
+  input: CpiUpdateBookingStatusAsyncInput<
+    TAccountGlobalConfig,
+    TAccountBooking,
+    TAccountCpiAuthority
+  >,
   config?: { programAddress?: TProgramAddress },
-): CpiUpdateBookingStatusInstruction<
-  TProgramAddress,
-  TAccountBooking,
-  TAccountAuthority
+): Promise<
+  CpiUpdateBookingStatusInstruction<
+    TProgramAddress,
+    TAccountGlobalConfig,
+    TAccountBooking,
+    TAccountCpiAuthority
+  >
 > {
   // Program address.
   const programAddress =
@@ -138,8 +154,90 @@ export function getCpiUpdateBookingStatusInstruction<
 
   // Original accounts.
   const originalAccounts = {
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Original args.
+  const args = { ...input };
+
+  // Resolve default values.
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("booking", accounts.booking),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+    ],
+    data: getCpiUpdateBookingStatusInstructionDataEncoder().encode(
+      args as CpiUpdateBookingStatusInstructionDataArgs,
+    ),
+    programAddress,
+  } as CpiUpdateBookingStatusInstruction<
+    TProgramAddress,
+    TAccountGlobalConfig,
+    TAccountBooking,
+    TAccountCpiAuthority
+  >);
+}
+
+export type CpiUpdateBookingStatusInput<
+  TAccountGlobalConfig extends string = string,
+  TAccountBooking extends string = string,
+  TAccountCpiAuthority extends string = string,
+> = {
+  globalConfig: Address<TAccountGlobalConfig>;
+  booking: Address<TAccountBooking>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
+  status: CpiUpdateBookingStatusInstructionDataArgs["status"];
+};
+
+export function getCpiUpdateBookingStatusInstruction<
+  TAccountGlobalConfig extends string,
+  TAccountBooking extends string,
+  TAccountCpiAuthority extends string,
+  TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+>(
+  input: CpiUpdateBookingStatusInput<
+    TAccountGlobalConfig,
+    TAccountBooking,
+    TAccountCpiAuthority
+  >,
+  config?: { programAddress?: TProgramAddress },
+): CpiUpdateBookingStatusInstruction<
+  TProgramAddress,
+  TAccountGlobalConfig,
+  TAccountBooking,
+  TAccountCpiAuthority
+> {
+  // Program address.
+  const programAddress =
+    config?.programAddress ?? STAYKE_ESCROW_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    booking: { value: input.booking ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -152,8 +250,9 @@ export function getCpiUpdateBookingStatusInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
+      getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("booking", accounts.booking),
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
     ],
     data: getCpiUpdateBookingStatusInstructionDataEncoder().encode(
       args as CpiUpdateBookingStatusInstructionDataArgs,
@@ -161,8 +260,9 @@ export function getCpiUpdateBookingStatusInstruction<
     programAddress,
   } as CpiUpdateBookingStatusInstruction<
     TProgramAddress,
+    TAccountGlobalConfig,
     TAccountBooking,
-    TAccountAuthority
+    TAccountCpiAuthority
   >);
 }
 
@@ -172,8 +272,9 @@ export type ParsedCpiUpdateBookingStatusInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    booking: TAccountMetas[0];
-    authority: TAccountMetas[1];
+    globalConfig: TAccountMetas[0];
+    booking: TAccountMetas[1];
+    cpiAuthority: TAccountMetas[2];
   };
   data: CpiUpdateBookingStatusInstructionData;
 };
@@ -186,12 +287,12 @@ export function parseCpiUpdateBookingStatusInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCpiUpdateBookingStatusInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 2) {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -203,7 +304,11 @@ export function parseCpiUpdateBookingStatusInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { booking: getNextAccount(), authority: getNextAccount() },
+    accounts: {
+      globalConfig: getNextAccount(),
+      booking: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+    },
     data: getCpiUpdateBookingStatusInstructionDataDecoder().decode(
       instruction.data,
     ),

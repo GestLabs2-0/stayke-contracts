@@ -30,6 +30,8 @@ export type GlobalConfig = {
   feeBps: bigint;
   usdcMint: Address;
   isInitialized: boolean;
+  /** Max operations with no stake before asking user for the stake to keep operating */
+  maxOperations: number;
   /** Platform fee vault token account. */
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
@@ -51,6 +53,8 @@ export type GlobalConfigArgs = {
   feeBps: number | bigint;
   usdcMint: Address;
   isInitialized: boolean;
+  /** Max operations with no stake before asking user for the stake to keep operating */
+  maxOperations: number;
   /** Platform fee vault token account. */
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
@@ -73,6 +77,7 @@ export function getGlobalConfigEncoder(): FixedSizeEncoder<GlobalConfigArgs> {
     ["feeBps", getU64Encoder()],
     ["usdcMint", getAddressEncoder()],
     ["isInitialized", getBooleanEncoder()],
+    ["maxOperations", getU8Encoder()],
     ["platformVault", getAddressEncoder()],
     ["platformVaultBump", getU8Encoder()],
     ["coreProgram", getAddressEncoder()],
@@ -90,6 +95,7 @@ export function getGlobalConfigDecoder(): FixedSizeDecoder<GlobalConfig> {
     ["feeBps", getU64Decoder()],
     ["usdcMint", getAddressDecoder()],
     ["isInitialized", getBooleanDecoder()],
+    ["maxOperations", getU8Decoder()],
     ["platformVault", getAddressDecoder()],
     ["platformVaultBump", getU8Decoder()],
     ["coreProgram", getAddressDecoder()],

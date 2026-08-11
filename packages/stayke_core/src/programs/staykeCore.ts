@@ -51,15 +51,17 @@ import {
   type UserProfileArgs,
 } from "../accounts";
 import {
-  getAddInfractionInstruction,
-  getClearActiveBookingInstruction,
-  getClearListingBookingInstruction,
+  getAddInfractionInstructionAsync,
+  getClearActiveBookingInstructionAsync,
+  getClearListingBookingInstructionAsync,
   getInitializeConfigInstructionAsync,
   getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
   getInitIdentityInstructionAsync,
   getLinkIdentityInstructionAsync,
-  getUpdateDepositInstruction,
+  getSetListingOccupiedInstructionAsync,
+  getUpdateDepositInstructionAsync,
+  getUpdateHostReviewInstructionAsync,
   parseAddInfractionInstruction,
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
@@ -68,10 +70,12 @@ import {
   parseInitializeUserProfileInstruction,
   parseInitIdentityInstruction,
   parseLinkIdentityInstruction,
+  parseSetListingOccupiedInstruction,
   parseUpdateDepositInstruction,
-  type AddInfractionInput,
-  type ClearActiveBookingInput,
-  type ClearListingBookingInput,
+  parseUpdateHostReviewInstruction,
+  type AddInfractionAsyncInput,
+  type ClearActiveBookingAsyncInput,
+  type ClearListingBookingAsyncInput,
   type InitializeConfigAsyncInput,
   type InitializeListingAsyncInput,
   type InitializeUserProfileAsyncInput,
@@ -85,8 +89,12 @@ import {
   type ParsedInitializeUserProfileInstruction,
   type ParsedInitIdentityInstruction,
   type ParsedLinkIdentityInstruction,
+  type ParsedSetListingOccupiedInstruction,
   type ParsedUpdateDepositInstruction,
-  type UpdateDepositInput,
+  type ParsedUpdateHostReviewInstruction,
+  type SetListingOccupiedAsyncInput,
+  type UpdateDepositAsyncInput,
+  type UpdateHostReviewAsyncInput,
 } from "../instructions";
 import {
   findConfigPda,
@@ -181,7 +189,9 @@ export enum StaykeCoreInstruction {
   InitializeListing,
   InitializeUserProfile,
   LinkIdentity,
+  SetListingOccupied,
   UpdateDeposit,
+  UpdateHostReview,
 }
 
 export function identifyStaykeCoreInstruction(
@@ -280,12 +290,34 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([125, 76, 4, 13, 181, 116, 53, 167]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.SetListingOccupied;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([126, 116, 15, 164, 238, 179, 155, 59]),
       ),
       0,
     )
   ) {
     return StaykeCoreInstruction.UpdateDeposit;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([103, 62, 206, 90, 68, 110, 101, 85]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateHostReview;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
@@ -321,8 +353,14 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.LinkIdentity;
     } & ParsedLinkIdentityInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.SetListingOccupied;
+    } & ParsedSetListingOccupiedInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.UpdateDeposit;
-    } & ParsedUpdateDepositInstruction<TProgram>);
+    } & ParsedUpdateDepositInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateHostReview;
+    } & ParsedUpdateHostReviewInstruction<TProgram>);
 
 export function parseStaykeCoreInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -385,11 +423,25 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseLinkIdentityInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.SetListingOccupied: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.SetListingOccupied,
+        ...parseSetListingOccupiedInstruction(instruction),
+      };
+    }
     case StaykeCoreInstruction.UpdateDeposit: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeCoreInstruction.UpdateDeposit,
         ...parseUpdateDepositInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.UpdateHostReview: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateHostReview,
+        ...parseUpdateHostReviewInstruction(instruction),
       };
     }
     default:
@@ -424,16 +476,16 @@ export type StaykeCorePluginAccounts = {
 
 export type StaykeCorePluginInstructions = {
   addInfraction: (
-    input: AddInfractionInput,
-  ) => ReturnType<typeof getAddInfractionInstruction> &
+    input: AddInfractionAsyncInput,
+  ) => ReturnType<typeof getAddInfractionInstructionAsync> &
     SelfPlanAndSendFunctions;
   clearActiveBooking: (
-    input: ClearActiveBookingInput,
-  ) => ReturnType<typeof getClearActiveBookingInstruction> &
+    input: ClearActiveBookingAsyncInput,
+  ) => ReturnType<typeof getClearActiveBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
   clearListingBooking: (
-    input: ClearListingBookingInput,
-  ) => ReturnType<typeof getClearListingBookingInstruction> &
+    input: ClearListingBookingAsyncInput,
+  ) => ReturnType<typeof getClearListingBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
   initIdentity: (
     input: MakeOptional<InitIdentityAsyncInput, "payer">,
@@ -455,9 +507,17 @@ export type StaykeCorePluginInstructions = {
     input: MakeOptional<LinkIdentityAsyncInput, "payer">,
   ) => ReturnType<typeof getLinkIdentityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  setListingOccupied: (
+    input: SetListingOccupiedAsyncInput,
+  ) => ReturnType<typeof getSetListingOccupiedInstructionAsync> &
+    SelfPlanAndSendFunctions;
   updateDeposit: (
-    input: UpdateDepositInput,
-  ) => ReturnType<typeof getUpdateDepositInstruction> &
+    input: UpdateDepositAsyncInput,
+  ) => ReturnType<typeof getUpdateDepositInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateHostReview: (
+    input: UpdateHostReviewAsyncInput,
+  ) => ReturnType<typeof getUpdateHostReviewInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
 
@@ -496,17 +556,17 @@ export function staykeCoreProgram() {
           addInfraction: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getAddInfractionInstruction(input),
+              getAddInfractionInstructionAsync(input),
             ),
           clearActiveBooking: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getClearActiveBookingInstruction(input),
+              getClearActiveBookingInstructionAsync(input),
             ),
           clearListingBooking: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getClearListingBookingInstruction(input),
+              getClearListingBookingInstructionAsync(input),
             ),
           initIdentity: (input) =>
             addSelfPlanAndSendFunctions(
@@ -545,10 +605,20 @@ export function staykeCoreProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
+          setListingOccupied: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetListingOccupiedInstructionAsync(input),
+            ),
           updateDeposit: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getUpdateDepositInstruction(input),
+              getUpdateDepositInstructionAsync(input),
+            ),
+          updateHostReview: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateHostReviewInstructionAsync(input),
             ),
         },
         pdas: {

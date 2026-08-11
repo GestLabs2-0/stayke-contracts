@@ -52,14 +52,12 @@ export function getEscrowConfigDiscriminatorBytes(): ReadonlyUint8Array {
 export type EscrowConfig = {
   discriminator: ReadonlyUint8Array;
   authority: Address;
-  globalConfig: Address;
   isInitialized: boolean;
   bump: number;
 };
 
 export type EscrowConfigArgs = {
   authority: Address;
-  globalConfig: Address;
   isInitialized: boolean;
   bump: number;
 };
@@ -70,7 +68,6 @@ export function getEscrowConfigEncoder(): FixedSizeEncoder<EscrowConfigArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["authority", getAddressEncoder()],
-      ["globalConfig", getAddressEncoder()],
       ["isInitialized", getBooleanEncoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -83,7 +80,6 @@ export function getEscrowConfigDecoder(): FixedSizeDecoder<EscrowConfig> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["authority", getAddressDecoder()],
-    ["globalConfig", getAddressDecoder()],
     ["isInitialized", getBooleanDecoder()],
     ["bump", getU8Decoder()],
   ]);
@@ -151,5 +147,5 @@ export async function fetchAllMaybeEscrowConfig(
 }
 
 export function getEscrowConfigSize(): number {
-  return 74;
+  return 42;
 }

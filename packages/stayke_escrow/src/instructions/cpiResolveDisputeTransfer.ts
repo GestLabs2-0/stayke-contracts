@@ -42,7 +42,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowConfigPda, findEscrowTokenAccountPda } from "../pdas";
+import { findEscrowTokenAccountPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const CPI_RESOLVE_DISPUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
@@ -56,10 +56,9 @@ export function getCpiResolveDisputeTransferDiscriminatorBytes(): ReadonlyUint8A
 
 export type CpiResolveDisputeTransferInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
-  TAccountEscrowConfig extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
   TAccountHostTokenAccount extends string | AccountMeta<string> = string,
   TAccountGuestTokenAccount extends string | AccountMeta<string> = string,
@@ -73,19 +72,16 @@ export type CpiResolveDisputeTransferInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountCpiAuthority extends string
+        ? ReadonlySignerAccount<TAccountCpiAuthority> &
+            AccountSignerMeta<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
-      TAccountEscrowConfig extends string
-        ? ReadonlyAccount<TAccountEscrowConfig>
-        : TAccountEscrowConfig,
       TAccountEscrowTokenAccount extends string
         ? WritableAccount<TAccountEscrowTokenAccount>
         : TAccountEscrowTokenAccount,
@@ -152,10 +148,9 @@ export function getCpiResolveDisputeTransferInstructionDataCodec(): FixedSizeCod
 }
 
 export type CpiResolveDisputeTransferAsyncInput<
-  TAccountAuthority extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
-  TAccountEscrowConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountHostTokenAccount extends string = string,
   TAccountGuestTokenAccount extends string = string,
@@ -163,10 +158,9 @@ export type CpiResolveDisputeTransferAsyncInput<
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   booking: Address<TAccountBooking>;
   globalConfig?: Address<TAccountGlobalConfig>;
-  escrowConfig?: Address<TAccountEscrowConfig>;
   escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
   /** Host's USDC */
   hostTokenAccount: Address<TAccountHostTokenAccount>;
@@ -181,10 +175,9 @@ export type CpiResolveDisputeTransferAsyncInput<
 };
 
 export async function getCpiResolveDisputeTransferInstructionAsync<
-  TAccountAuthority extends string,
+  TAccountCpiAuthority extends string,
   TAccountBooking extends string,
   TAccountGlobalConfig extends string,
-  TAccountEscrowConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountHostTokenAccount extends string,
   TAccountGuestTokenAccount extends string,
@@ -194,10 +187,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CpiResolveDisputeTransferAsyncInput<
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountBooking,
     TAccountGlobalConfig,
-    TAccountEscrowConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
     TAccountGuestTokenAccount,
@@ -209,10 +201,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
 ): Promise<
   CpiResolveDisputeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountBooking,
     TAccountGlobalConfig,
-    TAccountEscrowConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
     TAccountGuestTokenAccount,
@@ -227,10 +218,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
-    escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
@@ -272,9 +262,6 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
       ],
     });
   }
-  if (!accounts.escrowConfig.value) {
-    accounts.escrowConfig.value = await findEscrowConfigPda();
-  }
   if (!accounts.escrowTokenAccount.value) {
     accounts.escrowTokenAccount.value = await findEscrowTokenAccountPda({
       booking: getAddressFromResolvedInstructionAccount(
@@ -291,10 +278,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
-      getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
       getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
@@ -311,10 +297,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
     programAddress,
   } as CpiResolveDisputeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountBooking,
     TAccountGlobalConfig,
-    TAccountEscrowConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
     TAccountGuestTokenAccount,
@@ -325,10 +310,9 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
 }
 
 export type CpiResolveDisputeTransferInput<
-  TAccountAuthority extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
-  TAccountEscrowConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountHostTokenAccount extends string = string,
   TAccountGuestTokenAccount extends string = string,
@@ -336,10 +320,9 @@ export type CpiResolveDisputeTransferInput<
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   booking: Address<TAccountBooking>;
   globalConfig: Address<TAccountGlobalConfig>;
-  escrowConfig: Address<TAccountEscrowConfig>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
   /** Host's USDC */
   hostTokenAccount: Address<TAccountHostTokenAccount>;
@@ -354,10 +337,9 @@ export type CpiResolveDisputeTransferInput<
 };
 
 export function getCpiResolveDisputeTransferInstruction<
-  TAccountAuthority extends string,
+  TAccountCpiAuthority extends string,
   TAccountBooking extends string,
   TAccountGlobalConfig extends string,
-  TAccountEscrowConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountHostTokenAccount extends string,
   TAccountGuestTokenAccount extends string,
@@ -367,10 +349,9 @@ export function getCpiResolveDisputeTransferInstruction<
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CpiResolveDisputeTransferInput<
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountBooking,
     TAccountGlobalConfig,
-    TAccountEscrowConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
     TAccountGuestTokenAccount,
@@ -381,10 +362,9 @@ export function getCpiResolveDisputeTransferInstruction<
   config?: { programAddress?: TProgramAddress },
 ): CpiResolveDisputeTransferInstruction<
   TProgramAddress,
-  TAccountAuthority,
+  TAccountCpiAuthority,
   TAccountBooking,
   TAccountGlobalConfig,
-  TAccountEscrowConfig,
   TAccountEscrowTokenAccount,
   TAccountHostTokenAccount,
   TAccountGuestTokenAccount,
@@ -398,10 +378,9 @@ export function getCpiResolveDisputeTransferInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
-    escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
@@ -438,10 +417,9 @@ export function getCpiResolveDisputeTransferInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
-      getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
       getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
@@ -458,10 +436,9 @@ export function getCpiResolveDisputeTransferInstruction<
     programAddress,
   } as CpiResolveDisputeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountBooking,
     TAccountGlobalConfig,
-    TAccountEscrowConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
     TAccountGuestTokenAccount,
@@ -477,19 +454,18 @@ export type ParsedCpiResolveDisputeTransferInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    authority: TAccountMetas[0];
+    cpiAuthority: TAccountMetas[0];
     booking: TAccountMetas[1];
     globalConfig: TAccountMetas[2];
-    escrowConfig: TAccountMetas[3];
-    escrowTokenAccount: TAccountMetas[4];
+    escrowTokenAccount: TAccountMetas[3];
     /** Host's USDC */
-    hostTokenAccount: TAccountMetas[5];
+    hostTokenAccount: TAccountMetas[4];
     /** Guest's USDC */
-    guestTokenAccount: TAccountMetas[6];
+    guestTokenAccount: TAccountMetas[5];
     /** Platform vault */
-    platformVaultTokenAccount: TAccountMetas[7];
-    mint: TAccountMetas[8];
-    tokenProgram: TAccountMetas[9];
+    platformVaultTokenAccount: TAccountMetas[6];
+    mint: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
   };
   data: CpiResolveDisputeTransferInstructionData;
 };
@@ -502,12 +478,12 @@ export function parseCpiResolveDisputeTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCpiResolveDisputeTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -520,10 +496,9 @@ export function parseCpiResolveDisputeTransferInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      authority: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       booking: getNextAccount(),
       globalConfig: getNextAccount(),
-      escrowConfig: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
       hostTokenAccount: getNextAccount(),
       guestTokenAccount: getNextAccount(),

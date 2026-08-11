@@ -53,7 +53,7 @@ export function getCpiPenalizeTransferDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CpiPenalizeTransferInstruction<
   TProgram extends string = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountTreasuryVault extends string | AccountMeta<string> = string,
@@ -67,10 +67,10 @@ export type CpiPenalizeTransferInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountCpiAuthority extends string
+        ? ReadonlySignerAccount<TAccountCpiAuthority> &
+            AccountSignerMeta<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
@@ -136,7 +136,7 @@ export function getCpiPenalizeTransferInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CpiPenalizeTransferAsyncInput<
-  TAccountAuthority extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountConfig extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountTreasuryVault extends string = string,
@@ -145,7 +145,7 @@ export type CpiPenalizeTransferAsyncInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   config?: Address<TAccountConfig>;
   globalConfig?: Address<TAccountGlobalConfig>;
   treasuryVault: Address<TAccountTreasuryVault>;
@@ -158,7 +158,7 @@ export type CpiPenalizeTransferAsyncInput<
 };
 
 export async function getCpiPenalizeTransferInstructionAsync<
-  TAccountAuthority extends string,
+  TAccountCpiAuthority extends string,
   TAccountConfig extends string,
   TAccountGlobalConfig extends string,
   TAccountTreasuryVault extends string,
@@ -169,7 +169,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
   input: CpiPenalizeTransferAsyncInput<
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountConfig,
     TAccountGlobalConfig,
     TAccountTreasuryVault,
@@ -182,7 +182,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
 ): Promise<
   CpiPenalizeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountConfig,
     TAccountGlobalConfig,
     TAccountTreasuryVault,
@@ -198,7 +198,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     config: { value: input.config ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
@@ -246,7 +246,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("config", accounts.config),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("treasuryVault", accounts.treasuryVault),
@@ -264,7 +264,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
     programAddress,
   } as CpiPenalizeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountConfig,
     TAccountGlobalConfig,
     TAccountTreasuryVault,
@@ -276,7 +276,7 @@ export async function getCpiPenalizeTransferInstructionAsync<
 }
 
 export type CpiPenalizeTransferInput<
-  TAccountAuthority extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountConfig extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountTreasuryVault extends string = string,
@@ -285,7 +285,7 @@ export type CpiPenalizeTransferInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   config: Address<TAccountConfig>;
   globalConfig: Address<TAccountGlobalConfig>;
   treasuryVault: Address<TAccountTreasuryVault>;
@@ -298,7 +298,7 @@ export type CpiPenalizeTransferInput<
 };
 
 export function getCpiPenalizeTransferInstruction<
-  TAccountAuthority extends string,
+  TAccountCpiAuthority extends string,
   TAccountConfig extends string,
   TAccountGlobalConfig extends string,
   TAccountTreasuryVault extends string,
@@ -309,7 +309,7 @@ export function getCpiPenalizeTransferInstruction<
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
   input: CpiPenalizeTransferInput<
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountConfig,
     TAccountGlobalConfig,
     TAccountTreasuryVault,
@@ -321,7 +321,7 @@ export function getCpiPenalizeTransferInstruction<
   config?: { programAddress?: TProgramAddress },
 ): CpiPenalizeTransferInstruction<
   TProgramAddress,
-  TAccountAuthority,
+  TAccountCpiAuthority,
   TAccountConfig,
   TAccountGlobalConfig,
   TAccountTreasuryVault,
@@ -336,7 +336,7 @@ export function getCpiPenalizeTransferInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     config: { value: input.config ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
@@ -365,7 +365,7 @@ export function getCpiPenalizeTransferInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("config", accounts.config),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("treasuryVault", accounts.treasuryVault),
@@ -383,7 +383,7 @@ export function getCpiPenalizeTransferInstruction<
     programAddress,
   } as CpiPenalizeTransferInstruction<
     TProgramAddress,
-    TAccountAuthority,
+    TAccountCpiAuthority,
     TAccountConfig,
     TAccountGlobalConfig,
     TAccountTreasuryVault,
@@ -400,7 +400,7 @@ export type ParsedCpiPenalizeTransferInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    authority: TAccountMetas[0];
+    cpiAuthority: TAccountMetas[0];
     config: TAccountMetas[1];
     globalConfig: TAccountMetas[2];
     treasuryVault: TAccountMetas[3];
@@ -439,7 +439,7 @@ export function parseCpiPenalizeTransferInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      authority: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       config: getNextAccount(),
       globalConfig: getNextAccount(),
       treasuryVault: getNextAccount(),

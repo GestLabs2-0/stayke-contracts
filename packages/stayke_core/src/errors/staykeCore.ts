@@ -28,11 +28,14 @@ export const STAYKE_CORE_ERROR__UNAUTHORIZED = 0x1774; // 6004
 export const STAYKE_CORE_ERROR__INVALID_LISTING_ID = 0x1775; // 6005
 /** MaxListingsReached: Max listings reached */
 export const STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED = 0x1776; // 6006
+/** InvalidScore: Invalid review score: must be between 1 and 5 */
+export const STAYKE_CORE_ERROR__INVALID_SCORE = 0x1777; // 6007
 
 export type StaykeCoreError =
   | typeof STAYKE_CORE_ERROR__IDENTITY_BANNED
   | typeof STAYKE_CORE_ERROR__IDENTITY_FROZEN
   | typeof STAYKE_CORE_ERROR__INVALID_LISTING_ID
+  | typeof STAYKE_CORE_ERROR__INVALID_SCORE
   | typeof STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED
   | typeof STAYKE_CORE_ERROR__UNAUTHORIZED
   | typeof STAYKE_CORE_ERROR__USER_PROFILE_ALREADY_LINKED
@@ -44,6 +47,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_CORE_ERROR__IDENTITY_BANNED]: `Identity is banned and cannot be used to create a user profile`,
     [STAYKE_CORE_ERROR__IDENTITY_FROZEN]: `Identity is frozen and already linked`,
     [STAYKE_CORE_ERROR__INVALID_LISTING_ID]: `Invalid listing ID: The provided listing ID does not match the last existing listing`,
+    [STAYKE_CORE_ERROR__INVALID_SCORE]: `Invalid review score: must be between 1 and 5`,
     [STAYKE_CORE_ERROR__MAX_LISTINGS_REACHED]: `Max listings reached`,
     [STAYKE_CORE_ERROR__UNAUTHORIZED]: `Unauthorized: Only the authority can perform this action`,
     [STAYKE_CORE_ERROR__USER_PROFILE_ALREADY_LINKED]: `User profile already linked`,

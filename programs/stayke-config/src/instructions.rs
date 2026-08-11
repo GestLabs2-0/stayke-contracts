@@ -38,6 +38,7 @@ pub fn handler_initialize_config(
     ctx: Context<InitializeConfig>,
     minimum_deposit: u64,
     fee_bps: u64,
+    max_operations: u8,
 ) -> Result<()> {
     require!(fee_bps < 10_000, StaykeConfigError::InvalidFeeBps);
 
@@ -55,6 +56,6 @@ pub fn handler_initialize_config(
     global_config.disputes_program = pubkey!("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB");
     global_config.treasury_program = pubkey!("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu");
     global_config.is_initialized = true;
-
+    global_config.max_operations = max_operations;
     Ok(())
 }

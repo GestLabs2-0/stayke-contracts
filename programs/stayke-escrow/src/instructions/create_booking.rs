@@ -35,6 +35,7 @@ pub struct CreateBooking<'info> {
         constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
+        // TODO: add conditional constraint to disable minimum deposit as long as activities in platform are less than zero
         constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,

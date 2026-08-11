@@ -14,6 +14,8 @@ use {
     stayke_disputes::state::{DisputeReason, DisputeStatus},
 };
 
+// TODO: use common functions to setup global accounts
+
 /// Helper: create a minimal UserProfile at its PDA owned by stayke_core.
 fn make_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
     let (pda, bump) = Pubkey::find_program_address(
@@ -24,6 +26,8 @@ fn make_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
         &stayke_core::id(),
     );
     let p = stayke_core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority,
         identity: Some(Pubkey::new_unique()),
         active_booking: None,
@@ -102,6 +106,7 @@ fn close_dispute_resolved_success() {
         authority: Pubkey::new_unique(),
         minimum_deposit: 100_000,
         fee_bps: 200,
+        max_operations: 4,
         usdc_mint: Pubkey::new_unique(),
         is_initialized: true,
         platform_vault: Pubkey::new_unique(),
@@ -156,6 +161,8 @@ fn close_dispute_resolved_success() {
         &stayke_core::id(),
     );
     let gp = stayke_core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority: guest,
         identity: Some(Pubkey::new_unique()),
         active_booking: Some(booking_key),
@@ -187,6 +194,8 @@ fn close_dispute_resolved_success() {
         &stayke_core::id(),
     );
     let hp = stayke_core::state::UserProfile {
+        completed_stays: 0,
+        hosted_stays: 0,
         authority: host,
         identity: Some(Pubkey::new_unique()),
         active_booking: Some(booking_key),
@@ -280,6 +289,7 @@ fn close_dispute_unauthorized_admin_fails() {
                     minimum_deposit: 100_000,
                     fee_bps: 200,
                     usdc_mint: Pubkey::new_unique(),
+                    max_operations: 4,
                     is_initialized: true,
                     platform_vault: Pubkey::new_unique(),
                     platform_vault_bump: global_bump,
@@ -390,6 +400,7 @@ fn close_dispute_still_open_fails() {
                     fee_bps: 200,
                     usdc_mint: Pubkey::new_unique(),
                     is_initialized: true,
+                    max_operations: 4,
                     platform_vault: Pubkey::new_unique(),
                     platform_vault_bump: global_bump,
                     core_program: stayke_core::id(),

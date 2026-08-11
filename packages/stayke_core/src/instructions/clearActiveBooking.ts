@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -26,6 +27,7 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -49,7 +51,8 @@ export function getClearActiveBookingDiscriminatorBytes(): ReadonlyUint8Array {
 export type ClearActiveBookingInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountUserProfile extends string | AccountMeta<string> = string,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -58,10 +61,13 @@ export type ClearActiveBookingInstruction<
       TAccountUserProfile extends string
         ? WritableAccount<TAccountUserProfile>
         : TAccountUserProfile,
-      TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
+      TAccountCpiAuthority extends string
+        ? ReadonlySignerAccount<TAccountCpiAuthority> &
+            AccountSignerMeta<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       ...TRemainingAccounts,
     ]
   >;
@@ -98,25 +104,36 @@ export function getClearActiveBookingInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type ClearActiveBookingInput<
+export type ClearActiveBookingAsyncInput<
   TAccountUserProfile extends string = string,
-  TAccountAuthority extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
 > = {
   userProfile: Address<TAccountUserProfile>;
-  authority: TransactionSigner<TAccountAuthority>;
+  globalConfig?: Address<TAccountGlobalConfig>;
+  /** CPI authority PDA of an allowlisted Stayke program. */
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
 };
 
-export function getClearActiveBookingInstruction<
+export async function getClearActiveBookingInstructionAsync<
   TAccountUserProfile extends string,
-  TAccountAuthority extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: ClearActiveBookingInput<TAccountUserProfile, TAccountAuthority>,
+  input: ClearActiveBookingAsyncInput<
+    TAccountUserProfile,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >,
   config?: { programAddress?: TProgramAddress },
-): ClearActiveBookingInstruction<
-  TProgramAddress,
-  TAccountUserProfile,
-  TAccountAuthority
+): Promise<
+  ClearActiveBookingInstruction<
+    TProgramAddress,
+    TAccountUserProfile,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >
 > {
   // Program address.
   const programAddress = config?.programAddress ?? STAYKE_CORE_PROGRAM_ADDRESS;
@@ -124,7 +141,83 @@ export function getClearActiveBookingInstruction<
   // Original accounts.
   const originalAccounts = {
     userProfile: { value: input.userProfile ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: false },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Resolve default values.
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+    ],
+    data: getClearActiveBookingInstructionDataEncoder().encode({}),
+    programAddress,
+  } as ClearActiveBookingInstruction<
+    TProgramAddress,
+    TAccountUserProfile,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >);
+}
+
+export type ClearActiveBookingInput<
+  TAccountUserProfile extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
+> = {
+  userProfile: Address<TAccountUserProfile>;
+  globalConfig: Address<TAccountGlobalConfig>;
+  /** CPI authority PDA of an allowlisted Stayke program. */
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
+};
+
+export function getClearActiveBookingInstruction<
+  TAccountUserProfile extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
+  TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
+>(
+  input: ClearActiveBookingInput<
+    TAccountUserProfile,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >,
+  config?: { programAddress?: TProgramAddress },
+): ClearActiveBookingInstruction<
+  TProgramAddress,
+  TAccountUserProfile,
+  TAccountGlobalConfig,
+  TAccountCpiAuthority
+> {
+  // Program address.
+  const programAddress = config?.programAddress ?? STAYKE_CORE_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    userProfile: { value: input.userProfile ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -135,14 +228,16 @@ export function getClearActiveBookingInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("userProfile", accounts.userProfile),
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
     ],
     data: getClearActiveBookingInstructionDataEncoder().encode({}),
     programAddress,
   } as ClearActiveBookingInstruction<
     TProgramAddress,
     TAccountUserProfile,
-    TAccountAuthority
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
   >);
 }
 
@@ -153,7 +248,9 @@ export type ParsedClearActiveBookingInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     userProfile: TAccountMetas[0];
-    authority: TAccountMetas[1];
+    globalConfig: TAccountMetas[1];
+    /** CPI authority PDA of an allowlisted Stayke program. */
+    cpiAuthority: TAccountMetas[2];
   };
   data: ClearActiveBookingInstructionData;
 };
@@ -166,12 +263,12 @@ export function parseClearActiveBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClearActiveBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 2) {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -183,7 +280,11 @@ export function parseClearActiveBookingInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { userProfile: getNextAccount(), authority: getNextAccount() },
+    accounts: {
+      userProfile: getNextAccount(),
+      globalConfig: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+    },
     data: getClearActiveBookingInstructionDataDecoder().decode(
       instruction.data,
     ),
