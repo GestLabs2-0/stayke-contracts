@@ -29,7 +29,7 @@ fn pack_mint(mint_authority: &Pubkey, decimals: u8) -> Vec<u8> {
     // supply u64 = 0 already zeroed
     data[44] = decimals;
     data[45] = 1; // is_initialized
-    // freeze_authority COption::None = 0 already zeroed
+                  // freeze_authority COption::None = 0 already zeroed
     data
 }
 
@@ -100,7 +100,9 @@ fn test_initialize_config_persists_program_ids() {
     svm.send_transaction(tx)
         .expect("initialize_config must succeed");
 
-    let account = svm.get_account(&global_config).expect("GlobalConfig exists");
+    let account = svm
+        .get_account(&global_config)
+        .expect("GlobalConfig exists");
     let config = stayke_config::GlobalConfig::try_deserialize(&mut account.data.as_slice())
         .expect("deserialize GlobalConfig");
 

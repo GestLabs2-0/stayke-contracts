@@ -41,9 +41,7 @@ fn resolve_dispute_unauthorized_admin_fails() {
     let platform_vault = Pubkey::new_unique();
 
     let (global_cfg_pda, global_bump) = Pubkey::find_program_address(
-        &[
-            stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes(),
-        ],
+        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
         &stayke_config::id(),
     );
     let gcfg = stayke_config::state::GlobalConfig {
@@ -95,9 +93,7 @@ fn resolve_dispute_unauthorized_admin_fails() {
 
     let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
     let config_pda = Pubkey::find_program_address(
-        &[
-            stayke_disputes::constants::DISPUTE_CONFIG_PDA_SEED.as_bytes(),
-        ],
+        &[stayke_disputes::constants::DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         &stayke_disputes::id(),
     )
     .0;
@@ -129,15 +125,18 @@ fn resolve_dispute_unauthorized_admin_fails() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &rogue_admin])
-            .unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &rogue_admin])
+        .unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err().err,
-        TransactionError::InstructionError(0,
-            Custom(u32::from(stayke_disputes::error::DisputeError::UnauthorizedAdmin)))
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(
+                stayke_disputes::error::DisputeError::UnauthorizedAdmin
+            ))
+        )
     );
 }
 
@@ -166,9 +165,7 @@ fn resolve_dispute_already_resolved_fails() {
     let platform_vault = Pubkey::new_unique();
 
     let (global_cfg_pda, global_bump) = Pubkey::find_program_address(
-        &[
-            stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes(),
-        ],
+        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
         &stayke_config::id(),
     );
     let gcfg = stayke_config::state::GlobalConfig {
@@ -218,9 +215,7 @@ fn resolve_dispute_already_resolved_fails() {
 
     let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
     let config_pda = Pubkey::find_program_address(
-        &[
-            stayke_disputes::constants::DISPUTE_CONFIG_PDA_SEED.as_bytes(),
-        ],
+        &[stayke_disputes::constants::DISPUTE_CONFIG_PDA_SEED.as_bytes()],
         &stayke_disputes::id(),
     )
     .0;
@@ -253,13 +248,16 @@ fn resolve_dispute_already_resolved_fails() {
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
     let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &admin])
-            .unwrap();
+        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &admin]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err().err,
-        TransactionError::InstructionError(0,
-            Custom(u32::from(stayke_disputes::error::DisputeError::DisputeNotOpen)))
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(
+                stayke_disputes::error::DisputeError::DisputeNotOpen
+            ))
+        )
     );
 }

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Shared helpers for stayke-disputes LiteSVM tests.
 
 use anchor_lang::AnchorSerialize;
@@ -5,11 +6,11 @@ use litesvm::LiteSVM;
 use solana_account::Account;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
-use stayke_escrow as escrow;
-use stayke_core as core;
 use stayke_config as config;
-use stayke_treasury as treasury;
+use stayke_core as core;
 use stayke_disputes as disputes;
+use stayke_escrow as escrow;
+use stayke_treasury as treasury;
 
 // ---------------------------------------------------------------------------
 // Discriminator

@@ -58,7 +58,7 @@ pub fn assert_cpi_authority(
         .map(|a| a.program_id(global_config))
         .collect();
     require!(
-        allowed_ids.iter().any(|id| *id == caller),
+        allowed_ids.contains(&caller),
         StaykeConfigError::Unauthorized
     );
     Ok(())

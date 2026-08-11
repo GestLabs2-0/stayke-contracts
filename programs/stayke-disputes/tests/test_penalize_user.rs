@@ -133,15 +133,18 @@ fn penalize_user_unauthorized_admin_fails() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &rogue_admin])
-            .unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &rogue_admin])
+        .unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err().err,
-        TransactionError::InstructionError(0,
-            Custom(u32::from(stayke_disputes::error::DisputeError::UnauthorizedAdmin)))
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(
+                stayke_disputes::error::DisputeError::UnauthorizedAdmin
+            ))
+        )
     );
 }
 
@@ -270,7 +273,9 @@ fn penalize_user_banned_fails() {
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err().err,
-        TransactionError::InstructionError(0,
-            Custom(u32::from(stayke_disputes::error::DisputeError::UserBanned)))
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(stayke_disputes::error::DisputeError::UserBanned))
+        )
     );
 }

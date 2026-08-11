@@ -18,7 +18,7 @@ pub struct LinkIdentity<'info> {
     #[account(mut,
         seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.authority.key().as_ref()],
         bump = user_profile.bump,
-        constraint = !user_profile.identity.is_some() @ StaykeError::UserProfileAlreadyLinked,
+        constraint = user_profile.identity.is_none() @ StaykeError::UserProfileAlreadyLinked,
         constraint = !user_profile.banned @ StaykeError::IdentityBanned
     )]
     pub user_profile: Account<'info, UserProfile>,

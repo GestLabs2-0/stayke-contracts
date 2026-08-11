@@ -1,7 +1,10 @@
 mod common;
 
 use {
-    anchor_lang::{solana_program::instruction::Instruction, AnchorDeserialize, InstructionData, ToAccountMetas},
+    anchor_lang::{
+        solana_program::instruction::Instruction, AnchorDeserialize, InstructionData,
+        ToAccountMetas,
+    },
     litesvm::LiteSVM,
     solana_keypair::Keypair,
     solana_message::{Message, VersionedMessage},
@@ -55,8 +58,7 @@ fn initialize_config_creates_pda_with_authority_as_admin() {
     // Verify discriminator and fields.
     let disc = common::discriminator("DisputeConfig");
     assert_eq!(&account.data[..8], &disc, "Wrong discriminator");
-    let config: DisputeConfig =
-        AnchorDeserialize::deserialize(&mut &account.data[8..]).unwrap();
+    let config: DisputeConfig = AnchorDeserialize::deserialize(&mut &account.data[8..]).unwrap();
 
     assert!(config.is_initialized);
     assert_eq!(config.admins.len(), 1);

@@ -50,7 +50,11 @@ fn wallet_update_deposit_unauthorized_leaves_deposited_unchanged() {
     let payer = Keypair::new();
     let mut svm = LiteSVM::new();
     let bytes = include_bytes!("../../../target/deploy/stayke_core.so");
-    assert!(bytes.len() > 10_000, "stayke_core.so looks stub-sized ({})", bytes.len());
+    assert!(
+        bytes.len() > 10_000,
+        "stayke_core.so looks stub-sized ({})",
+        bytes.len()
+    );
     svm.add_program(core_id, bytes).unwrap();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
@@ -69,8 +73,10 @@ fn wallet_update_deposit_unauthorized_leaves_deposited_unchanged() {
     )
     .unwrap();
 
-    let (profile_pda, profile_bump) =
-        Pubkey::find_program_address(&[USER_PROFILE_SEED.as_bytes(), payer.pubkey().as_ref()], &core_id);
+    let (profile_pda, profile_bump) = Pubkey::find_program_address(
+        &[USER_PROFILE_SEED.as_bytes(), payer.pubkey().as_ref()],
+        &core_id,
+    );
     let profile = UserProfile {
         authority: payer.pubkey(),
         identity: Some(Pubkey::new_unique()),
@@ -129,7 +135,11 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
     let payer = Keypair::new();
     let mut svm = LiteSVM::new();
     let bytes = include_bytes!("../../../target/deploy/stayke_core.so");
-    assert!(bytes.len() > 10_000, "stayke_core.so looks stub-sized ({})", bytes.len());
+    assert!(
+        bytes.len() > 10_000,
+        "stayke_core.so looks stub-sized ({})",
+        bytes.len()
+    );
     svm.add_program(core_id, bytes).unwrap();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
@@ -147,8 +157,10 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
     )
     .unwrap();
 
-    let (profile_pda, profile_bump) =
-        Pubkey::find_program_address(&[USER_PROFILE_SEED.as_bytes(), payer.pubkey().as_ref()], &core_id);
+    let (profile_pda, profile_bump) = Pubkey::find_program_address(
+        &[USER_PROFILE_SEED.as_bytes(), payer.pubkey().as_ref()],
+        &core_id,
+    );
     let profile = UserProfile {
         authority: payer.pubkey(),
         identity: Some(Pubkey::new_unique()),
@@ -225,5 +237,8 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
 
     let acc = svm.get_account(&listing_pda).unwrap();
     let after = Listing::try_deserialize(&mut acc.data.as_slice()).unwrap();
-    assert!(after.is_occupied, "occupied must remain true after unauthorized call");
+    assert!(
+        after.is_occupied,
+        "occupied must remain true after unauthorized call"
+    );
 }
