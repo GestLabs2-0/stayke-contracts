@@ -8,11 +8,13 @@
 
 export * from "./clientAcceptReserve";
 export * from "./clientRejectReserve";
+export * from "./clientRejectReserveCrossYear";
 export * from "./completeStay";
 export * from "./cpiResolveDisputeTransfer";
 export * from "./cpiUpdateBookingStatus";
 export * from "./createBooking";
 export * from "./hostAcceptBooking";
 export * from "./hostRejectBooking";
+export * from "./hostRejectBookingCrossYear";
 export * from "./initializeEscrow";
 export * from "./reviewCompleted";

@@ -13,6 +13,8 @@ import {
   getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
@@ -89,13 +91,17 @@ export type HostRejectBookingInstruction<
 
 export type HostRejectBookingInstructionData = {
   discriminator: ReadonlyUint8Array;
+  checkIn: bigint;
 };
 
-export type HostRejectBookingInstructionDataArgs = {};
+export type HostRejectBookingInstructionDataArgs = { checkIn: number | bigint };
 
 export function getHostRejectBookingInstructionDataEncoder(): FixedSizeEncoder<HostRejectBookingInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["checkIn", getI64Encoder()],
+    ]),
     (value) => ({ ...value, discriminator: HOST_REJECT_BOOKING_DISCRIMINATOR }),
   );
 }
@@ -103,6 +109,7 @@ export function getHostRejectBookingInstructionDataEncoder(): FixedSizeEncoder<H
 export function getHostRejectBookingInstructionDataDecoder(): FixedSizeDecoder<HostRejectBookingInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["checkIn", getI64Decoder()],
   ]);
 }
 
@@ -130,6 +137,7 @@ export type HostRejectBookingAsyncInput<
   guest: Address<TAccountGuest>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
+  checkIn: HostRejectBookingInstructionDataArgs["checkIn"];
 };
 
 export async function getHostRejectBookingInstructionAsync<
@@ -179,6 +187,9 @@ export async function getHostRejectBookingInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
   if (!accounts.hostProfile.value) {
     accounts.hostProfile.value = await getProgramDerivedAddress({
@@ -207,7 +218,9 @@ export async function getHostRejectBookingInstructionAsync<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
     ],
-    data: getHostRejectBookingInstructionDataEncoder().encode({}),
+    data: getHostRejectBookingInstructionDataEncoder().encode(
+      args as HostRejectBookingInstructionDataArgs,
+    ),
     programAddress,
   } as HostRejectBookingInstruction<
     TProgramAddress,
@@ -234,6 +247,7 @@ export type HostRejectBookingInput<
   guest: Address<TAccountGuest>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
+  checkIn: HostRejectBookingInstructionDataArgs["checkIn"];
 };
 
 export function getHostRejectBookingInstruction<
@@ -281,6 +295,9 @@ export function getHostRejectBookingInstruction<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
@@ -291,7 +308,9 @@ export function getHostRejectBookingInstruction<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
     ],
-    data: getHostRejectBookingInstructionDataEncoder().encode({}),
+    data: getHostRejectBookingInstructionDataEncoder().encode(
+      args as HostRejectBookingInstructionDataArgs,
+    ),
     programAddress,
   } as HostRejectBookingInstruction<
     TProgramAddress,

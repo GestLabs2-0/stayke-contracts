@@ -31,6 +31,7 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -43,22 +44,24 @@ import {
 } from "@solana/program-client-core";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
-export const CLIENT_REJECT_RESERVE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([255, 7, 9, 197, 47, 46, 133, 198]);
+export const HOST_REJECT_BOOKING_CROSS_YEAR_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([123, 241, 114, 228, 149, 154, 172, 11]);
 
-export function getClientRejectReserveDiscriminatorBytes(): ReadonlyUint8Array {
+export function getHostRejectBookingCrossYearDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CLIENT_REJECT_RESERVE_DISCRIMINATOR,
+    HOST_REJECT_BOOKING_CROSS_YEAR_DISCRIMINATOR,
   );
 }
 
-export type ClientRejectReserveInstruction<
+export type HostRejectBookingCrossYearInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountPayer extends string | AccountMeta<string> = string,
-  TAccountClient extends string | AccountMeta<string> = string,
-  TAccountClientProfile extends string | AccountMeta<string> = string,
+  TAccountHost extends string | AccountMeta<string> = string,
+  TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountGuest extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountBookingDays extends string | AccountMeta<string> = string,
+  TAccountBookingDaysNext extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -68,33 +71,38 @@ export type ClientRejectReserveInstruction<
         ? WritableSignerAccount<TAccountPayer> &
             AccountSignerMeta<TAccountPayer>
         : TAccountPayer,
-      TAccountClient extends string
-        ? WritableSignerAccount<TAccountClient> &
-            AccountSignerMeta<TAccountClient>
-        : TAccountClient,
-      TAccountClientProfile extends string
-        ? ReadonlyAccount<TAccountClientProfile>
-        : TAccountClientProfile,
+      TAccountHost extends string
+        ? ReadonlySignerAccount<TAccountHost> & AccountSignerMeta<TAccountHost>
+        : TAccountHost,
+      TAccountHostProfile extends string
+        ? ReadonlyAccount<TAccountHostProfile>
+        : TAccountHostProfile,
+      TAccountGuest extends string
+        ? WritableAccount<TAccountGuest>
+        : TAccountGuest,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
       TAccountBookingDays extends string
         ? WritableAccount<TAccountBookingDays>
         : TAccountBookingDays,
+      TAccountBookingDaysNext extends string
+        ? WritableAccount<TAccountBookingDaysNext>
+        : TAccountBookingDaysNext,
       ...TRemainingAccounts,
     ]
   >;
 
-export type ClientRejectReserveInstructionData = {
+export type HostRejectBookingCrossYearInstructionData = {
   discriminator: ReadonlyUint8Array;
   checkIn: bigint;
 };
 
-export type ClientRejectReserveInstructionDataArgs = {
+export type HostRejectBookingCrossYearInstructionDataArgs = {
   checkIn: number | bigint;
 };
 
-export function getClientRejectReserveInstructionDataEncoder(): FixedSizeEncoder<ClientRejectReserveInstructionDataArgs> {
+export function getHostRejectBookingCrossYearInstructionDataEncoder(): FixedSizeEncoder<HostRejectBookingCrossYearInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
@@ -102,67 +110,77 @@ export function getClientRejectReserveInstructionDataEncoder(): FixedSizeEncoder
     ]),
     (value) => ({
       ...value,
-      discriminator: CLIENT_REJECT_RESERVE_DISCRIMINATOR,
+      discriminator: HOST_REJECT_BOOKING_CROSS_YEAR_DISCRIMINATOR,
     }),
   );
 }
 
-export function getClientRejectReserveInstructionDataDecoder(): FixedSizeDecoder<ClientRejectReserveInstructionData> {
+export function getHostRejectBookingCrossYearInstructionDataDecoder(): FixedSizeDecoder<HostRejectBookingCrossYearInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["checkIn", getI64Decoder()],
   ]);
 }
 
-export function getClientRejectReserveInstructionDataCodec(): FixedSizeCodec<
-  ClientRejectReserveInstructionDataArgs,
-  ClientRejectReserveInstructionData
+export function getHostRejectBookingCrossYearInstructionDataCodec(): FixedSizeCodec<
+  HostRejectBookingCrossYearInstructionDataArgs,
+  HostRejectBookingCrossYearInstructionData
 > {
   return combineCodec(
-    getClientRejectReserveInstructionDataEncoder(),
-    getClientRejectReserveInstructionDataDecoder(),
+    getHostRejectBookingCrossYearInstructionDataEncoder(),
+    getHostRejectBookingCrossYearInstructionDataDecoder(),
   );
 }
 
-export type ClientRejectReserveAsyncInput<
+export type HostRejectBookingCrossYearAsyncInput<
   TAccountPayer extends string = string,
-  TAccountClient extends string = string,
-  TAccountClientProfile extends string = string,
+  TAccountHost extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountGuest extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountBookingDaysNext extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
-  client: TransactionSigner<TAccountClient>;
-  clientProfile?: Address<TAccountClientProfile>;
+  host: TransactionSigner<TAccountHost>;
+  hostProfile?: Address<TAccountHostProfile>;
+  guest: Address<TAccountGuest>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
-  checkIn: ClientRejectReserveInstructionDataArgs["checkIn"];
+  bookingDaysNext: Address<TAccountBookingDaysNext>;
+  checkIn: HostRejectBookingCrossYearInstructionDataArgs["checkIn"];
 };
 
-export async function getClientRejectReserveInstructionAsync<
+export async function getHostRejectBookingCrossYearInstructionAsync<
   TAccountPayer extends string,
-  TAccountClient extends string,
-  TAccountClientProfile extends string,
+  TAccountHost extends string,
+  TAccountHostProfile extends string,
+  TAccountGuest extends string,
   TAccountBooking extends string,
   TAccountBookingDays extends string,
+  TAccountBookingDaysNext extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: ClientRejectReserveAsyncInput<
+  input: HostRejectBookingCrossYearAsyncInput<
     TAccountPayer,
-    TAccountClient,
-    TAccountClientProfile,
+    TAccountHost,
+    TAccountHostProfile,
+    TAccountGuest,
     TAccountBooking,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountBookingDaysNext
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  ClientRejectReserveInstruction<
+  HostRejectBookingCrossYearInstruction<
     TProgramAddress,
     TAccountPayer,
-    TAccountClient,
-    TAccountClientProfile,
+    TAccountHost,
+    TAccountHostProfile,
+    TAccountGuest,
     TAccountBooking,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountBookingDaysNext
   >
 > {
   // Program address.
@@ -172,10 +190,12 @@ export async function getClientRejectReserveInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
-    client: { value: input.client ?? null, isWritable: true },
-    clientProfile: { value: input.clientProfile ?? null, isWritable: false },
+    host: { value: input.host ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    guest: { value: input.guest ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -186,8 +206,8 @@ export async function getClientRejectReserveInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.clientProfile.value) {
-    accounts.clientProfile.value = await getProgramDerivedAddress({
+  if (!accounts.hostProfile.value) {
+    accounts.hostProfile.value = await getProgramDerivedAddress({
       programAddress:
         "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">,
       seeds: [
@@ -197,10 +217,7 @@ export async function getClientRejectReserveInstructionAsync<
           ]),
         ),
         getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "client",
-            accounts.client.value,
-          ),
+          getAddressFromResolvedInstructionAccount("host", accounts.host.value),
         ),
       ],
     });
@@ -210,63 +227,77 @@ export async function getClientRejectReserveInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("payer", accounts.payer),
-      getAccountMeta("client", accounts.client),
-      getAccountMeta("clientProfile", accounts.clientProfile),
+      getAccountMeta("host", accounts.host),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("guest", accounts.guest),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
     ],
-    data: getClientRejectReserveInstructionDataEncoder().encode(
-      args as ClientRejectReserveInstructionDataArgs,
+    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode(
+      args as HostRejectBookingCrossYearInstructionDataArgs,
     ),
     programAddress,
-  } as ClientRejectReserveInstruction<
+  } as HostRejectBookingCrossYearInstruction<
     TProgramAddress,
     TAccountPayer,
-    TAccountClient,
-    TAccountClientProfile,
+    TAccountHost,
+    TAccountHostProfile,
+    TAccountGuest,
     TAccountBooking,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountBookingDaysNext
   >);
 }
 
-export type ClientRejectReserveInput<
+export type HostRejectBookingCrossYearInput<
   TAccountPayer extends string = string,
-  TAccountClient extends string = string,
-  TAccountClientProfile extends string = string,
+  TAccountHost extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountGuest extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountBookingDaysNext extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
-  client: TransactionSigner<TAccountClient>;
-  clientProfile: Address<TAccountClientProfile>;
+  host: TransactionSigner<TAccountHost>;
+  hostProfile: Address<TAccountHostProfile>;
+  guest: Address<TAccountGuest>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
-  checkIn: ClientRejectReserveInstructionDataArgs["checkIn"];
+  bookingDaysNext: Address<TAccountBookingDaysNext>;
+  checkIn: HostRejectBookingCrossYearInstructionDataArgs["checkIn"];
 };
 
-export function getClientRejectReserveInstruction<
+export function getHostRejectBookingCrossYearInstruction<
   TAccountPayer extends string,
-  TAccountClient extends string,
-  TAccountClientProfile extends string,
+  TAccountHost extends string,
+  TAccountHostProfile extends string,
+  TAccountGuest extends string,
   TAccountBooking extends string,
   TAccountBookingDays extends string,
+  TAccountBookingDaysNext extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: ClientRejectReserveInput<
+  input: HostRejectBookingCrossYearInput<
     TAccountPayer,
-    TAccountClient,
-    TAccountClientProfile,
+    TAccountHost,
+    TAccountHostProfile,
+    TAccountGuest,
     TAccountBooking,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountBookingDaysNext
   >,
   config?: { programAddress?: TProgramAddress },
-): ClientRejectReserveInstruction<
+): HostRejectBookingCrossYearInstruction<
   TProgramAddress,
   TAccountPayer,
-  TAccountClient,
-  TAccountClientProfile,
+  TAccountHost,
+  TAccountHostProfile,
+  TAccountGuest,
   TAccountBooking,
-  TAccountBookingDays
+  TAccountBookingDays,
+  TAccountBookingDaysNext
 > {
   // Program address.
   const programAddress =
@@ -275,10 +306,12 @@ export function getClientRejectReserveInstruction<
   // Original accounts.
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
-    client: { value: input.client ?? null, isWritable: true },
-    clientProfile: { value: input.clientProfile ?? null, isWritable: false },
+    host: { value: input.host ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    guest: { value: input.guest ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -292,54 +325,60 @@ export function getClientRejectReserveInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("payer", accounts.payer),
-      getAccountMeta("client", accounts.client),
-      getAccountMeta("clientProfile", accounts.clientProfile),
+      getAccountMeta("host", accounts.host),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("guest", accounts.guest),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
     ],
-    data: getClientRejectReserveInstructionDataEncoder().encode(
-      args as ClientRejectReserveInstructionDataArgs,
+    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode(
+      args as HostRejectBookingCrossYearInstructionDataArgs,
     ),
     programAddress,
-  } as ClientRejectReserveInstruction<
+  } as HostRejectBookingCrossYearInstruction<
     TProgramAddress,
     TAccountPayer,
-    TAccountClient,
-    TAccountClientProfile,
+    TAccountHost,
+    TAccountHostProfile,
+    TAccountGuest,
     TAccountBooking,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountBookingDaysNext
   >);
 }
 
-export type ParsedClientRejectReserveInstruction<
+export type ParsedHostRejectBookingCrossYearInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     payer: TAccountMetas[0];
-    client: TAccountMetas[1];
-    clientProfile: TAccountMetas[2];
-    booking: TAccountMetas[3];
-    bookingDays: TAccountMetas[4];
+    host: TAccountMetas[1];
+    hostProfile: TAccountMetas[2];
+    guest: TAccountMetas[3];
+    booking: TAccountMetas[4];
+    bookingDays: TAccountMetas[5];
+    bookingDaysNext: TAccountMetas[6];
   };
-  data: ClientRejectReserveInstructionData;
+  data: HostRejectBookingCrossYearInstructionData;
 };
 
-export function parseClientRejectReserveInstruction<
+export function parseHostRejectBookingCrossYearInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedClientRejectReserveInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedHostRejectBookingCrossYearInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -353,12 +392,14 @@ export function parseClientRejectReserveInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       payer: getNextAccount(),
-      client: getNextAccount(),
-      clientProfile: getNextAccount(),
+      host: getNextAccount(),
+      hostProfile: getNextAccount(),
+      guest: getNextAccount(),
       booking: getNextAccount(),
       bookingDays: getNextAccount(),
+      bookingDaysNext: getNextAccount(),
     },
-    data: getClientRejectReserveInstructionDataDecoder().decode(
+    data: getHostRejectBookingCrossYearInstructionDataDecoder().decode(
       instruction.data,
     ),
   };

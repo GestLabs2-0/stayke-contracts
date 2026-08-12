@@ -26,50 +26,60 @@ export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_DAYS_ACCOUNT = 0x1773; // 6003
 export const STAYKE_ESCROW_ERROR__INVALID_MONTH = 0x1774; // 6004
 /** UninitializedBookingDays: Uninitialized BookingDays account */
 export const STAYKE_ESCROW_ERROR__UNINITIALIZED_BOOKING_DAYS = 0x1775; // 6005
+/** SingleYearBookingInvalid: Single year booking invalid */
+export const STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID = 0x1776; // 6006
+/** CrossYearBookingInvalid: Cross year booking invalid */
+export const STAYKE_ESCROW_ERROR__CROSS_YEAR_BOOKING_INVALID = 0x1777; // 6007
+/** SingleYearUnbookingInvalid: Single year unbooking invalid */
+export const STAYKE_ESCROW_ERROR__SINGLE_YEAR_UNBOOKING_INVALID = 0x1778; // 6008
+/** CrossYearUnbookingInvalid: Cross year unbooking invalid */
+export const STAYKE_ESCROW_ERROR__CROSS_YEAR_UNBOOKING_INVALID = 0x1779; // 6009
 /** InvalidBookingStatus: Invalid booking status for this action */
-export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS = 0x1776; // 6006
+export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS = 0x177a; // 6010
 /** BookingNotActive: Booking must be in Active status to complete the stay */
-export const STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE = 0x1777; // 6007
+export const STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE = 0x177b; // 6011
 /** BookingNotReviewCompleted: Booking must be in ReviewCompleted status to complete the stay */
-export const STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED = 0x1778; // 6008
+export const STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED = 0x177c; // 6012
 /** TooEarlyToActivate: Too early to activate booking — check-in must be within 24 h */
-export const STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE = 0x1779; // 6009
+export const STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE = 0x177d; // 6013
 /** UnauthorizedBooking: Only the client can perform this action on their booking */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING = 0x177a; // 6010
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING = 0x177e; // 6014
 /** UnauthorizedHost: Only the host can perform this action */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST = 0x177b; // 6011
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST = 0x177f; // 6015
 /** HostCannotBookOwnProperty: Host cannot book their own property */
-export const STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY = 0x177c; // 6012
+export const STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY = 0x1780; // 6016
 /** InvalidHost: Invalid host for this property */
-export const STAYKE_ESCROW_ERROR__INVALID_HOST = 0x177d; // 6013
+export const STAYKE_ESCROW_ERROR__INVALID_HOST = 0x1781; // 6017
 /** InvalidBookingProperty: Invalid booking property */
-export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY = 0x177e; // 6014
+export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY = 0x1782; // 6018
 /** InvalidHostBooking: Invalid host for this booking */
-export const STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING = 0x177f; // 6015
+export const STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING = 0x1783; // 6019
 /** UserBanned: User is banned */
-export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x1780; // 6016
+export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x1784; // 6020
 /** UserNotVerified: User is not verified */
-export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1781; // 6017
+export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1785; // 6021
 /** HostNotVerified: Host not verified */
-export const STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED = 0x1782; // 6018
+export const STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED = 0x1786; // 6022
 /** InsufficientDeposit: User does not have enough deposit to perform this action */
-export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1783; // 6019
+export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1787; // 6023
 /** UserNotHost: User is not registered as a host */
-export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1784; // 6020
+export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1788; // 6024
 /** InvalidScore: Invalid score — must be between 1 and 5 */
-export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x1785; // 6021
+export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x1789; // 6025
 /** InvalidTokenMint: The token mint does not match the configured USDC mint */
-export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x1786; // 6022
+export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x178a; // 6026
 /** InvalidVaultAccount: The treasury/vault account does not match the configured one */
-export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x1787; // 6023
+export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x178b; // 6027
 /** WrongGuestPassed: Wrong guest pubkey passed */
-export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x1788; // 6024
+export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x178c; // 6028
 /** UnauthorizedAdmin: Unauthorized admin action */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x1789; // 6025
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x178d; // 6029
 
 export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE
   | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED
+  | typeof STAYKE_ESCROW_ERROR__CROSS_YEAR_BOOKING_INVALID
+  | typeof STAYKE_ESCROW_ERROR__CROSS_YEAR_UNBOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED
   | typeof STAYKE_ESCROW_ERROR__DATES_UNBOOKED
   | typeof STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY
@@ -85,6 +95,8 @@ export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__INVALID_SCORE
   | typeof STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT
+  | typeof STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID
+  | typeof STAYKE_ESCROW_ERROR__SINGLE_YEAR_UNBOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE
   | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING
@@ -100,6 +112,8 @@ if (process.env["NODE_ENV"] !== "production") {
   staykeEscrowErrorMessages = {
     [STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE]: `Booking must be in Active status to complete the stay`,
     [STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED]: `Booking must be in ReviewCompleted status to complete the stay`,
+    [STAYKE_ESCROW_ERROR__CROSS_YEAR_BOOKING_INVALID]: `Cross year booking invalid`,
+    [STAYKE_ESCROW_ERROR__CROSS_YEAR_UNBOOKING_INVALID]: `Cross year unbooking invalid`,
     [STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED]: `Dates already booked for this property`,
     [STAYKE_ESCROW_ERROR__DATES_UNBOOKED]: `Dates are not booked for this property`,
     [STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY]: `Host cannot book their own property`,
@@ -115,6 +129,8 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_ESCROW_ERROR__INVALID_SCORE]: `Invalid score — must be between 1 and 5`,
     [STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT]: `The token mint does not match the configured USDC mint`,
     [STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT]: `The treasury/vault account does not match the configured one`,
+    [STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID]: `Single year booking invalid`,
+    [STAYKE_ESCROW_ERROR__SINGLE_YEAR_UNBOOKING_INVALID]: `Single year unbooking invalid`,
     [STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE]: `Too early to activate booking — check-in must be within 24 h`,
     [STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING]: `Only the client can perform this action on their booking`,

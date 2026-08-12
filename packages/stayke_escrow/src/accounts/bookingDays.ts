@@ -15,10 +15,8 @@ import {
   fetchEncodedAccounts,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
-  getBooleanDecoder,
-  getBooleanEncoder,
+  getArrayDecoder,
+  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -53,22 +51,14 @@ export function getBookingDaysDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type BookingDays = {
   discriminator: ReadonlyUint8Array;
-  property: Address;
-  occupiedDays: number;
-  month: number;
+  occupiedDays: Array<number>;
   year: number;
-  /** Prevents double-counting when re-using an existing account from a prior booking. */
-  initialized: boolean;
   bump: number;
 };
 
 export type BookingDaysArgs = {
-  property: Address;
-  occupiedDays: number;
-  month: number;
+  occupiedDays: Array<number>;
   year: number;
-  /** Prevents double-counting when re-using an existing account from a prior booking. */
-  initialized: boolean;
   bump: number;
 };
 
@@ -77,11 +67,8 @@ export function getBookingDaysEncoder(): FixedSizeEncoder<BookingDaysArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["property", getAddressEncoder()],
-      ["occupiedDays", getU32Encoder()],
-      ["month", getU32Encoder()],
+      ["occupiedDays", getArrayEncoder(getU32Encoder(), { size: 12 })],
       ["year", getU32Encoder()],
-      ["initialized", getBooleanEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: BOOKING_DAYS_DISCRIMINATOR }),
@@ -92,11 +79,8 @@ export function getBookingDaysEncoder(): FixedSizeEncoder<BookingDaysArgs> {
 export function getBookingDaysDecoder(): FixedSizeDecoder<BookingDays> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["property", getAddressDecoder()],
-    ["occupiedDays", getU32Decoder()],
-    ["month", getU32Decoder()],
+    ["occupiedDays", getArrayDecoder(getU32Decoder(), { size: 12 })],
     ["year", getU32Decoder()],
-    ["initialized", getBooleanDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -163,5 +147,5 @@ export async function fetchAllMaybeBookingDays(
 }
 
 export function getBookingDaysSize(): number {
-  return 54;
+  return 61;
 }
