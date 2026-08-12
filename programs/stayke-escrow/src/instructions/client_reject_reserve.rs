@@ -22,6 +22,7 @@ pub struct ClientRejectReserve<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
+    #[account(mut)]
     pub client: Signer<'info>,
 
     #[account(
@@ -76,6 +77,7 @@ pub fn handler_client_reject_reserve(
 pub struct ClientRejectReserveCrossYear<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+    #[account(mut)]
     pub client: Signer<'info>,
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],

@@ -135,6 +135,10 @@ pub(crate) fn guilty_counterparty(
 mod tests {
     use super::*;
 
+    // -----------------------------------------------------------------------
+    // guilty_counterparty
+    // -----------------------------------------------------------------------
+
     #[test]
     fn guest_open_sets_guilty_to_host() {
         let guest = Pubkey::new_unique();
@@ -155,5 +159,108 @@ mod tests {
         let host = Pubkey::new_unique();
         let stranger = Pubkey::new_unique();
         assert!(guilty_counterparty(stranger, guest, host).is_err());
+    }
+
+    #[test]
+    fn non_party_open_zero_pubkey_fails() {
+        let guest = Pubkey::new_unique();
+        let host = Pubkey::new_unique();
+        assert!(guilty_counterparty(Pubkey::default(), guest, host).is_err());
+    }
+
+    #[test]
+    fn same_guest_and_host_initiator_is_guest_returns_host() {
+        let party = Pubkey::new_unique();
+        // Both guest and host are the same key (blocked in prod by
+        // HostCannotBookOwnProperty — test that the pure function still
+        // returns the counterparty consistently).
+        let guilty = guilty_counterparty(party, party, party).unwrap();
+        assert_eq!(guilty, party);
+    }
+
+    #[test]
+    fn guest_open_with_zero_host_still_returns_host() {
+        let guest = Pubkey::new_unique();
+        let host = Pubkey::default();
+        assert_eq!(guilty_counterparty(guest, guest, host).unwrap(), host);
+    }
+
+    #[test]
+    fn host_open_with_zero_guest_still_returns_guest() {
+        let guest = Pubkey::default();
+        let host = Pubkey::new_unique();
+        assert_eq!(guilty_counterparty(host, guest, host).unwrap(), guest);
+    }
+
+    #[test]
+    fn guilty_counterparty_returns_unauthorized_error_code() {
+        let err = guilty_counterparty(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            DisputeError::UnauthorizedDisputeInitiator.into()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // DisputeReason — discriminant integrity
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn dispute_reason_other_serializes_roundtrip() {
+        let reason = DisputeReason::Other;
+        let mut buf = Vec::new();
+        reason.serialize(&mut buf).unwrap();
+        let restored = DisputeReason::deserialize(&mut &buf[..]).unwrap();
+        assert!(matches!(restored, DisputeReason::Other));
+    }
+
+    #[test]
+    fn all_dispute_reasons_have_distinct_discriminants() {
+        let reasons: [DisputeReason; 5] = [
+            DisputeReason::PropertyNotAsDescribed,
+            DisputeReason::HostUnreachable,
+            DisputeReason::GuestDamagedProperty,
+            DisputeReason::GuestBrokeRules,
+            DisputeReason::Other,
+        ];
+        let mut disc_bytes = Vec::new();
+        for r in &reasons {
+            let mut buf = Vec::new();
+            r.serialize(&mut buf).unwrap();
+            // First byte is the variant discriminant for simple enums.
+            let disc = buf[0];
+            assert!(
+                !disc_bytes.contains(&disc),
+                "duplicate discriminant byte {disc}"
+            );
+            disc_bytes.push(disc);
+        }
+        assert_eq!(disc_bytes.len(), 5);
+    }
+
+    // -----------------------------------------------------------------------
+    // DisputeStatus — round-trip integrity
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn dispute_status_serializes_roundtrip() {
+        for status in [
+            DisputeStatus::Open,
+            DisputeStatus::Resolved,
+            DisputeStatus::Rejected,
+        ] {
+            let mut buf = Vec::new();
+            status.serialize(&mut buf).unwrap();
+            let restored = DisputeStatus::deserialize(&mut &buf[..]).unwrap();
+            // restored should match the original status
+            assert!(
+                std::mem::discriminant(&restored) == std::mem::discriminant(&status)
+            );
+        }
     }
 }
