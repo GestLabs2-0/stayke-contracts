@@ -112,8 +112,7 @@ pub fn handler_withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<
     require!(amount > 0, StaykeConfigError::ZeroAmount);
     let bump = global_config.platform_vault_bump;
     let vault_seed = PLATFORM_VAULT_SEED.as_bytes();
-    let bump_ref = &[bump];
-    let signer_seeds = &[&[vault_seed, bump_ref][..]];
+    let signer_seeds: &[&[&[u8]]] = &[&[vault_seed, &[bump]]];
 
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.platform_vault.to_account_info(),

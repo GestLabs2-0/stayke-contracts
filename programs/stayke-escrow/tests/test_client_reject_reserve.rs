@@ -264,11 +264,8 @@ fn client_reject_reserve_wrong_client_fails() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(
-        VersionedMessage::Legacy(msg),
-        &[&payer, &wrong_client],
-    )
-    .unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &wrong_client])
+        .unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(

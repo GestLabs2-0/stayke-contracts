@@ -22,6 +22,8 @@ const MINT_LEN: usize = 82;
 const MAX_OPERATIONS: u8 = 4;
 const TOKEN_ACCOUNT_LEN: usize = 165;
 
+// TODO: refactor tests to use code standards and avoid rebuilding from scratch
+
 /// Pack a classic SPL Token Mint account (no spl-token crate — avoids entrypoint clash).
 fn pack_mint(mint_authority: &Pubkey, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; MINT_LEN];
@@ -176,6 +178,7 @@ fn test_withdraw_fees_success() {
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
 
     // Pre-register the vault bump so the PDA's signer seeds resolve correctly.
+    // TODO: why are we resetting the platform vault pda if this one is init in the previous instruction
     svm.set_account(
         platform_vault_pda,
         svm.get_account(&platform_vault_pda)

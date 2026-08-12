@@ -97,13 +97,12 @@ fn host_reject_booking_releases_days_and_closes_account() {
     );
 
     // BookingDays should have released day 1.
-    let bd_account = svm.get_account(&bd).expect("BookingDays should still exist");
+    let bd_account = svm
+        .get_account(&bd)
+        .expect("BookingDays should still exist");
     let bd_data: stayke_escrow::state::BookingDays =
         AnchorDeserialize::deserialize(&mut &bd_account.data[8..]).unwrap();
-    assert_eq!(
-        bd_data.occupied_days[0], 0,
-        "Day 1 should be released"
-    );
+    assert_eq!(bd_data.occupied_days[0], 0, "Day 1 should be released");
 }
 
 // ===========================================================================
@@ -225,11 +224,8 @@ fn host_reject_booking_wrong_host_fails() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(
-        VersionedMessage::Legacy(msg),
-        &[&payer, &wrong_host],
-    )
-    .unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &wrong_host])
+        .unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
@@ -305,7 +301,9 @@ fn host_reject_booking_wrong_guest_fails() {
         res.unwrap_err().err,
         TransactionError::InstructionError(
             0,
-            Custom(u32::from(stayke_escrow::error::EscrowError::WrongGuestPassed))
+            Custom(u32::from(
+                stayke_escrow::error::EscrowError::WrongGuestPassed
+            ))
         )
     );
 }

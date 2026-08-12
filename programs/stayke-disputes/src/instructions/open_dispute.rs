@@ -200,10 +200,7 @@ mod tests {
             Pubkey::new_unique(),
         )
         .unwrap_err();
-        assert_eq!(
-            err,
-            DisputeError::UnauthorizedDisputeInitiator.into()
-        );
+        assert_eq!(err, DisputeError::UnauthorizedDisputeInitiator.into());
     }
 
     // -----------------------------------------------------------------------
@@ -258,9 +255,7 @@ mod tests {
             status.serialize(&mut buf).unwrap();
             let restored = DisputeStatus::deserialize(&mut &buf[..]).unwrap();
             // restored should match the original status
-            assert!(
-                std::mem::discriminant(&restored) == std::mem::discriminant(&status)
-            );
+            assert!(std::mem::discriminant(&restored) == std::mem::discriminant(&status));
         }
     }
 }

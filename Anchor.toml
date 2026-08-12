@@ -6,7 +6,12 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-stayke_contracts = "4fyRhe1g8fJjHRxLAS9vT1RLjS44W3FutzF9USXAdNtB"
+stayke_config = "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW"
+stayke_core="8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP"
+stayke_treasury="59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"
+stayke_escrow="FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"
+stayke_disputes="7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"
+
 
 [provider]
 cluster = "localnet"

@@ -33,10 +33,7 @@ pub fn to_account_data<T: AnchorSerialize>(name: &str, value: &T) -> Vec<u8> {
 // GlobalConfig (stayke_config)
 // ---------------------------------------------------------------------------
 
-pub fn setup_global_config(
-    svm: &mut LiteSVM,
-    escrow_program: Pubkey,
-) -> Pubkey {
+pub fn setup_global_config(svm: &mut LiteSVM, escrow_program: Pubkey) -> Pubkey {
     let (pda, bump) = Pubkey::find_program_address(
         &[config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
         &config::id(),
