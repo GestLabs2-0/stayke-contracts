@@ -95,7 +95,7 @@ import {
 } from "../pdas";
 
 export const STAYKE_ESCROW_PROGRAM_ADDRESS =
-  "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ" as Address<"FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ">;
+  "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
 
 export enum StaykeEscrowAccount {
   Booking,
@@ -280,7 +280,7 @@ export function identifyStaykeEscrowInstruction(
 }
 
 export type ParsedStaykeEscrowInstruction<
-  TProgram extends string = "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ",
+  TProgram extends string = "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
 > =
   | ({
       instructionType: StaykeEscrowInstruction.ClientAcceptReserve;
