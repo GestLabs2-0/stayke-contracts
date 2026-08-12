@@ -69,7 +69,7 @@ export type OpenDisputeInstruction<
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountStaykeEscrowProgram extends string | AccountMeta<string> =
-    "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ",
+    "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -239,7 +239,7 @@ export async function getOpenDisputeInstructionAsync<
   if (!accounts.initiatorProfile.value) {
     accounts.initiatorProfile.value = await getProgramDerivedAddress({
       programAddress:
-        "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">,
+        "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([
@@ -269,7 +269,7 @@ export async function getOpenDisputeInstructionAsync<
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
-        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+        "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4" as Address<"29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([
@@ -281,7 +281,7 @@ export async function getOpenDisputeInstructionAsync<
   }
   if (!accounts.staykeEscrowProgram.value) {
     accounts.staykeEscrowProgram.value =
-      "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ" as Address<"FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ">;
+      "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -411,7 +411,7 @@ export function getOpenDisputeInstruction<
   // Resolve default values.
   if (!accounts.staykeEscrowProgram.value) {
     accounts.staykeEscrowProgram.value =
-      "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ" as Address<"FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ">;
+      "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =

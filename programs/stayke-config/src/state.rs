@@ -32,3 +32,11 @@ pub struct GlobalConfig {
 
     pub bump: u8,
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct AllowedPrograms {
+    pub core: Pubkey,
+    pub escrow: Pubkey,
+    pub disputes: Pubkey,
+    pub treasury: Pubkey,
+}

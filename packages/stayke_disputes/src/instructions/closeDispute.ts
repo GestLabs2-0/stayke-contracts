@@ -63,7 +63,7 @@ export type CloseDisputeInstruction<
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
-    "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
+    "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -236,7 +236,7 @@ export async function getCloseDisputeInstructionAsync<
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
-        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+        "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4" as Address<"29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([
@@ -251,7 +251,7 @@ export async function getCloseDisputeInstructionAsync<
   }
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
-      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -376,7 +376,7 @@ export function getCloseDisputeInstruction<
   // Resolve default values.
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
-      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");

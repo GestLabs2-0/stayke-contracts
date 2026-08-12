@@ -23,7 +23,7 @@ export async function findUserProfilePda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu" as Address<"59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu">,
+    programAddress = "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8" as Address<"3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,
