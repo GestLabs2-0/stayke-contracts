@@ -12,7 +12,7 @@ pub use instructions::*;
 pub use state::*;
 use stayke_core::state::PenaltySeverity;
 
-declare_id!("89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt");
+declare_id!("8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ");
 
 #[program]
 pub mod stayke_disputes {

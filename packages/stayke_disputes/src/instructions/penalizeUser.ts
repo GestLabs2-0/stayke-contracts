@@ -78,7 +78,7 @@ export type PenalizeUserInstruction<
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
   TAccountStaykeTreasuryProgram extends string | AccountMeta<string> =
-    "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8",
+    "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY",
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -316,7 +316,7 @@ export async function getPenalizeUserInstructionAsync<
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
-        "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4" as Address<"29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4">,
+        "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT" as Address<"9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([
@@ -335,7 +335,7 @@ export async function getPenalizeUserInstructionAsync<
   }
   if (!accounts.staykeTreasuryProgram.value) {
     accounts.staykeTreasuryProgram.value =
-      "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8" as Address<"3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8">;
+      "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">;
   }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
@@ -529,7 +529,7 @@ export function getPenalizeUserInstruction<
   }
   if (!accounts.staykeTreasuryProgram.value) {
     accounts.staykeTreasuryProgram.value =
-      "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8" as Address<"3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8">;
+      "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">;
   }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =

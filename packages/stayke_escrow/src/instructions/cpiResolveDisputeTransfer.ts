@@ -252,7 +252,7 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
-        "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4" as Address<"29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4">,
+        "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT" as Address<"9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([

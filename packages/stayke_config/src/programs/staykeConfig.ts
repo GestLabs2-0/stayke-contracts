@@ -50,7 +50,7 @@ import {
 } from "../pdas";
 
 export const STAYKE_CONFIG_PROGRAM_ADDRESS =
-  "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4" as Address<"29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4">;
+  "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT" as Address<"9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT">;
 
 export enum StaykeConfigAccount {
   GlobalConfig,
@@ -103,7 +103,7 @@ export function identifyStaykeConfigInstruction(
 }
 
 export type ParsedStaykeConfigInstruction<
-  TProgram extends string = "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4",
+  TProgram extends string = "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT",
 > = {
   instructionType: StaykeConfigInstruction.InitializeConfig;
 } & ParsedInitializeConfigInstruction<TProgram>;

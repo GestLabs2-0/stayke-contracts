@@ -71,7 +71,7 @@ import {
 } from "../pdas";
 
 export const STAYKE_DISPUTES_PROGRAM_ADDRESS =
-  "89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt" as Address<"89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt">;
+  "8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ" as Address<"8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ">;
 
 export enum StaykeDisputesAccount {
   Dispute,
@@ -184,7 +184,7 @@ export function identifyStaykeDisputesInstruction(
 }
 
 export type ParsedStaykeDisputesInstruction<
-  TProgram extends string = "89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt",
+  TProgram extends string = "8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ",
 > =
   | ({
       instructionType: StaykeDisputesInstruction.CloseDispute;
