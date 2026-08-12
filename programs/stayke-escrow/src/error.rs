@@ -15,6 +15,14 @@ pub enum EscrowError {
     InvalidMonth,
     #[msg("Uninitialized BookingDays account")]
     UninitializedBookingDays,
+    #[msg("Single year booking invalid")]
+    SingleYearBookingInvalid,
+    #[msg("Cross year booking invalid")]
+    CrossYearBookingInvalid,
+    #[msg("Single year unbooking invalid")]
+    SingleYearUnbookingInvalid,
+    #[msg("Cross year unbooking invalid")]
+    CrossYearUnbookingInvalid,
 
     // Booking state machine
     #[msg("Invalid booking status for this action")]

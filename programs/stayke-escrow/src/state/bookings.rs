@@ -1,32 +1,26 @@
 use anchor_lang::prelude::*;
 
-use crate::utils::DateComponents;
-// TODO: refactor bookings days to store all year instead of multiple accounts
-
-/// Tracks which calendar days are occupied for a given property in a given month.
+/// Tracks which calendar days are occupied for a given property in a given year.
 /// Uses bitwise operations on a u32 (max 31 days).
 #[account]
 #[derive(InitSpace)]
 pub struct BookingDays {
-    pub property: Pubkey,
-    pub occupied_days: u32,
-    pub month: u32,
+    pub occupied_days: [u32; 12],
     pub year: u32,
-    /// Prevents double-counting when re-using an existing account from a prior booking.
-    pub initialized: bool,
     pub bump: u8,
 }
 
-impl BookingDays {
-    pub fn year_month(&self) -> u32 {
-        self.year * 100 + self.month
-    }
-}
+// impl BookingDays {
+//     pub fn year_month(&self) -> u32 {
+//         self.year * 100 + self.month
+//     }
+// }
 
 #[derive(InitSpace, PartialEq, Eq, AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum BookingStatus {
     Pending,
     HostAccepted,
+    ClientAccepted,
     Active,
     ReviewCompleted,
     Completed,
@@ -39,20 +33,33 @@ pub enum BookingStatus {
 #[account]
 #[derive(InitSpace)]
 pub struct Booking {
+    /// Guest Pubkey
     pub guest: Pubkey,
+    /// Host Pubkey
     pub host: Pubkey,
+    /// Property pubkey
     pub property: Pubkey,
-    pub deposit: u64,
+    /// Was money already deposited?
+    pub is_deposit: bool,
+    /// Check in as unix timestamp
     pub check_in: i64,
+    /// Check out as unix timestamp
     pub check_out: i64,
-    pub days: u64,
-    pub check_in_date: DateComponents,
-    pub check_out_date: DateComponents,
+    /// Total price by all nights
     pub total_price: u64,
-    /// 0 = no review yet; 1–5 = star rating
-    pub review: u8,
+    /// Booking Status
     pub status: BookingStatus,
     /// Bump of the escrow token account PDA — needed to sign CPIs in complete_stay.
     pub escrow_bump: u8,
     pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Review {
+    /// Pending = 0. Review goes from 1 to 5
+    host_review: u8,
+    /// Pending = 0. Review goes from 1 to 5
+    guest_review: u8,
+    bump: u8,
 }
