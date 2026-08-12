@@ -7,4 +7,6 @@
  */
 
 export * from "./config";
+export * from "./cpiAuthority";
 export * from "./dispute";
+export * from "./treasuryConfig";

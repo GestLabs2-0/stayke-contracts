@@ -40,7 +40,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findDisputePda } from "../pdas";
+import { findCpiAuthorityPda, findDisputePda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 import {
   getDisputeReasonDecoder,
@@ -66,6 +66,8 @@ export type OpenDisputeInstruction<
   TAccountInitiatorProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountDispute extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountStaykeEscrowProgram extends string | AccountMeta<string> =
     "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ",
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -92,6 +94,12 @@ export type OpenDisputeInstruction<
       TAccountDispute extends string
         ? WritableAccount<TAccountDispute>
         : TAccountDispute,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
       TAccountStaykeEscrowProgram extends string
         ? ReadonlyAccount<TAccountStaykeEscrowProgram>
         : TAccountStaykeEscrowProgram,
@@ -142,15 +150,18 @@ export type OpenDisputeAsyncInput<
   TAccountInitiatorProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountDispute extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountGlobalConfig extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile?: Address<TAccountInitiatorProfile>;
-  /** We must mutate the booking state via CPI */
   booking: Address<TAccountBooking>;
   dispute?: Address<TAccountDispute>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  globalConfig?: Address<TAccountGlobalConfig>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   reason: OpenDisputeInstructionDataArgs["reason"];
@@ -162,6 +173,8 @@ export async function getOpenDisputeInstructionAsync<
   TAccountInitiatorProfile extends string,
   TAccountBooking extends string,
   TAccountDispute extends string,
+  TAccountCpiAuthority extends string,
+  TAccountGlobalConfig extends string,
   TAccountStaykeEscrowProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
@@ -172,6 +185,8 @@ export async function getOpenDisputeInstructionAsync<
     TAccountInitiatorProfile,
     TAccountBooking,
     TAccountDispute,
+    TAccountCpiAuthority,
+    TAccountGlobalConfig,
     TAccountStaykeEscrowProgram,
     TAccountSystemProgram
   >,
@@ -184,6 +199,8 @@ export async function getOpenDisputeInstructionAsync<
     TAccountInitiatorProfile,
     TAccountBooking,
     TAccountDispute,
+    TAccountCpiAuthority,
+    TAccountGlobalConfig,
     TAccountStaykeEscrowProgram,
     TAccountSystemProgram
   >
@@ -202,6 +219,8 @@ export async function getOpenDisputeInstructionAsync<
     },
     booking: { value: input.booking ?? null, isWritable: true },
     dispute: { value: input.dispute ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
@@ -244,6 +263,22 @@ export async function getOpenDisputeInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
   if (!accounts.staykeEscrowProgram.value) {
     accounts.staykeEscrowProgram.value =
       "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ" as Address<"FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ">;
@@ -261,6 +296,8 @@ export async function getOpenDisputeInstructionAsync<
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("dispute", accounts.dispute),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
@@ -275,6 +312,8 @@ export async function getOpenDisputeInstructionAsync<
     TAccountInitiatorProfile,
     TAccountBooking,
     TAccountDispute,
+    TAccountCpiAuthority,
+    TAccountGlobalConfig,
     TAccountStaykeEscrowProgram,
     TAccountSystemProgram
   >);
@@ -286,15 +325,18 @@ export type OpenDisputeInput<
   TAccountInitiatorProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountDispute extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountGlobalConfig extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile: Address<TAccountInitiatorProfile>;
-  /** We must mutate the booking state via CPI */
   booking: Address<TAccountBooking>;
   dispute: Address<TAccountDispute>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  globalConfig: Address<TAccountGlobalConfig>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   reason: OpenDisputeInstructionDataArgs["reason"];
@@ -306,6 +348,8 @@ export function getOpenDisputeInstruction<
   TAccountInitiatorProfile extends string,
   TAccountBooking extends string,
   TAccountDispute extends string,
+  TAccountCpiAuthority extends string,
+  TAccountGlobalConfig extends string,
   TAccountStaykeEscrowProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
@@ -316,6 +360,8 @@ export function getOpenDisputeInstruction<
     TAccountInitiatorProfile,
     TAccountBooking,
     TAccountDispute,
+    TAccountCpiAuthority,
+    TAccountGlobalConfig,
     TAccountStaykeEscrowProgram,
     TAccountSystemProgram
   >,
@@ -327,6 +373,8 @@ export function getOpenDisputeInstruction<
   TAccountInitiatorProfile,
   TAccountBooking,
   TAccountDispute,
+  TAccountCpiAuthority,
+  TAccountGlobalConfig,
   TAccountStaykeEscrowProgram,
   TAccountSystemProgram
 > {
@@ -344,6 +392,8 @@ export function getOpenDisputeInstruction<
     },
     booking: { value: input.booking ?? null, isWritable: true },
     dispute: { value: input.dispute ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
@@ -376,6 +426,8 @@ export function getOpenDisputeInstruction<
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("dispute", accounts.dispute),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
@@ -390,6 +442,8 @@ export function getOpenDisputeInstruction<
     TAccountInitiatorProfile,
     TAccountBooking,
     TAccountDispute,
+    TAccountCpiAuthority,
+    TAccountGlobalConfig,
     TAccountStaykeEscrowProgram,
     TAccountSystemProgram
   >);
@@ -404,11 +458,12 @@ export type ParsedOpenDisputeInstruction<
     payer: TAccountMetas[0];
     initiator: TAccountMetas[1];
     initiatorProfile: TAccountMetas[2];
-    /** We must mutate the booking state via CPI */
     booking: TAccountMetas[3];
     dispute: TAccountMetas[4];
-    staykeEscrowProgram: TAccountMetas[5];
-    systemProgram: TAccountMetas[6];
+    cpiAuthority: TAccountMetas[5];
+    globalConfig: TAccountMetas[6];
+    staykeEscrowProgram: TAccountMetas[7];
+    systemProgram: TAccountMetas[8];
   };
   data: OpenDisputeInstructionData;
 };
@@ -421,12 +476,12 @@ export function parseOpenDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedOpenDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 7,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -444,6 +499,8 @@ export function parseOpenDisputeInstruction<
       initiatorProfile: getNextAccount(),
       booking: getNextAccount(),
       dispute: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      globalConfig: getNextAccount(),
       staykeEscrowProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },

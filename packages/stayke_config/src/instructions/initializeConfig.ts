@@ -16,6 +16,8 @@ import {
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -100,11 +102,13 @@ export type InitializeConfigInstructionData = {
   discriminator: ReadonlyUint8Array;
   minimumDeposit: bigint;
   feeBps: bigint;
+  maxOperations: number;
 };
 
 export type InitializeConfigInstructionDataArgs = {
   minimumDeposit: number | bigint;
   feeBps: number | bigint;
+  maxOperations: number;
 };
 
 export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<InitializeConfigInstructionDataArgs> {
@@ -113,6 +117,7 @@ export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<In
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["minimumDeposit", getU64Encoder()],
       ["feeBps", getU64Encoder()],
+      ["maxOperations", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_CONFIG_DISCRIMINATOR }),
   );
@@ -123,6 +128,7 @@ export function getInitializeConfigInstructionDataDecoder(): FixedSizeDecoder<In
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["minimumDeposit", getU64Decoder()],
     ["feeBps", getU64Decoder()],
+    ["maxOperations", getU8Decoder()],
   ]);
 }
 
@@ -154,6 +160,7 @@ export type InitializeConfigAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
+  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
 };
 
 export async function getInitializeConfigInstructionAsync<
@@ -277,6 +284,7 @@ export type InitializeConfigInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
+  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
 };
 
 export function getInitializeConfigInstruction<

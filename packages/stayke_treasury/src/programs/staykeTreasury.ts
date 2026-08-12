@@ -57,6 +57,7 @@ import {
 } from "../instructions";
 import {
   findConfigPda,
+  findCpiAuthorityPda,
   findTreasuryPdaPda,
   findTreasuryVaultPda,
   findUserProfilePda,
@@ -245,6 +246,7 @@ export type StaykeTreasuryPluginPdas = {
   config: typeof findConfigPda;
   treasuryPda: typeof findTreasuryPdaPda;
   userProfile: typeof findUserProfilePda;
+  cpiAuthority: typeof findCpiAuthorityPda;
   treasuryVault: typeof findTreasuryVaultPda;
 };
 
@@ -292,6 +294,7 @@ export function staykeTreasuryProgram() {
           config: findConfigPda,
           treasuryPda: findTreasuryPdaPda,
           userProfile: findUserProfilePda,
+          cpiAuthority: findCpiAuthorityPda,
           treasuryVault: findTreasuryVaultPda,
         },
       },

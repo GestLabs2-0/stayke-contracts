@@ -23,6 +23,12 @@ pub enum DisputeError {
     #[msg("Invalid configuration")]
     InvalidFeeBps,
 
+    #[msg("Treasury config is not linked to the provided global config")]
+    UnlinkedTreasuryConfig,
+
+    #[msg("Token mint does not match GlobalConfig.usdc_mint")]
+    InvalidTokenMint,
+
     // User errors
     #[msg("User is banned")]
     UserBanned,

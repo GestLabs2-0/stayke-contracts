@@ -42,6 +42,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findCpiAuthorityPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const REVIEW_COMPLETED_DISCRIMINATOR: ReadonlyUint8Array =
@@ -58,9 +59,13 @@ export type ReviewCompletedInstruction<
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountClient extends string | AccountMeta<string> = string,
   TAccountClientProfile extends string | AccountMeta<string> = string,
-  TAccountHostReputation extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountHostReputation extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -77,15 +82,24 @@ export type ReviewCompletedInstruction<
       TAccountClientProfile extends string
         ? ReadonlyAccount<TAccountClientProfile>
         : TAccountClientProfile,
-      TAccountHostReputation extends string
-        ? WritableAccount<TAccountHostReputation>
-        : TAccountHostReputation,
       TAccountHostProfile extends string
         ? ReadonlyAccount<TAccountHostProfile>
         : TAccountHostProfile,
+      TAccountHostReputation extends string
+        ? WritableAccount<TAccountHostReputation>
+        : TAccountHostReputation,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -128,17 +142,24 @@ export type ReviewCompletedAsyncInput<
   TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
-  TAccountHostReputation extends string = string,
   TAccountHostProfile extends string = string,
+  TAccountHostReputation extends string = string,
   TAccountBooking extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile?: Address<TAccountClientProfile>;
-  hostReputation: Address<TAccountHostReputation>;
-  /** Host's ReputationProfile from stayke-core (receives score update). */
+  /** Host UserProfile (correct seed family). */
   hostProfile: Address<TAccountHostProfile>;
+  /** Host ReputationProfile (correct seed family). */
+  hostReputation: Address<TAccountHostReputation>;
   booking: Address<TAccountBooking>;
+  globalConfig?: Address<TAccountGlobalConfig>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   score: ReviewCompletedInstructionDataArgs["score"];
 };
 
@@ -146,18 +167,24 @@ export async function getReviewCompletedInstructionAsync<
   TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
-  TAccountHostReputation extends string,
   TAccountHostProfile extends string,
+  TAccountHostReputation extends string,
   TAccountBooking extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ReviewCompletedAsyncInput<
     TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
-    TAccountHostReputation,
     TAccountHostProfile,
-    TAccountBooking
+    TAccountHostReputation,
+    TAccountBooking,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -166,9 +193,12 @@ export async function getReviewCompletedInstructionAsync<
     TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
-    TAccountHostReputation,
     TAccountHostProfile,
-    TAccountBooking
+    TAccountHostReputation,
+    TAccountBooking,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram
   >
 > {
   // Program address.
@@ -180,9 +210,15 @@ export async function getReviewCompletedInstructionAsync<
     payer: { value: input.payer ?? null, isWritable: true },
     client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
-    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -212,6 +248,26 @@ export async function getReviewCompletedInstructionAsync<
       ],
     });
   }
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -219,9 +275,12 @@ export async function getReviewCompletedInstructionAsync<
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
-      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("booking", accounts.booking),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getReviewCompletedInstructionDataEncoder().encode(
       args as ReviewCompletedInstructionDataArgs,
@@ -232,9 +291,12 @@ export async function getReviewCompletedInstructionAsync<
     TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
-    TAccountHostReputation,
     TAccountHostProfile,
-    TAccountBooking
+    TAccountHostReputation,
+    TAccountBooking,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram
   >);
 }
 
@@ -242,17 +304,24 @@ export type ReviewCompletedInput<
   TAccountPayer extends string = string,
   TAccountClient extends string = string,
   TAccountClientProfile extends string = string,
-  TAccountHostReputation extends string = string,
   TAccountHostProfile extends string = string,
+  TAccountHostReputation extends string = string,
   TAccountBooking extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
   clientProfile: Address<TAccountClientProfile>;
-  hostReputation: Address<TAccountHostReputation>;
-  /** Host's ReputationProfile from stayke-core (receives score update). */
+  /** Host UserProfile (correct seed family). */
   hostProfile: Address<TAccountHostProfile>;
+  /** Host ReputationProfile (correct seed family). */
+  hostReputation: Address<TAccountHostReputation>;
   booking: Address<TAccountBooking>;
+  globalConfig: Address<TAccountGlobalConfig>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   score: ReviewCompletedInstructionDataArgs["score"];
 };
 
@@ -260,18 +329,24 @@ export function getReviewCompletedInstruction<
   TAccountPayer extends string,
   TAccountClient extends string,
   TAccountClientProfile extends string,
-  TAccountHostReputation extends string,
   TAccountHostProfile extends string,
+  TAccountHostReputation extends string,
   TAccountBooking extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: ReviewCompletedInput<
     TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
-    TAccountHostReputation,
     TAccountHostProfile,
-    TAccountBooking
+    TAccountHostReputation,
+    TAccountBooking,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): ReviewCompletedInstruction<
@@ -279,9 +354,12 @@ export function getReviewCompletedInstruction<
   TAccountPayer,
   TAccountClient,
   TAccountClientProfile,
-  TAccountHostReputation,
   TAccountHostProfile,
-  TAccountBooking
+  TAccountHostReputation,
+  TAccountBooking,
+  TAccountGlobalConfig,
+  TAccountCpiAuthority,
+  TAccountStaykeCoreProgram
 > {
   // Program address.
   const programAddress =
@@ -292,9 +370,15 @@ export function getReviewCompletedInstruction<
     payer: { value: input.payer ?? null, isWritable: true },
     client: { value: input.client ?? null, isWritable: false },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
-    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -304,15 +388,24 @@ export function getReviewCompletedInstruction<
   // Original args.
   const args = { ...input };
 
+  // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
+
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("client", accounts.client),
       getAccountMeta("clientProfile", accounts.clientProfile),
-      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("booking", accounts.booking),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getReviewCompletedInstructionDataEncoder().encode(
       args as ReviewCompletedInstructionDataArgs,
@@ -323,9 +416,12 @@ export function getReviewCompletedInstruction<
     TAccountPayer,
     TAccountClient,
     TAccountClientProfile,
-    TAccountHostReputation,
     TAccountHostProfile,
-    TAccountBooking
+    TAccountHostReputation,
+    TAccountBooking,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram
   >);
 }
 
@@ -338,10 +434,14 @@ export type ParsedReviewCompletedInstruction<
     payer: TAccountMetas[0];
     client: TAccountMetas[1];
     clientProfile: TAccountMetas[2];
-    hostReputation: TAccountMetas[3];
-    /** Host's ReputationProfile from stayke-core (receives score update). */
-    hostProfile: TAccountMetas[4];
+    /** Host UserProfile (correct seed family). */
+    hostProfile: TAccountMetas[3];
+    /** Host ReputationProfile (correct seed family). */
+    hostReputation: TAccountMetas[4];
     booking: TAccountMetas[5];
+    globalConfig: TAccountMetas[6];
+    cpiAuthority: TAccountMetas[7];
+    staykeCoreProgram: TAccountMetas[8];
   };
   data: ReviewCompletedInstructionData;
 };
@@ -354,12 +454,12 @@ export function parseReviewCompletedInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedReviewCompletedInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -375,9 +475,12 @@ export function parseReviewCompletedInstruction<
       payer: getNextAccount(),
       client: getNextAccount(),
       clientProfile: getNextAccount(),
-      hostReputation: getNextAccount(),
       hostProfile: getNextAccount(),
+      hostReputation: getNextAccount(),
       booking: getNextAccount(),
+      globalConfig: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
     },
     data: getReviewCompletedInstructionDataDecoder().decode(instruction.data),
   };

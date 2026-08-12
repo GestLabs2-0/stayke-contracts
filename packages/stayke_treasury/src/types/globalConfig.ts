@@ -30,10 +30,20 @@ export type GlobalConfig = {
   feeBps: bigint;
   usdcMint: Address;
   isInitialized: boolean;
+  /** Max operations with no stake before asking user for the stake to keep operating */
+  maxOperations: number;
   /** Platform fee vault token account. */
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
   platformVaultBump: number;
+  /** Stayke core program ID (CPI allowlist SoT). */
+  coreProgram: Address;
+  /** Stayke escrow program ID (CPI allowlist SoT). */
+  escrowProgram: Address;
+  /** Stayke disputes program ID (CPI allowlist SoT). */
+  disputesProgram: Address;
+  /** Stayke treasury program ID (CPI allowlist SoT). */
+  treasuryProgram: Address;
   bump: number;
 };
 
@@ -43,10 +53,20 @@ export type GlobalConfigArgs = {
   feeBps: number | bigint;
   usdcMint: Address;
   isInitialized: boolean;
+  /** Max operations with no stake before asking user for the stake to keep operating */
+  maxOperations: number;
   /** Platform fee vault token account. */
   platformVault: Address;
   /** Bump of the platform vault authority PDA. */
   platformVaultBump: number;
+  /** Stayke core program ID (CPI allowlist SoT). */
+  coreProgram: Address;
+  /** Stayke escrow program ID (CPI allowlist SoT). */
+  escrowProgram: Address;
+  /** Stayke disputes program ID (CPI allowlist SoT). */
+  disputesProgram: Address;
+  /** Stayke treasury program ID (CPI allowlist SoT). */
+  treasuryProgram: Address;
   bump: number;
 };
 
@@ -57,8 +77,13 @@ export function getGlobalConfigEncoder(): FixedSizeEncoder<GlobalConfigArgs> {
     ["feeBps", getU64Encoder()],
     ["usdcMint", getAddressEncoder()],
     ["isInitialized", getBooleanEncoder()],
+    ["maxOperations", getU8Encoder()],
     ["platformVault", getAddressEncoder()],
     ["platformVaultBump", getU8Encoder()],
+    ["coreProgram", getAddressEncoder()],
+    ["escrowProgram", getAddressEncoder()],
+    ["disputesProgram", getAddressEncoder()],
+    ["treasuryProgram", getAddressEncoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -70,8 +95,13 @@ export function getGlobalConfigDecoder(): FixedSizeDecoder<GlobalConfig> {
     ["feeBps", getU64Decoder()],
     ["usdcMint", getAddressDecoder()],
     ["isInitialized", getBooleanDecoder()],
+    ["maxOperations", getU8Decoder()],
     ["platformVault", getAddressDecoder()],
     ["platformVaultBump", getU8Decoder()],
+    ["coreProgram", getAddressDecoder()],
+    ["escrowProgram", getAddressDecoder()],
+    ["disputesProgram", getAddressDecoder()],
+    ["treasuryProgram", getAddressDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

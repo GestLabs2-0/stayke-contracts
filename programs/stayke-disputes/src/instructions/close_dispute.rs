@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
     cpi::{
         accounts::{ClearListingBooking, UpdateUserProfile},
@@ -15,10 +16,6 @@ use crate::{
     error::DisputeError,
     state::{Dispute, DisputeConfig, DisputeStatus},
 };
-
-// ---------------------------------------------------------------------------
-// Close Dispute (Closes dispute account and clears active_booking flags)
-// ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
 pub struct CloseDispute<'info> {
@@ -44,12 +41,6 @@ pub struct CloseDispute<'info> {
     /// CHECK: Read-only access here, trust it's the right booking if the dispute seed matches.
     pub booking: Account<'info, Booking>,
 
-    // Note: The caller MUST pass the exact UserProfiles corresponding to the guest and host
-    // of this booking, as well as the listing. We cannot enforce seeds entirely off-chain
-    // unless we bring stayke-core profiles directly into scope but the instructions exist to do it dynamically.
-    // So we just take mutable UserProfile accounts and let the caller invoke `clear_active_booking`.
-
-    // Instead of forcing all 3 in the main struct if they are not always needed, we could use them directly.
     #[account(mut)]
     pub guest_profile: Account<'info, UserProfile>,
 
@@ -59,43 +50,58 @@ pub struct CloseDispute<'info> {
     #[account(mut)]
     pub listing: Account<'info, Listing>,
 
-    // Currently we mapped Listing to have active_booking in the monolith, wait: In our new core design, Listing doesn't have active_booking, it has `is_occupied: Option<Pubkey>`.
-    // We didn't create a mutator for `is_occupied`. Let's just clear the users since user_profile has `active_booking` and `active_stay`!
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
+    /// CHECK: Disputes CPI authority PDA — signs privileged core mutators.
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
+
     pub stayke_core_program: Program<'info, StaykeCore>,
 }
 
-// TODO: instead of the admin users, we must only use the account PDA as the signer, but for simplicity we can just use the admin signer for now.
-// We just need to make sure that only the admin can call this instruction, which is already enforced by the account constraint.
 pub fn handler_close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
-    // 1. Clear Guest's active booking
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+
     let guest_cpi_accounts = UpdateUserProfile {
         user_profile: ctx.accounts.guest_profile.to_account_info(),
-        authority: ctx.accounts.admin.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
     };
-    clear_active_booking(CpiContext::new(
+    clear_active_booking(CpiContext::new_with_signer(
         ctx.accounts.stayke_core_program.key(),
         guest_cpi_accounts,
+        signer_seeds,
     ))?;
 
-    // 2. Clear Host's active stay
     let host_cpi_accounts = UpdateUserProfile {
         user_profile: ctx.accounts.host_profile.to_account_info(),
-        authority: ctx.accounts.admin.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
     };
-    clear_active_booking(CpiContext::new(
+    clear_active_booking(CpiContext::new_with_signer(
         ctx.accounts.stayke_core_program.key(),
         host_cpi_accounts,
+        signer_seeds,
     ))?;
 
     let clear_listing_accounts = ClearListingBooking {
-        authority: ctx.accounts.admin.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
         listing: ctx.accounts.listing.to_account_info(),
-        user_profile: ctx.accounts.host_profile.to_account_info(), // We need the host profile to check if the host has an active stay that matches the listing before clearing the listing's active booking
+        user_profile: ctx.accounts.host_profile.to_account_info(),
     };
 
-    clear_listing_booking(CpiContext::new(
+    clear_listing_booking(CpiContext::new_with_signer(
         ctx.accounts.stayke_core_program.key(),
         clear_listing_accounts,
+        signer_seeds,
     ))?;
 
     Ok(())

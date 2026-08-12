@@ -93,11 +93,15 @@ export type InitializeListingInstructionData = {
   discriminator: ReadonlyUint8Array;
   price: bigint;
   listingId: number;
+  stateHash: ReadonlyUint8Array;
+  contentRef: ReadonlyUint8Array;
 };
 
 export type InitializeListingInstructionDataArgs = {
   price: number | bigint;
   listingId: number;
+  stateHash: ReadonlyUint8Array;
+  contentRef: ReadonlyUint8Array;
 };
 
 export function getInitializeListingInstructionDataEncoder(): FixedSizeEncoder<InitializeListingInstructionDataArgs> {
@@ -106,6 +110,8 @@ export function getInitializeListingInstructionDataEncoder(): FixedSizeEncoder<I
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["price", getU64Encoder()],
       ["listingId", getU16Encoder()],
+      ["stateHash", fixEncoderSize(getBytesEncoder(), 32)],
+      ["contentRef", fixEncoderSize(getBytesEncoder(), 32)],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_LISTING_DISCRIMINATOR }),
   );
@@ -116,6 +122,8 @@ export function getInitializeListingInstructionDataDecoder(): FixedSizeDecoder<I
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["price", getU64Decoder()],
     ["listingId", getU16Decoder()],
+    ["stateHash", fixDecoderSize(getBytesDecoder(), 32)],
+    ["contentRef", fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 
@@ -143,6 +151,8 @@ export type InitializeListingAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   price: InitializeListingInstructionDataArgs["price"];
   listingId: InitializeListingInstructionDataArgs["listingId"];
+  stateHash: InitializeListingInstructionDataArgs["stateHash"];
+  contentRef: InitializeListingInstructionDataArgs["contentRef"];
 };
 
 export async function getInitializeListingInstructionAsync<
@@ -253,6 +263,8 @@ export type InitializeListingInput<
   systemProgram?: Address<TAccountSystemProgram>;
   price: InitializeListingInstructionDataArgs["price"];
   listingId: InitializeListingInstructionDataArgs["listingId"];
+  stateHash: InitializeListingInstructionDataArgs["stateHash"];
+  contentRef: InitializeListingInstructionDataArgs["contentRef"];
 };
 
 export function getInitializeListingInstruction<

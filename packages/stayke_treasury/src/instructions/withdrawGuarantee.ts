@@ -40,7 +40,12 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findTreasuryPdaPda, findUserProfilePda } from "../pdas";
+import {
+  findConfigPda,
+  findCpiAuthorityPda,
+  findTreasuryPdaPda,
+  findUserProfilePda,
+} from "../pdas";
 import { STAYKE_TREASURY_PROGRAM_ADDRESS } from "../programs";
 
 export const WITHDRAW_GUARANTEE_DISCRIMINATOR: ReadonlyUint8Array =
@@ -64,6 +69,7 @@ export type WithdrawGuaranteeInstruction<
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountUserProfile extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -99,6 +105,9 @@ export type WithdrawGuaranteeInstruction<
       TAccountUserProfile extends string
         ? WritableAccount<TAccountUserProfile>
         : TAccountUserProfile,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountStaykeCoreProgram extends string
         ? ReadonlyAccount<TAccountStaykeCoreProgram>
         : TAccountStaykeCoreProgram,
@@ -150,19 +159,19 @@ export type WithdrawGuaranteeAsyncInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountUserProfile extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   config?: Address<TAccountConfig>;
   globalConfig?: Address<TAccountGlobalConfig>;
-  /** Treasury vault — source of the withdrawal. */
   treasuryVault: Address<TAccountTreasuryVault>;
   treasuryPda?: Address<TAccountTreasuryPda>;
-  /** Destination: the user's own USDC token account. */
   userTokenAccount: Address<TAccountUserTokenAccount>;
   usdcMint: Address<TAccountUsdcMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
   userProfile?: Address<TAccountUserProfile>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   amount: WithdrawGuaranteeInstructionDataArgs["amount"];
 };
@@ -177,6 +186,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
   TAccountUsdcMint extends string,
   TAccountTokenProgram extends string,
   TAccountUserProfile extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
@@ -190,6 +200,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -205,6 +216,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >
 > {
@@ -226,6 +238,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
     usdcMint: { value: input.usdcMint ?? null, isWritable: false },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -271,6 +284,9 @@ export async function getWithdrawGuaranteeInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
       "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
@@ -288,6 +304,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
       getAccountMeta("usdcMint", accounts.usdcMint),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getWithdrawGuaranteeInstructionDataEncoder().encode(
@@ -305,6 +322,7 @@ export async function getWithdrawGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -319,19 +337,19 @@ export type WithdrawGuaranteeInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountUserProfile extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   config: Address<TAccountConfig>;
   globalConfig: Address<TAccountGlobalConfig>;
-  /** Treasury vault — source of the withdrawal. */
   treasuryVault: Address<TAccountTreasuryVault>;
   treasuryPda: Address<TAccountTreasuryPda>;
-  /** Destination: the user's own USDC token account. */
   userTokenAccount: Address<TAccountUserTokenAccount>;
   usdcMint: Address<TAccountUsdcMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
   userProfile: Address<TAccountUserProfile>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   amount: WithdrawGuaranteeInstructionDataArgs["amount"];
 };
@@ -346,6 +364,7 @@ export function getWithdrawGuaranteeInstruction<
   TAccountUsdcMint extends string,
   TAccountTokenProgram extends string,
   TAccountUserProfile extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
@@ -359,6 +378,7 @@ export function getWithdrawGuaranteeInstruction<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -373,6 +393,7 @@ export function getWithdrawGuaranteeInstruction<
   TAccountUsdcMint,
   TAccountTokenProgram,
   TAccountUserProfile,
+  TAccountCpiAuthority,
   TAccountStaykeCoreProgram
 > {
   // Program address.
@@ -393,6 +414,7 @@ export function getWithdrawGuaranteeInstruction<
     usdcMint: { value: input.usdcMint ?? null, isWritable: false },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -428,6 +450,7 @@ export function getWithdrawGuaranteeInstruction<
       getAccountMeta("usdcMint", accounts.usdcMint),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getWithdrawGuaranteeInstructionDataEncoder().encode(
@@ -445,6 +468,7 @@ export function getWithdrawGuaranteeInstruction<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -458,15 +482,14 @@ export type ParsedWithdrawGuaranteeInstruction<
     signer: TAccountMetas[0];
     config: TAccountMetas[1];
     globalConfig: TAccountMetas[2];
-    /** Treasury vault — source of the withdrawal. */
     treasuryVault: TAccountMetas[3];
     treasuryPda: TAccountMetas[4];
-    /** Destination: the user's own USDC token account. */
     userTokenAccount: TAccountMetas[5];
     usdcMint: TAccountMetas[6];
     tokenProgram: TAccountMetas[7];
     userProfile: TAccountMetas[8];
-    staykeCoreProgram: TAccountMetas[9];
+    cpiAuthority: TAccountMetas[9];
+    staykeCoreProgram: TAccountMetas[10];
   };
   data: WithdrawGuaranteeInstructionData;
 };
@@ -479,12 +502,12 @@ export function parseWithdrawGuaranteeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedWithdrawGuaranteeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -506,6 +529,7 @@ export function parseWithdrawGuaranteeInstruction<
       usdcMint: getNextAccount(),
       tokenProgram: getNextAccount(),
       userProfile: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
     },
     data: getWithdrawGuaranteeInstructionDataDecoder().decode(instruction.data),

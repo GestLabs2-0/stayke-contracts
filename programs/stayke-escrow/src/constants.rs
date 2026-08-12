@@ -11,3 +11,6 @@ pub const BOOKING_DAYS_SEED: &str = "booking_days";
 
 #[constant]
 pub const BOOKING_SEED: &str = "booking";
+
+#[constant]
+pub const CPI_AUTHORITY_SEED: &str = "cpi_authority";

@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -51,7 +52,8 @@ export type ClearListingBookingInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountUserProfile extends string | AccountMeta<string> = string,
   TAccountListing extends string | AccountMeta<string> = string,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -63,10 +65,13 @@ export type ClearListingBookingInstruction<
       TAccountListing extends string
         ? WritableAccount<TAccountListing>
         : TAccountListing,
-      TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
+      TAccountCpiAuthority extends string
+        ? ReadonlySignerAccount<TAccountCpiAuthority> &
+            AccountSignerMeta<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       ...TRemainingAccounts,
     ]
   >;
@@ -103,33 +108,40 @@ export function getClearListingBookingInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type ClearListingBookingInput<
+export type ClearListingBookingAsyncInput<
   TAccountUserProfile extends string = string,
   TAccountListing extends string = string,
-  TAccountAuthority extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
 > = {
   userProfile: Address<TAccountUserProfile>;
   listing: Address<TAccountListing>;
-  authority: TransactionSigner<TAccountAuthority>;
+  globalConfig?: Address<TAccountGlobalConfig>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
 };
 
-export function getClearListingBookingInstruction<
+export async function getClearListingBookingInstructionAsync<
   TAccountUserProfile extends string,
   TAccountListing extends string,
-  TAccountAuthority extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: ClearListingBookingInput<
+  input: ClearListingBookingAsyncInput<
     TAccountUserProfile,
     TAccountListing,
-    TAccountAuthority
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
   >,
   config?: { programAddress?: TProgramAddress },
-): ClearListingBookingInstruction<
-  TProgramAddress,
-  TAccountUserProfile,
-  TAccountListing,
-  TAccountAuthority
+): Promise<
+  ClearListingBookingInstruction<
+    TProgramAddress,
+    TAccountUserProfile,
+    TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >
 > {
   // Program address.
   const programAddress = config?.programAddress ?? STAYKE_CORE_PROGRAM_ADDRESS;
@@ -138,7 +150,90 @@ export function getClearListingBookingInstruction<
   const originalAccounts = {
     userProfile: { value: input.userProfile ?? null, isWritable: false },
     listing: { value: input.listing ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: false },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Resolve default values.
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("listing", accounts.listing),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+    ],
+    data: getClearListingBookingInstructionDataEncoder().encode({}),
+    programAddress,
+  } as ClearListingBookingInstruction<
+    TProgramAddress,
+    TAccountUserProfile,
+    TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >);
+}
+
+export type ClearListingBookingInput<
+  TAccountUserProfile extends string = string,
+  TAccountListing extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountCpiAuthority extends string = string,
+> = {
+  userProfile: Address<TAccountUserProfile>;
+  listing: Address<TAccountListing>;
+  globalConfig: Address<TAccountGlobalConfig>;
+  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
+};
+
+export function getClearListingBookingInstruction<
+  TAccountUserProfile extends string,
+  TAccountListing extends string,
+  TAccountGlobalConfig extends string,
+  TAccountCpiAuthority extends string,
+  TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
+>(
+  input: ClearListingBookingInput<
+    TAccountUserProfile,
+    TAccountListing,
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
+  >,
+  config?: { programAddress?: TProgramAddress },
+): ClearListingBookingInstruction<
+  TProgramAddress,
+  TAccountUserProfile,
+  TAccountListing,
+  TAccountGlobalConfig,
+  TAccountCpiAuthority
+> {
+  // Program address.
+  const programAddress = config?.programAddress ?? STAYKE_CORE_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    userProfile: { value: input.userProfile ?? null, isWritable: false },
+    listing: { value: input.listing ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -150,7 +245,8 @@ export function getClearListingBookingInstruction<
     accounts: [
       getAccountMeta("userProfile", accounts.userProfile),
       getAccountMeta("listing", accounts.listing),
-      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
     ],
     data: getClearListingBookingInstructionDataEncoder().encode({}),
     programAddress,
@@ -158,7 +254,8 @@ export function getClearListingBookingInstruction<
     TProgramAddress,
     TAccountUserProfile,
     TAccountListing,
-    TAccountAuthority
+    TAccountGlobalConfig,
+    TAccountCpiAuthority
   >);
 }
 
@@ -170,7 +267,8 @@ export type ParsedClearListingBookingInstruction<
   accounts: {
     userProfile: TAccountMetas[0];
     listing: TAccountMetas[1];
-    authority: TAccountMetas[2];
+    globalConfig: TAccountMetas[2];
+    cpiAuthority: TAccountMetas[3];
   };
   data: ClearListingBookingInstructionData;
 };
@@ -183,12 +281,12 @@ export function parseClearListingBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClearListingBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -203,7 +301,8 @@ export function parseClearListingBookingInstruction<
     accounts: {
       userProfile: getNextAccount(),
       listing: getNextAccount(),
-      authority: getNextAccount(),
+      globalConfig: getNextAccount(),
+      cpiAuthority: getNextAccount(),
     },
     data: getClearListingBookingInstructionDataDecoder().decode(
       instruction.data,

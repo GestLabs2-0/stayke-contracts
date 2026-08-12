@@ -14,7 +14,7 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "stayke-config/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -22,9 +22,11 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = {version = "1.0.2", features = ['init-if-needed']}
+stayke-config = { path = "../stayke-config", features = ["cpi"] }
 
 [dev-dependencies]
 litesvm = "0.12.0"
+solana-account = "3.0.0"
 solana-message = "3.0.1"
 solana-transaction = "3.0.2"
 solana-signer = "3.0.0"

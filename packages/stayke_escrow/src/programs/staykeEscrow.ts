@@ -49,7 +49,7 @@ import {
   getClientRejectReserveInstructionAsync,
   getCompleteStayInstructionAsync,
   getCpiResolveDisputeTransferInstructionAsync,
-  getCpiUpdateBookingStatusInstruction,
+  getCpiUpdateBookingStatusInstructionAsync,
   getCreateBookingInstructionAsync,
   getHostAcceptBookingInstructionAsync,
   getHostRejectBookingInstructionAsync,
@@ -69,7 +69,7 @@ import {
   type ClientRejectReserveAsyncInput,
   type CompleteStayAsyncInput,
   type CpiResolveDisputeTransferAsyncInput,
-  type CpiUpdateBookingStatusInput,
+  type CpiUpdateBookingStatusAsyncInput,
   type CreateBookingAsyncInput,
   type HostAcceptBookingAsyncInput,
   type HostRejectBookingAsyncInput,
@@ -89,6 +89,7 @@ import {
 import {
   findBookingDaysPda,
   findBookingPda,
+  findCpiAuthorityPda,
   findEscrowConfigPda,
   findEscrowTokenAccountPda,
 } from "../pdas";
@@ -431,8 +432,8 @@ export type StaykeEscrowPluginInstructions = {
   ) => ReturnType<typeof getCpiResolveDisputeTransferInstructionAsync> &
     SelfPlanAndSendFunctions;
   cpiUpdateBookingStatus: (
-    input: CpiUpdateBookingStatusInput,
-  ) => ReturnType<typeof getCpiUpdateBookingStatusInstruction> &
+    input: CpiUpdateBookingStatusAsyncInput,
+  ) => ReturnType<typeof getCpiUpdateBookingStatusInstructionAsync> &
     SelfPlanAndSendFunctions;
   createBooking: (
     input: MakeOptional<CreateBookingAsyncInput, "payer">,
@@ -459,6 +460,7 @@ export type StaykeEscrowPluginInstructions = {
 export type StaykeEscrowPluginPdas = {
   escrowConfig: typeof findEscrowConfigPda;
   escrowTokenAccount: typeof findEscrowTokenAccountPda;
+  cpiAuthority: typeof findCpiAuthorityPda;
   booking: typeof findBookingPda;
   bookingDays: typeof findBookingDaysPda;
 };
@@ -514,7 +516,7 @@ export function staykeEscrowProgram() {
           cpiUpdateBookingStatus: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCpiUpdateBookingStatusInstruction(input),
+              getCpiUpdateBookingStatusInstructionAsync(input),
             ),
           createBooking: (input) =>
             addSelfPlanAndSendFunctions(
@@ -557,6 +559,7 @@ export function staykeEscrowProgram() {
         pdas: {
           escrowConfig: findEscrowConfigPda,
           escrowTokenAccount: findEscrowTokenAccountPda,
+          cpiAuthority: findCpiAuthorityPda,
           booking: findBookingPda,
           bookingDays: findBookingDaysPda,
         },

@@ -40,7 +40,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowConfigPda, findEscrowTokenAccountPda } from "../pdas";
+import {
+  findCpiAuthorityPda,
+  findEscrowConfigPda,
+  findEscrowTokenAccountPda,
+} from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const CLIENT_ACCEPT_RESERVE_DISCRIMINATOR: ReadonlyUint8Array =
@@ -59,11 +63,15 @@ export type ClientAcceptReserveInstruction<
   TAccountClientProfile extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountListing extends string | AccountMeta<string> = string,
+  TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountEscrowConfig extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountClientTokenAccount extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
@@ -92,6 +100,9 @@ export type ClientAcceptReserveInstruction<
       TAccountListing extends string
         ? WritableAccount<TAccountListing>
         : TAccountListing,
+      TAccountHostProfile extends string
+        ? ReadonlyAccount<TAccountHostProfile>
+        : TAccountHostProfile,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -107,6 +118,12 @@ export type ClientAcceptReserveInstruction<
       TAccountEscrowTokenAccount extends string
         ? WritableAccount<TAccountEscrowTokenAccount>
         : TAccountEscrowTokenAccount,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -158,11 +175,14 @@ export type ClientAcceptReserveAsyncInput<
   TAccountClientProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountListing extends string = string,
+  TAccountHostProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowConfig extends string = string,
   TAccountMint extends string = string,
   TAccountClientTokenAccount extends string = string,
   TAccountEscrowTokenAccount extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
@@ -172,11 +192,15 @@ export type ClientAcceptReserveAsyncInput<
   clientProfile?: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
   listing: Address<TAccountListing>;
+  /** Host profile that owns the listing (required for set_listing_occupied CPI seeds). */
+  hostProfile: Address<TAccountHostProfile>;
   globalConfig?: Address<TAccountGlobalConfig>;
   escrowConfig?: Address<TAccountEscrowConfig>;
   mint: Address<TAccountMint>;
   clientTokenAccount?: Address<TAccountClientTokenAccount>;
   escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -188,11 +212,14 @@ export async function getClientAcceptReserveInstructionAsync<
   TAccountClientProfile extends string,
   TAccountBooking extends string,
   TAccountListing extends string,
+  TAccountHostProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowConfig extends string,
   TAccountMint extends string,
   TAccountClientTokenAccount extends string,
   TAccountEscrowTokenAccount extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -204,11 +231,14 @@ export async function getClientAcceptReserveInstructionAsync<
     TAccountClientProfile,
     TAccountBooking,
     TAccountListing,
+    TAccountHostProfile,
     TAccountGlobalConfig,
     TAccountEscrowConfig,
     TAccountMint,
     TAccountClientTokenAccount,
     TAccountEscrowTokenAccount,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -222,11 +252,14 @@ export async function getClientAcceptReserveInstructionAsync<
     TAccountClientProfile,
     TAccountBooking,
     TAccountListing,
+    TAccountHostProfile,
     TAccountGlobalConfig,
     TAccountEscrowConfig,
     TAccountMint,
     TAccountClientTokenAccount,
     TAccountEscrowTokenAccount,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -243,6 +276,7 @@ export async function getClientAcceptReserveInstructionAsync<
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: true },
@@ -253,6 +287,11 @@ export async function getClientAcceptReserveInstructionAsync<
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
+    },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
     },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
@@ -334,6 +373,13 @@ export async function getClientAcceptReserveInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -355,11 +401,14 @@ export async function getClientAcceptReserveInstructionAsync<
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("clientTokenAccount", accounts.clientTokenAccount),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
@@ -373,11 +422,14 @@ export async function getClientAcceptReserveInstructionAsync<
     TAccountClientProfile,
     TAccountBooking,
     TAccountListing,
+    TAccountHostProfile,
     TAccountGlobalConfig,
     TAccountEscrowConfig,
     TAccountMint,
     TAccountClientTokenAccount,
     TAccountEscrowTokenAccount,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -390,11 +442,14 @@ export type ClientAcceptReserveInput<
   TAccountClientProfile extends string = string,
   TAccountBooking extends string = string,
   TAccountListing extends string = string,
+  TAccountHostProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowConfig extends string = string,
   TAccountMint extends string = string,
   TAccountClientTokenAccount extends string = string,
   TAccountEscrowTokenAccount extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
@@ -404,11 +459,15 @@ export type ClientAcceptReserveInput<
   clientProfile: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
   listing: Address<TAccountListing>;
+  /** Host profile that owns the listing (required for set_listing_occupied CPI seeds). */
+  hostProfile: Address<TAccountHostProfile>;
   globalConfig: Address<TAccountGlobalConfig>;
   escrowConfig: Address<TAccountEscrowConfig>;
   mint: Address<TAccountMint>;
   clientTokenAccount: Address<TAccountClientTokenAccount>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -420,11 +479,14 @@ export function getClientAcceptReserveInstruction<
   TAccountClientProfile extends string,
   TAccountBooking extends string,
   TAccountListing extends string,
+  TAccountHostProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowConfig extends string,
   TAccountMint extends string,
   TAccountClientTokenAccount extends string,
   TAccountEscrowTokenAccount extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -436,11 +498,14 @@ export function getClientAcceptReserveInstruction<
     TAccountClientProfile,
     TAccountBooking,
     TAccountListing,
+    TAccountHostProfile,
     TAccountGlobalConfig,
     TAccountEscrowConfig,
     TAccountMint,
     TAccountClientTokenAccount,
     TAccountEscrowTokenAccount,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -453,11 +518,14 @@ export function getClientAcceptReserveInstruction<
   TAccountClientProfile,
   TAccountBooking,
   TAccountListing,
+  TAccountHostProfile,
   TAccountGlobalConfig,
   TAccountEscrowConfig,
   TAccountMint,
   TAccountClientTokenAccount,
   TAccountEscrowTokenAccount,
+  TAccountCpiAuthority,
+  TAccountStaykeCoreProgram,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram
@@ -473,6 +541,7 @@ export function getClientAcceptReserveInstruction<
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowConfig: { value: input.escrowConfig ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: true },
@@ -483,6 +552,11 @@ export function getClientAcceptReserveInstruction<
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
+    },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
     },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
@@ -497,6 +571,10 @@ export function getClientAcceptReserveInstruction<
   >;
 
   // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -518,11 +596,14 @@ export function getClientAcceptReserveInstruction<
       getAccountMeta("clientProfile", accounts.clientProfile),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowConfig", accounts.escrowConfig),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("clientTokenAccount", accounts.clientTokenAccount),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
@@ -536,11 +617,14 @@ export function getClientAcceptReserveInstruction<
     TAccountClientProfile,
     TAccountBooking,
     TAccountListing,
+    TAccountHostProfile,
     TAccountGlobalConfig,
     TAccountEscrowConfig,
     TAccountMint,
     TAccountClientTokenAccount,
     TAccountEscrowTokenAccount,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -558,14 +642,18 @@ export type ParsedClientAcceptReserveInstruction<
     clientProfile: TAccountMetas[2];
     booking: TAccountMetas[3];
     listing: TAccountMetas[4];
-    globalConfig: TAccountMetas[5];
-    escrowConfig: TAccountMetas[6];
-    mint: TAccountMetas[7];
-    clientTokenAccount: TAccountMetas[8];
-    escrowTokenAccount: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
-    associatedTokenProgram: TAccountMetas[11];
-    systemProgram: TAccountMetas[12];
+    /** Host profile that owns the listing (required for set_listing_occupied CPI seeds). */
+    hostProfile: TAccountMetas[5];
+    globalConfig: TAccountMetas[6];
+    escrowConfig: TAccountMetas[7];
+    mint: TAccountMetas[8];
+    clientTokenAccount: TAccountMetas[9];
+    escrowTokenAccount: TAccountMetas[10];
+    cpiAuthority: TAccountMetas[11];
+    staykeCoreProgram: TAccountMetas[12];
+    tokenProgram: TAccountMetas[13];
+    associatedTokenProgram: TAccountMetas[14];
+    systemProgram: TAccountMetas[15];
   };
   data: ClientAcceptReserveInstructionData;
 };
@@ -578,12 +666,12 @@ export function parseClientAcceptReserveInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClientAcceptReserveInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 16) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 16,
       },
     );
   }
@@ -601,11 +689,14 @@ export function parseClientAcceptReserveInstruction<
       clientProfile: getNextAccount(),
       booking: getNextAccount(),
       listing: getNextAccount(),
+      hostProfile: getNextAccount(),
       globalConfig: getNextAccount(),
       escrowConfig: getNextAccount(),
       mint: getNextAccount(),
       clientTokenAccount: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),

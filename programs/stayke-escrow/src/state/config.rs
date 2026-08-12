@@ -7,8 +7,6 @@ use anchor_lang::prelude::*;
 pub struct EscrowConfig {
     pub authority: Pubkey,
 
-    pub global_config: Pubkey,
-
     pub is_initialized: bool,
 
     pub bump: u8,

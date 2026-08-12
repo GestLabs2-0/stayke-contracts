@@ -4,11 +4,10 @@ use stayke_core::{
     Listing, UserProfile,
 };
 
-use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 
-use crate::EscrowConfig;
 use crate::{
-    constants::{BOOKING_DAYS_SEED, BOOKING_SEED, ESCROW_CONFIG_SEED},
+    constants::{BOOKING_DAYS_SEED, BOOKING_SEED},
     error::EscrowError,
     events::NewBookingEvent,
     state::{Booking, BookingDays, BookingStatus},
@@ -36,6 +35,7 @@ pub struct CreateBooking<'info> {
         constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
+        // TODO: add conditional constraint to disable minimum deposit as long as activities in platform are less than zero
         constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,
@@ -60,17 +60,13 @@ pub struct CreateBooking<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [LISTING_SEED.as_bytes(), property.owner.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump, constraint = property.owner == host_profile.key() @ EscrowError::InvalidBookingProperty)]
+    #[account(seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump)]
     pub property: Account<'info, Listing>,
-
-    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
 

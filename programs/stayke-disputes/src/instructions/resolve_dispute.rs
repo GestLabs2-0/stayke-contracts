@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-
+use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_escrow::{
     cpi::{accounts::ResolveDisputeTransferCpi, cpi_resolve_dispute_transfer},
     program::StaykeEscrow,
@@ -8,15 +8,11 @@ use stayke_escrow::{
 };
 
 use crate::{
-    constants::{DISPUTE_CONFIG_PDA_SEED, DISPUTE_PDA_SEED},
+    constants::{CPI_AUTHORITY_SEED, DISPUTE_CONFIG_PDA_SEED, DISPUTE_PDA_SEED},
     error::DisputeError,
     events::DisputeResolved,
     state::{Dispute, DisputeConfig, DisputeStatus},
 };
-
-// ---------------------------------------------------------------------------
-// Resolve Dispute (Admin determines blame and routes funds)
-// ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
 pub struct ResolveDispute<'info> {
@@ -41,23 +37,33 @@ pub struct ResolveDispute<'info> {
     #[account(mut)]
     pub booking: Box<Account<'info, Booking>>,
 
-    // Escrow Accounts needed for the CPI:
-    /// CHECK: Escrow config validated by stayke-escrow program during CPI.
-    pub escrow_config: UncheckedAccount<'info>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    /// CHECK: Global config validated by stayke-escrow program during CPI.
-    pub global_config: UncheckedAccount<'info>,
+    /// CHECK: CPI authority PDA of an allowlisted Stayke program.
+    #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]
+    pub cpi_authority: UncheckedAccount<'info>,
 
-    // TODO: add validations for token accounts. Platform and usdc_mint need to be equal to the other config files
     #[account(mut)]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = platform_vault_token_account.key() == global_config.platform_vault @ StaykeConfigError::InvalidVaultAccount,
+    )]
     pub platform_vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = usdc_mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint,
+    )]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
     pub stayke_escrow_program: Program<'info, StaykeEscrow>,
@@ -69,11 +75,9 @@ pub fn handler_resolve_dispute(
     host_share_bps: u16,
     rejected: bool,
 ) -> Result<()> {
-    // Escrow transfer CPI
     let cpi_accounts = ResolveDisputeTransferCpi {
-        authority: ctx.accounts.admin.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
         booking: ctx.accounts.booking.to_account_info(),
-        escrow_config: ctx.accounts.escrow_config.to_account_info(),
         global_config: ctx.accounts.global_config.to_account_info(),
         escrow_token_account: ctx.accounts.escrow_token_account.to_account_info(),
         host_token_account: ctx.accounts.host_token_account.to_account_info(),
@@ -82,7 +86,15 @@ pub fn handler_resolve_dispute(
         mint: ctx.accounts.usdc_mint.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
     };
-    let cpi_ctx = CpiContext::new(ctx.accounts.stayke_escrow_program.key(), cpi_accounts);
+
+    let bump = ctx.bumps.cpi_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+
+    let cpi_ctx = CpiContext::new_with_signer(
+        ctx.accounts.stayke_escrow_program.key(),
+        cpi_accounts,
+        signer_seeds,
+    );
     cpi_resolve_dispute_transfer(cpi_ctx, host_share_bps, rejected)?;
 
     let dispute = &mut ctx.accounts.dispute;

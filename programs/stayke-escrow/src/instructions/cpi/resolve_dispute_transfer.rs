@@ -2,13 +2,15 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{
     self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
-use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{
+    assert_cpi_authority, error::StaykeConfigError, AllowedCaller, GlobalConfig, GLOBAL_CONFIG_SEED,
+};
 
 use crate::{
-    constants::{BOOKING_SEED, ESCROW_CONFIG_SEED, ESCROW_PDA_SEED},
+    constants::{BOOKING_SEED, ESCROW_PDA_SEED},
     error::EscrowError,
     events::BookingStatusUpdated,
-    state::{Booking, BookingStatus, EscrowConfig},
+    state::{Booking, BookingStatus},
 };
 
 // ---------------------------------------------------------------------------
@@ -19,7 +21,7 @@ use crate::{
 #[derive(Accounts)]
 pub struct ResolveDisputeTransferCpi<'info> {
     // The authority invoking the CPI (typically stayke-disputes admin)
-    pub authority: Signer<'info>,
+    pub cpi_authority: Signer<'info>,
 
     #[account(
         mut,
@@ -38,12 +40,8 @@ pub struct ResolveDisputeTransferCpi<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
-
-    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 
     #[account(
         mut,
@@ -84,6 +82,11 @@ pub fn handler_cpi_resolve_dispute_transfer(
     rejected: bool,
 ) -> Result<()> {
     require!(host_share_bps <= 10_000, StaykeConfigError::InvalidFeeBps);
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Disputes],
+    )?;
 
     let booking = &mut ctx.accounts.booking;
     let config = &ctx.accounts.global_config;
@@ -168,7 +171,7 @@ pub fn handler_cpi_resolve_dispute_transfer(
         ctx.accounts.token_program.key(),
         CloseAccount {
             account: ctx.accounts.escrow_token_account.to_account_info(),
-            destination: ctx.accounts.authority.to_account_info(),
+            destination: ctx.accounts.platform_vault_token_account.to_account_info(),
             authority: booking.to_account_info(),
         },
         booking_seeds,

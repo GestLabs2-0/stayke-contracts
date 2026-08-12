@@ -8,5 +8,6 @@
 
 export * from "./booking";
 export * from "./bookingDays";
+export * from "./cpiAuthority";
 export * from "./escrowConfig";
 export * from "./escrowTokenAccount";

@@ -1,10 +1,10 @@
-use anchor_lang::prelude::*;
-
 use crate::{
     error::EscrowError,
     events::BookingStatusUpdated,
     state::{Booking, BookingStatus},
 };
+use anchor_lang::prelude::*;
+use stayke_config::{assert_cpi_authority, AllowedCaller, GlobalConfig, GLOBAL_CONFIG_SEED};
 
 // ---------------------------------------------------------------------------
 // CPI Endpoint: Set Booking Status (Used by stayke-disputes)
@@ -12,6 +12,13 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct UpdateBookingStatusCpi<'info> {
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID,
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
+
     #[account(
         mut,
         // Since it's a CPI from stayke-disputes, any caller can technically invoke it.
@@ -22,13 +29,19 @@ pub struct UpdateBookingStatusCpi<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    pub authority: Signer<'info>, // could be the admin or user from the dispute context
+    pub cpi_authority: Signer<'info>, // could be the admin or user from the dispute context
 }
 
 pub fn handler_cpi_update_booking_status(
     ctx: Context<UpdateBookingStatusCpi>,
     status: BookingStatus,
 ) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Disputes],
+    )?;
+
     let booking = &mut ctx.accounts.booking;
 
     // Optional safety checks depending on transition logic:

@@ -1,11 +1,12 @@
 use anchor_lang::prelude::*;
+use stayke_config::{
+    cpi_authority::{assert_cpi_authority, AllowedCaller},
+    GlobalConfig, GLOBAL_CONFIG_SEED,
+};
 
 use crate::{
     PenaltySeverity, ReputationProfile, UserProfile, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
 };
-
-// TODO: enforce security. We don't allow modifications from other contracts unless we secure them beforehand
-// I think the best way to handle this all is by creating a global contract
 
 #[derive(Accounts)]
 pub struct UpdateUserProfile<'info> {
@@ -13,13 +14,19 @@ pub struct UpdateUserProfile<'info> {
         mut,
         seeds = [USER_PROFILE_SEED.as_bytes(), user_profile.authority.key().as_ref()],
         bump = user_profile.bump,
-        // NOTE: the `authority` here can be either the user's wallet (direct call)
-        // or a trusted PDA from another Stayke program (CPI call).
-        // Callers are responsible for checking ownership before invoking.
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    pub authority: Signer<'info>,
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
+    /// CPI authority PDA of an allowlisted Stayke program.
+    pub cpi_authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -31,20 +38,32 @@ pub struct UpdateReputationProfile<'info> {
     )]
     pub reputation_profile: Account<'info, ReputationProfile>,
 
-    pub authority: Signer<'info>, // Often will be a PDA of an escrow/dispute contract rather than the user
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        seeds::program = stayke_config::ID,
+        bump = global_config.bump,
+        constraint = global_config.is_initialized,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
+    pub cpi_authority: Signer<'info>,
 }
 
-// These functions abstract the logic that would normally be called by CPI from a Treasury/Escrow program.
 pub fn handler_update_deposit(
     ctx: Context<UpdateUserProfile>,
     amount: u64,
     is_deposit: bool,
 ) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Treasury, AllowedCaller::Disputes],
+    )?;
+
     let user_profile = &mut ctx.accounts.user_profile;
 
     if is_deposit {
         user_profile.deposited = user_profile.deposited.saturating_add(amount);
-        // user_profile.deposit_timestamp = Clock::get()?.unix_timestamp;
     } else {
         user_profile.deposited = user_profile.deposited.saturating_sub(amount);
     }
@@ -53,6 +72,12 @@ pub fn handler_update_deposit(
 }
 
 pub fn handler_clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Disputes],
+    )?;
+
     let user_profile = &mut ctx.accounts.user_profile;
     user_profile.active_booking = None;
     Ok(())
@@ -62,6 +87,12 @@ pub fn handler_add_infraction(
     ctx: Context<UpdateReputationProfile>,
     severity: PenaltySeverity,
 ) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Disputes],
+    )?;
+
     let reputation_profile = &mut ctx.accounts.reputation_profile;
 
     match severity {

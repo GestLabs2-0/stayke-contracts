@@ -1,11 +1,10 @@
 use anchor_lang::prelude::*;
 use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
 
-use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 
-use crate::EscrowConfig;
 use crate::{
-    constants::{BOOKING_SEED, ESCROW_CONFIG_SEED},
+    constants::BOOKING_SEED,
     error::EscrowError,
     events::BookingStatusUpdated,
     state::{Booking, BookingStatus},
@@ -46,12 +45,8 @@ pub struct HostAcceptBooking<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
-        constraint = escrow_config.global_config == global_config.key() @ StaykeConfigError::InvalidGlobalConfig,
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
-
-    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, EscrowConfig>>,
 }
 
 pub fn handler_host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {

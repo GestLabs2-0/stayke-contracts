@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -36,7 +37,11 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda } from "../pdas";
+import {
+  findConfigPda,
+  findCpiAuthorityPda,
+  findTreasuryConfigPda,
+} from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 import {
   getPenaltySeverityDecoder,
@@ -69,6 +74,7 @@ export type PenalizeUserInstruction<
   TAccountTreasuryVault extends string | AccountMeta<string> = string,
   TAccountTreasuryPda extends string | AccountMeta<string> = string,
   TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TAccountStaykeTreasuryProgram extends string | AccountMeta<string> =
@@ -114,6 +120,9 @@ export type PenalizeUserInstruction<
       TAccountUsdcMint extends string
         ? WritableAccount<TAccountUsdcMint>
         : TAccountUsdcMint,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountStaykeCoreProgram extends string
         ? ReadonlyAccount<TAccountStaykeCoreProgram>
         : TAccountStaykeCoreProgram,
@@ -173,26 +182,23 @@ export type PenalizeUserAsyncInput<
   TAccountTreasuryVault extends string = string,
   TAccountTreasuryPda extends string = string,
   TAccountUsdcMint extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
   TAccountStaykeTreasuryProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
   config?: Address<TAccountConfig>;
-  /** The offending user's UserProfile (requires stayke-core CPI to mutate deposit). */
   penalizedUserProfile: Address<TAccountPenalizedUserProfile>;
-  /** The offending user's ReputationProfile (requires stayke-core CPI to mutate infractions). */
   penalizedReputationProfile: Address<TAccountPenalizedReputationProfile>;
-  /** The affected user's USDC account to receive the retribution. */
   affectedTokenAccount: Address<TAccountAffectedTokenAccount>;
   affectedWallet: Address<TAccountAffectedWallet>;
-  /** The treasury program config. */
-  treasuryConfig: Address<TAccountTreasuryConfig>;
-  globalConfig: Address<TAccountGlobalConfig>;
-  /** The global treasury vault from stayke-treasury. */
+  treasuryConfig?: Address<TAccountTreasuryConfig>;
+  globalConfig?: Address<TAccountGlobalConfig>;
   treasuryVault: Address<TAccountTreasuryVault>;
   treasuryPda: Address<TAccountTreasuryPda>;
   usdcMint: Address<TAccountUsdcMint>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   staykeTreasuryProgram?: Address<TAccountStaykeTreasuryProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -211,6 +217,7 @@ export async function getPenalizeUserInstructionAsync<
   TAccountTreasuryVault extends string,
   TAccountTreasuryPda extends string,
   TAccountUsdcMint extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TAccountStaykeTreasuryProgram extends string,
   TAccountTokenProgram extends string,
@@ -228,6 +235,7 @@ export async function getPenalizeUserInstructionAsync<
     TAccountTreasuryVault,
     TAccountTreasuryPda,
     TAccountUsdcMint,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram,
     TAccountStaykeTreasuryProgram,
     TAccountTokenProgram
@@ -247,6 +255,7 @@ export async function getPenalizeUserInstructionAsync<
     TAccountTreasuryVault,
     TAccountTreasuryPda,
     TAccountUsdcMint,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram,
     TAccountStaykeTreasuryProgram,
     TAccountTokenProgram
@@ -278,6 +287,7 @@ export async function getPenalizeUserInstructionAsync<
     treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
     treasuryPda: { value: input.treasuryPda ?? null, isWritable: false },
     usdcMint: { value: input.usdcMint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -299,6 +309,25 @@ export async function getPenalizeUserInstructionAsync<
   // Resolve default values.
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
+  }
+  if (!accounts.treasuryConfig.value) {
+    accounts.treasuryConfig.value = await findTreasuryConfigPda();
+  }
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW" as Address<"2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
   }
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
@@ -330,6 +359,7 @@ export async function getPenalizeUserInstructionAsync<
       getAccountMeta("treasuryVault", accounts.treasuryVault),
       getAccountMeta("treasuryPda", accounts.treasuryPda),
       getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("staykeTreasuryProgram", accounts.staykeTreasuryProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
@@ -351,6 +381,7 @@ export async function getPenalizeUserInstructionAsync<
     TAccountTreasuryVault,
     TAccountTreasuryPda,
     TAccountUsdcMint,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram,
     TAccountStaykeTreasuryProgram,
     TAccountTokenProgram
@@ -369,26 +400,23 @@ export type PenalizeUserInput<
   TAccountTreasuryVault extends string = string,
   TAccountTreasuryPda extends string = string,
   TAccountUsdcMint extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
   TAccountStaykeTreasuryProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
   config: Address<TAccountConfig>;
-  /** The offending user's UserProfile (requires stayke-core CPI to mutate deposit). */
   penalizedUserProfile: Address<TAccountPenalizedUserProfile>;
-  /** The offending user's ReputationProfile (requires stayke-core CPI to mutate infractions). */
   penalizedReputationProfile: Address<TAccountPenalizedReputationProfile>;
-  /** The affected user's USDC account to receive the retribution. */
   affectedTokenAccount: Address<TAccountAffectedTokenAccount>;
   affectedWallet: Address<TAccountAffectedWallet>;
-  /** The treasury program config. */
   treasuryConfig: Address<TAccountTreasuryConfig>;
   globalConfig: Address<TAccountGlobalConfig>;
-  /** The global treasury vault from stayke-treasury. */
   treasuryVault: Address<TAccountTreasuryVault>;
   treasuryPda: Address<TAccountTreasuryPda>;
   usdcMint: Address<TAccountUsdcMint>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   staykeTreasuryProgram?: Address<TAccountStaykeTreasuryProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -407,6 +435,7 @@ export function getPenalizeUserInstruction<
   TAccountTreasuryVault extends string,
   TAccountTreasuryPda extends string,
   TAccountUsdcMint extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TAccountStaykeTreasuryProgram extends string,
   TAccountTokenProgram extends string,
@@ -424,6 +453,7 @@ export function getPenalizeUserInstruction<
     TAccountTreasuryVault,
     TAccountTreasuryPda,
     TAccountUsdcMint,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram,
     TAccountStaykeTreasuryProgram,
     TAccountTokenProgram
@@ -442,6 +472,7 @@ export function getPenalizeUserInstruction<
   TAccountTreasuryVault,
   TAccountTreasuryPda,
   TAccountUsdcMint,
+  TAccountCpiAuthority,
   TAccountStaykeCoreProgram,
   TAccountStaykeTreasuryProgram,
   TAccountTokenProgram
@@ -472,6 +503,7 @@ export function getPenalizeUserInstruction<
     treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
     treasuryPda: { value: input.treasuryPda ?? null, isWritable: false },
     usdcMint: { value: input.usdcMint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -521,6 +553,7 @@ export function getPenalizeUserInstruction<
       getAccountMeta("treasuryVault", accounts.treasuryVault),
       getAccountMeta("treasuryPda", accounts.treasuryPda),
       getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("staykeTreasuryProgram", accounts.staykeTreasuryProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
@@ -542,6 +575,7 @@ export function getPenalizeUserInstruction<
     TAccountTreasuryVault,
     TAccountTreasuryPda,
     TAccountUsdcMint,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram,
     TAccountStaykeTreasuryProgram,
     TAccountTokenProgram
@@ -556,23 +590,19 @@ export type ParsedPenalizeUserInstruction<
   accounts: {
     admin: TAccountMetas[0];
     config: TAccountMetas[1];
-    /** The offending user's UserProfile (requires stayke-core CPI to mutate deposit). */
     penalizedUserProfile: TAccountMetas[2];
-    /** The offending user's ReputationProfile (requires stayke-core CPI to mutate infractions). */
     penalizedReputationProfile: TAccountMetas[3];
-    /** The affected user's USDC account to receive the retribution. */
     affectedTokenAccount: TAccountMetas[4];
     affectedWallet: TAccountMetas[5];
-    /** The treasury program config. */
     treasuryConfig: TAccountMetas[6];
     globalConfig: TAccountMetas[7];
-    /** The global treasury vault from stayke-treasury. */
     treasuryVault: TAccountMetas[8];
     treasuryPda: TAccountMetas[9];
     usdcMint: TAccountMetas[10];
-    staykeCoreProgram: TAccountMetas[11];
-    staykeTreasuryProgram: TAccountMetas[12];
-    tokenProgram: TAccountMetas[13];
+    cpiAuthority: TAccountMetas[11];
+    staykeCoreProgram: TAccountMetas[12];
+    staykeTreasuryProgram: TAccountMetas[13];
+    tokenProgram: TAccountMetas[14];
   };
   data: PenalizeUserInstructionData;
 };
@@ -585,12 +615,12 @@ export function parsePenalizeUserInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPenalizeUserInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 15) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 15,
       },
     );
   }
@@ -614,6 +644,7 @@ export function parsePenalizeUserInstruction<
       treasuryVault: getNextAccount(),
       treasuryPda: getNextAccount(),
       usdcMint: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
       staykeTreasuryProgram: getNextAccount(),
       tokenProgram: getNextAccount(),

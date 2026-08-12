@@ -1,9 +1,5 @@
 use anchor_lang::prelude::*;
 
-// TODO: add stayke contracts to Global Config
-// The purpose is to have a single source of truth for all the stayke contracts, so
-// whenever we make any CPI call to any of the stayke contracts we can be sure that the signer is correct and we don't have to hardcode any addresses in the code.
-
 #[account]
 #[derive(InitSpace)]
 pub struct GlobalConfig {
@@ -17,10 +13,22 @@ pub struct GlobalConfig {
 
     pub is_initialized: bool,
 
+    /// Max operations with no stake before asking user for the stake to keep operating
+    pub max_operations: u8,
+
     /// Platform fee vault token account.
     pub platform_vault: Pubkey,
     /// Bump of the platform vault authority PDA.
     pub platform_vault_bump: u8,
+
+    /// Stayke core program ID (CPI allowlist SoT).
+    pub core_program: Pubkey,
+    /// Stayke escrow program ID (CPI allowlist SoT).
+    pub escrow_program: Pubkey,
+    /// Stayke disputes program ID (CPI allowlist SoT).
+    pub disputes_program: Pubkey,
+    /// Stayke treasury program ID (CPI allowlist SoT).
+    pub treasury_program: Pubkey,
 
     pub bump: u8,
 }

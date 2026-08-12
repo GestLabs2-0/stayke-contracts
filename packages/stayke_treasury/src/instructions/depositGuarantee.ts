@@ -40,7 +40,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findUserProfilePda } from "../pdas";
+import {
+  findConfigPda,
+  findCpiAuthorityPda,
+  findUserProfilePda,
+} from "../pdas";
 import { STAYKE_TREASURY_PROGRAM_ADDRESS } from "../programs";
 
 export const DEPOSIT_GUARANTEE_DISCRIMINATOR: ReadonlyUint8Array =
@@ -63,6 +67,7 @@ export type DepositGuaranteeInstruction<
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountUserProfile extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -95,6 +100,9 @@ export type DepositGuaranteeInstruction<
       TAccountUserProfile extends string
         ? WritableAccount<TAccountUserProfile>
         : TAccountUserProfile,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
       TAccountStaykeCoreProgram extends string
         ? ReadonlyAccount<TAccountStaykeCoreProgram>
         : TAccountStaykeCoreProgram,
@@ -145,19 +153,18 @@ export type DepositGuaranteeAsyncInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountUserProfile extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   config?: Address<TAccountConfig>;
   globalConfig?: Address<TAccountGlobalConfig>;
-  /** Source: the user's own USDC token account. */
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  /** Destination: the treasury vault (must match config). */
   treasuryVault: Address<TAccountTreasuryVault>;
   usdcMint: Address<TAccountUsdcMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  /** The user's UserProfile PDA in stayke-core — will be mutated via CPI. */
   userProfile?: Address<TAccountUserProfile>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   amount: DepositGuaranteeInstructionDataArgs["amount"];
 };
@@ -171,6 +178,7 @@ export async function getDepositGuaranteeInstructionAsync<
   TAccountUsdcMint extends string,
   TAccountTokenProgram extends string,
   TAccountUserProfile extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
@@ -183,6 +191,7 @@ export async function getDepositGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -197,6 +206,7 @@ export async function getDepositGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >
 > {
@@ -217,6 +227,7 @@ export async function getDepositGuaranteeInstructionAsync<
     usdcMint: { value: input.usdcMint ?? null, isWritable: false },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -259,6 +270,9 @@ export async function getDepositGuaranteeInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
       "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
@@ -275,6 +289,7 @@ export async function getDepositGuaranteeInstructionAsync<
       getAccountMeta("usdcMint", accounts.usdcMint),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getDepositGuaranteeInstructionDataEncoder().encode(
@@ -291,6 +306,7 @@ export async function getDepositGuaranteeInstructionAsync<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -304,19 +320,18 @@ export type DepositGuaranteeInput<
   TAccountUsdcMint extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountUserProfile extends string = string,
+  TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
   signer: TransactionSigner<TAccountSigner>;
   config: Address<TAccountConfig>;
   globalConfig: Address<TAccountGlobalConfig>;
-  /** Source: the user's own USDC token account. */
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  /** Destination: the treasury vault (must match config). */
   treasuryVault: Address<TAccountTreasuryVault>;
   usdcMint: Address<TAccountUsdcMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  /** The user's UserProfile PDA in stayke-core — will be mutated via CPI. */
   userProfile: Address<TAccountUserProfile>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   amount: DepositGuaranteeInstructionDataArgs["amount"];
 };
@@ -330,6 +345,7 @@ export function getDepositGuaranteeInstruction<
   TAccountUsdcMint extends string,
   TAccountTokenProgram extends string,
   TAccountUserProfile extends string,
+  TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_TREASURY_PROGRAM_ADDRESS,
 >(
@@ -342,6 +358,7 @@ export function getDepositGuaranteeInstruction<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -355,6 +372,7 @@ export function getDepositGuaranteeInstruction<
   TAccountUsdcMint,
   TAccountTokenProgram,
   TAccountUserProfile,
+  TAccountCpiAuthority,
   TAccountStaykeCoreProgram
 > {
   // Program address.
@@ -374,6 +392,7 @@ export function getDepositGuaranteeInstruction<
     usdcMint: { value: input.usdcMint ?? null, isWritable: false },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     userProfile: { value: input.userProfile ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
       isWritable: false,
@@ -408,6 +427,7 @@ export function getDepositGuaranteeInstruction<
       getAccountMeta("usdcMint", accounts.usdcMint),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("userProfile", accounts.userProfile),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
     data: getDepositGuaranteeInstructionDataEncoder().encode(
@@ -424,6 +444,7 @@ export function getDepositGuaranteeInstruction<
     TAccountUsdcMint,
     TAccountTokenProgram,
     TAccountUserProfile,
+    TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
@@ -437,15 +458,13 @@ export type ParsedDepositGuaranteeInstruction<
     signer: TAccountMetas[0];
     config: TAccountMetas[1];
     globalConfig: TAccountMetas[2];
-    /** Source: the user's own USDC token account. */
     senderTokenAccount: TAccountMetas[3];
-    /** Destination: the treasury vault (must match config). */
     treasuryVault: TAccountMetas[4];
     usdcMint: TAccountMetas[5];
     tokenProgram: TAccountMetas[6];
-    /** The user's UserProfile PDA in stayke-core — will be mutated via CPI. */
     userProfile: TAccountMetas[7];
-    staykeCoreProgram: TAccountMetas[8];
+    cpiAuthority: TAccountMetas[8];
+    staykeCoreProgram: TAccountMetas[9];
   };
   data: DepositGuaranteeInstructionData;
 };
@@ -458,12 +477,12 @@ export function parseDepositGuaranteeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedDepositGuaranteeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -484,6 +503,7 @@ export function parseDepositGuaranteeInstruction<
       usdcMint: getNextAccount(),
       tokenProgram: getNextAccount(),
       userProfile: getNextAccount(),
+      cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
     },
     data: getDepositGuaranteeInstructionDataDecoder().decode(instruction.data),

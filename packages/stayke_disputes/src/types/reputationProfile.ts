@@ -34,10 +34,6 @@ export type ReputationProfile = {
   clientReviews: number;
   /** Total score from reviews (e.g., sum of ratings) */
   totalScoreClient: bigint;
-  /** Number of stays hosted */
-  hostedStays: number;
-  /** Number of stays completed as a guest */
-  completedStays: number;
   /** Number of cancellations as host */
   hostCancellations: number;
   /** Number of cancellations as client */
@@ -65,10 +61,6 @@ export type ReputationProfileArgs = {
   clientReviews: number;
   /** Total score from reviews (e.g., sum of ratings) */
   totalScoreClient: number | bigint;
-  /** Number of stays hosted */
-  hostedStays: number;
-  /** Number of stays completed as a guest */
-  completedStays: number;
   /** Number of cancellations as host */
   hostCancellations: number;
   /** Number of cancellations as client */
@@ -93,8 +85,6 @@ export function getReputationProfileEncoder(): FixedSizeEncoder<ReputationProfil
     ["totalScoreHost", getU64Encoder()],
     ["clientReviews", getU32Encoder()],
     ["totalScoreClient", getU64Encoder()],
-    ["hostedStays", getU32Encoder()],
-    ["completedStays", getU32Encoder()],
     ["hostCancellations", getU32Encoder()],
     ["clientCancellations", getU32Encoder()],
     ["hostCancellationsWithin48h", getU32Encoder()],
@@ -113,8 +103,6 @@ export function getReputationProfileDecoder(): FixedSizeDecoder<ReputationProfil
     ["totalScoreHost", getU64Decoder()],
     ["clientReviews", getU32Decoder()],
     ["totalScoreClient", getU64Decoder()],
-    ["hostedStays", getU32Decoder()],
-    ["completedStays", getU32Decoder()],
     ["hostCancellations", getU32Decoder()],
     ["clientCancellations", getU32Decoder()],
     ["hostCancellationsWithin48h", getU32Decoder()],

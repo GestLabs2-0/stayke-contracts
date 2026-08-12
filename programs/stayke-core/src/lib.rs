@@ -28,11 +28,14 @@ pub mod stayke_core {
         ctx: Context<InitializeListing>,
         price: u64,
         listing_id: u16,
+
+        state_hash: [u8; 32],
+        content_ref: [u8; 32],
     ) -> Result<()> {
-        handler_initialize_listing(ctx, price, listing_id)
+        handler_initialize_listing(ctx, price, listing_id, state_hash, content_ref)
     }
     // ---------------------------------------------------------------------------
-    // User profile mutations — callable directly or via CPI
+    // Privileged CPI mutators — require `cpi_authority` PDA signer + GlobalConfig allowlist
     // ---------------------------------------------------------------------------
 
     pub fn update_deposit(
@@ -58,6 +61,14 @@ pub mod stayke_core {
         handle_clear_listing_booking(ctx)
     }
 
+    pub fn set_listing_occupied(ctx: Context<SetListingOccupied>, occupied: bool) -> Result<()> {
+        handler_set_listing_occupied(ctx, occupied)
+    }
+
+    pub fn update_host_review(ctx: Context<UpdateHostReview>, score: u8) -> Result<()> {
+        handler_update_host_review(ctx, score)
+    }
+
     // --------------------------------------------------------------------------
     // Identity Verification
     // ------------------------------------------------------------------------
@@ -68,5 +79,25 @@ pub mod stayke_core {
 
     pub fn init_identity(ctx: Context<InitIdentity>, _id: [u8; 32]) -> Result<()> {
         handler_init_identity(ctx)
+    }
+
+    //-----------------------------------------------------------
+    // Listing mutators
+    //----------------------------------------------------------
+
+    pub fn update_listing_state(
+        ctx: Context<UpdateListing>,
+        state: [u8; 32],
+        content_ref: [u8; 32],
+    ) -> Result<()> {
+        handler_update_listing_state(ctx, state, content_ref)
+    }
+
+    pub fn update_listing_price(ctx: Context<UpdateListing>, price: u64) -> Result<()> {
+        handler_update_listing_price(ctx, price)
+    }
+
+    pub fn update_listing_publish(ctx: Context<UpdateListing>, active: bool) -> Result<()> {
+        handler_update_listing_publish(ctx, active)
     }
 }

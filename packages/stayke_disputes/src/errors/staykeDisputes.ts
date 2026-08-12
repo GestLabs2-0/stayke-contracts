@@ -32,10 +32,14 @@ export const STAYKE_DISPUTES_ERROR__BOOKING_NOT_ACTIVE = 0x1776; // 6006
 export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN = 0x1777; // 6007
 /** InvalidFeeBps: Invalid configuration */
 export const STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS = 0x1778; // 6008
+/** UnlinkedTreasuryConfig: Treasury config is not linked to the provided global config */
+export const STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG = 0x1779; // 6009
+/** InvalidTokenMint: Token mint does not match GlobalConfig.usdc_mint */
+export const STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT = 0x177a; // 6010
 /** UserBanned: User is banned */
-export const STAYKE_DISPUTES_ERROR__USER_BANNED = 0x1779; // 6009
+export const STAYKE_DISPUTES_ERROR__USER_BANNED = 0x177b; // 6011
 /** UserNotVerified: User is not verified */
-export const STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED = 0x177a; // 6010
+export const STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED = 0x177c; // 6012
 
 export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND
@@ -44,9 +48,11 @@ export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF
   | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN
   | typeof STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS
+  | typeof STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR
+  | typeof STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG
   | typeof STAYKE_DISPUTES_ERROR__USER_BANNED
   | typeof STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED;
 
@@ -61,9 +67,11 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF]: `Cannot remove yourself as admin`,
     [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN]: `Dispute is already resolved or rejected`,
     [STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS]: `Invalid configuration`,
+    [STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT]: `Token mint does not match GlobalConfig.usdc_mint`,
     [STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED]: `Max admins reached`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR]: `Only the guest or host can open a dispute`,
+    [STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG]: `Treasury config is not linked to the provided global config`,
     [STAYKE_DISPUTES_ERROR__USER_BANNED]: `User is banned`,
     [STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED]: `User is not verified`,
   };

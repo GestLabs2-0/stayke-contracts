@@ -35,7 +35,6 @@ pub fn handler_initialize_config_escrow(ctx: Context<InitializeConfigEscrow>) ->
     let config = &mut ctx.accounts.escrow_config;
     config.authority = ctx.accounts.authority.key();
     config.is_initialized = true;
-    config.global_config = ctx.accounts.global_config.key();
     config.bump = ctx.bumps.escrow_config;
 
     Ok(())

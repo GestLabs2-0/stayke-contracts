@@ -18,6 +18,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -47,6 +49,10 @@ export type UserProfile = {
   banned: boolean;
   /** Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user. */
   listings: number;
+  /** Number of stays hosted */
+  hostedStays: number;
+  /** Number of stays completed as a guest */
+  completedStays: number;
   bump: number;
 };
 
@@ -66,6 +72,10 @@ export type UserProfileArgs = {
   banned: boolean;
   /** Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user. */
   listings: number;
+  /** Number of stays hosted */
+  hostedStays: number;
+  /** Number of stays completed as a guest */
+  completedStays: number;
   bump: number;
 };
 
@@ -79,6 +89,8 @@ export function getUserProfileEncoder(): Encoder<UserProfileArgs> {
     ["staked", getU64Encoder()],
     ["banned", getBooleanEncoder()],
     ["listings", getU16Encoder()],
+    ["hostedStays", getU32Encoder()],
+    ["completedStays", getU32Encoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -93,6 +105,8 @@ export function getUserProfileDecoder(): Decoder<UserProfile> {
     ["staked", getU64Decoder()],
     ["banned", getBooleanDecoder()],
     ["listings", getU16Decoder()],
+    ["hostedStays", getU32Decoder()],
+    ["completedStays", getU32Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

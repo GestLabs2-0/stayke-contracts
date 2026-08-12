@@ -1,22 +1,27 @@
 {
   "name": "@GestLabs2-0/stayke-disputes",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "./dist/index.cjs",
   "types": "dist/index.d.ts",
   "files": [
     "./dist"
   ],
-
-"scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsup src/index.ts --format esm --dts --clean"
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "keywords": [],

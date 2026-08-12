@@ -19,6 +19,11 @@ pub struct UserProfile {
     pub banned: bool,
     /// Counter for the amount of listings that the user has created, this is used to generate the listing_id for each listing created by the user.
     pub listings: u16,
+    /// Number of stays hosted
+    pub hosted_stays: u32,
+    /// Number of stays completed as a guest
+    pub completed_stays: u32,
+
     pub bump: u8,
 }
 
@@ -36,10 +41,6 @@ pub struct ReputationProfile {
     pub client_reviews: u32,
     /// Total score from reviews (e.g., sum of ratings)
     pub total_score_client: u64,
-    /// Number of stays hosted
-    pub hosted_stays: u32,
-    /// Number of stays completed as a guest
-    pub completed_stays: u32,
     /// Number of cancellations as host
     pub host_cancellations: u32,
     /// Number of cancellations as client
