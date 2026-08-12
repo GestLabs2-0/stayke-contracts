@@ -36,7 +36,9 @@ pub struct ClientAcceptReserve<'info> {
         constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
-        constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (client_profile.completed_stays + client_profile.hosted_stays) < global_config.free_ops as u32
+            || client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Box<Account<'info, UserProfile>>,
 

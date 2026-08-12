@@ -22,9 +22,9 @@ pub mod stayke_config {
         ctx: Context<InitializeConfig>,
         minimum_deposit: u64,
         fee_bps: u64,
-        max_operations: u8,
+        free_ops: u8,
     ) -> Result<()> {
-        handler_initialize_config(ctx, minimum_deposit, fee_bps, max_operations)
+        handler_initialize_config(ctx, minimum_deposit, fee_bps, free_ops)
     }
 
     pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {

@@ -13,8 +13,8 @@ pub struct GlobalConfig {
 
     pub is_initialized: bool,
 
-    /// Max operations with no stake before asking user for the stake to keep operating
-    pub max_operations: u8,
+    /// Free operations before deposit is required
+    pub free_ops: u8,
 
     /// Platform fee vault token account.
     pub platform_vault: Pubkey,

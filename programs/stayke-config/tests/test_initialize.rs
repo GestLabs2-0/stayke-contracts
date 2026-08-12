@@ -19,7 +19,7 @@ const FEE_BPS: u64 = 500;
 const TOKEN_PROGRAM_ID: Pubkey =
     Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const MINT_LEN: usize = 82;
-const MAX_OPERATIONS: u8 = 4;
+const FREE_OPS: u8 = 4;
 
 /// Pack a classic SPL Token Mint account (no spl-token crate — avoids entrypoint clash).
 fn pack_mint(mint_authority: &Pubkey, decimals: u8) -> Vec<u8> {
@@ -81,7 +81,7 @@ fn test_initialize_config_persists_program_ids() {
         &stayke_config::instruction::InitializeConfig {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
-            max_operations: MAX_OPERATIONS,
+            free_ops: FREE_OPS,
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -144,7 +144,7 @@ fn test_no_migrate_instruction_surface() {
     let ix = stayke_config::instruction::InitializeConfig {
         minimum_deposit: 1,
         fee_bps: 1,
-        max_operations: 1,
+        free_ops: 1,
     };
     assert!(!ix.data().is_empty());
 }

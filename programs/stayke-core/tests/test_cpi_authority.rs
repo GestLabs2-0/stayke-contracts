@@ -33,7 +33,7 @@ fn sample_global_config(bump: u8) -> GlobalConfig {
         escrow_program: program_pubkey("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"),
         disputes_program: program_pubkey("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"),
         treasury_program: program_pubkey("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"),
-        max_operations: 4,
+        free_ops: 4,
         bump,
     }
 }

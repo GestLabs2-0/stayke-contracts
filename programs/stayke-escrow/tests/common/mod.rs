@@ -41,7 +41,7 @@ pub fn setup_global_config(svm: &mut LiteSVM, escrow_program: Pubkey) -> Pubkey 
 
     let gc = config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
-        max_operations: 4,
+        free_ops: 4,
         minimum_deposit: 0, // zero so minimum deposit doesn't block
         fee_bps: 200,
         usdc_mint: Pubkey::new_unique(),

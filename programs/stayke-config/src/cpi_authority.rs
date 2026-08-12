@@ -81,7 +81,7 @@ mod tests {
             escrow_program: escrow,
             disputes_program: disputes,
             treasury_program: treasury,
-            max_operations: 0,
+            free_ops: 0,
             bump: 255,
         }
     }
