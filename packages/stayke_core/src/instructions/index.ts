@@ -9,6 +9,7 @@
 export * from "./addInfraction";
 export * from "./clearActiveBooking";
 export * from "./clearListingBooking";
+export * from "./incrementCompletedStays";
 export * from "./initializeConfig";
 export * from "./initializeListing";
 export * from "./initializeUserProfile";

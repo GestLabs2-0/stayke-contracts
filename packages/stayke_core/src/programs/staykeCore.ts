@@ -54,6 +54,7 @@ import {
   getAddInfractionInstructionAsync,
   getClearActiveBookingInstructionAsync,
   getClearListingBookingInstructionAsync,
+  getIncrementCompletedStaysInstructionAsync,
   getInitializeConfigInstructionAsync,
   getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
@@ -68,6 +69,7 @@ import {
   parseAddInfractionInstruction,
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
+  parseIncrementCompletedStaysInstruction,
   parseInitializeConfigInstruction,
   parseInitializeListingInstruction,
   parseInitializeUserProfileInstruction,
@@ -82,6 +84,7 @@ import {
   type AddInfractionAsyncInput,
   type ClearActiveBookingAsyncInput,
   type ClearListingBookingAsyncInput,
+  type IncrementCompletedStaysAsyncInput,
   type InitializeConfigAsyncInput,
   type InitializeListingAsyncInput,
   type InitializeUserProfileAsyncInput,
@@ -90,6 +93,7 @@ import {
   type ParsedAddInfractionInstruction,
   type ParsedClearActiveBookingInstruction,
   type ParsedClearListingBookingInstruction,
+  type ParsedIncrementCompletedStaysInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeListingInstruction,
   type ParsedInitializeUserProfileInstruction,
@@ -196,6 +200,7 @@ export enum StaykeCoreInstruction {
   AddInfraction,
   ClearActiveBooking,
   ClearListingBooking,
+  IncrementCompletedStays,
   InitIdentity,
   InitializeConfig,
   InitializeListing,
@@ -245,6 +250,17 @@ export function identifyStaykeCoreInstruction(
     )
   ) {
     return StaykeCoreInstruction.ClearListingBooking;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([102, 201, 242, 138, 153, 52, 255, 41]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.IncrementCompletedStays;
   }
   if (
     containsBytes(
@@ -386,6 +402,9 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.ClearListingBooking;
     } & ParsedClearListingBookingInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.IncrementCompletedStays;
+    } & ParsedIncrementCompletedStaysInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.InitIdentity;
     } & ParsedInitIdentityInstruction<TProgram>)
   | ({
@@ -443,6 +462,13 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
       return {
         instructionType: StaykeCoreInstruction.ClearListingBooking,
         ...parseClearListingBookingInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.IncrementCompletedStays: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.IncrementCompletedStays,
+        ...parseIncrementCompletedStaysInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.InitIdentity: {
@@ -565,6 +591,10 @@ export type StaykeCorePluginInstructions = {
     input: ClearListingBookingAsyncInput,
   ) => ReturnType<typeof getClearListingBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
+  incrementCompletedStays: (
+    input: IncrementCompletedStaysAsyncInput,
+  ) => ReturnType<typeof getIncrementCompletedStaysInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initIdentity: (
     input: MakeOptional<InitIdentityAsyncInput, "payer">,
   ) => ReturnType<typeof getInitIdentityInstructionAsync> &
@@ -657,6 +687,11 @@ export function staykeCoreProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getClearListingBookingInstructionAsync(input),
+            ),
+          incrementCompletedStays: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getIncrementCompletedStaysInstructionAsync(input),
             ),
           initIdentity: (input) =>
             addSelfPlanAndSendFunctions(

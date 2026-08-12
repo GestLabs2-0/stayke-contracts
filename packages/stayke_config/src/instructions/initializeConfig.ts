@@ -102,13 +102,13 @@ export type InitializeConfigInstructionData = {
   discriminator: ReadonlyUint8Array;
   minimumDeposit: bigint;
   feeBps: bigint;
-  maxOperations: number;
+  freeOps: number;
 };
 
 export type InitializeConfigInstructionDataArgs = {
   minimumDeposit: number | bigint;
   feeBps: number | bigint;
-  maxOperations: number;
+  freeOps: number;
 };
 
 export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<InitializeConfigInstructionDataArgs> {
@@ -117,7 +117,7 @@ export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<In
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["minimumDeposit", getU64Encoder()],
       ["feeBps", getU64Encoder()],
-      ["maxOperations", getU8Encoder()],
+      ["freeOps", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_CONFIG_DISCRIMINATOR }),
   );
@@ -128,7 +128,7 @@ export function getInitializeConfigInstructionDataDecoder(): FixedSizeDecoder<In
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["minimumDeposit", getU64Decoder()],
     ["feeBps", getU64Decoder()],
-    ["maxOperations", getU8Decoder()],
+    ["freeOps", getU8Decoder()],
   ]);
 }
 
@@ -160,7 +160,7 @@ export type InitializeConfigAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
-  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  freeOps: InitializeConfigInstructionDataArgs["freeOps"];
 };
 
 export async function getInitializeConfigInstructionAsync<
@@ -284,7 +284,7 @@ export type InitializeConfigInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
-  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  freeOps: InitializeConfigInstructionDataArgs["freeOps"];
 };
 
 export function getInitializeConfigInstruction<
