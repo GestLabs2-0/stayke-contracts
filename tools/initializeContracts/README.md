@@ -8,7 +8,7 @@ transacción firmada.
 ## Requisitos previos
 
 - **Node.js** ≥ 18
-- **Yarn** (este proyecto usa Yarn workspaces)
+- **pnpm** (este proyecto usa pnpm workspaces)
 - **Solana CLI** (para generar keypairs y fondear cuentas)
 - Un keypair con SOL suficiente en el cluster destino:
   - devnet: ~0.5 SOL cubre las tres inicializaciones holgadamente
@@ -26,13 +26,13 @@ transacción firmada.
 
 ```bash
 cd tools/initializeContracts
-yarn install
+pnpm install
 ```
 
 ## Uso general
 
 ```bash
-yarn start -- \
+pnpm start -- \
   --program <stayke-core|stayke-config|stayke-treasury> \
   --keypair <ruta/al/keypair.json> \
   [flags globales]
@@ -75,7 +75,7 @@ Ninguno. Solo requiere los [flags globales](#flags-globales).
 ### Ejemplo
 
 ```bash
-yarn start -- \
+pnpm start -- \
   --program stayke-core \
   --keypair ./keypair.json \
   --cluster devnet
@@ -125,7 +125,7 @@ La instrucción `initialize_config` del programa `stayke_config`:
 ### Ejemplo
 
 ```bash
-yarn start -- \
+pnpm start -- \
   --program stayke-config \
   --keypair ./keypair.json \
   --cluster devnet \
@@ -138,7 +138,7 @@ yarn start -- \
 Con program IDs custom (ej: después de redeployar en localnet):
 
 ```bash
-yarn start -- \
+pnpm start -- \
   --program stayke-config \
   --keypair ./keypair.json \
   --cluster devnet \
@@ -165,7 +165,7 @@ almacena la referencia al mint de USDC que usa la tesorería.
 ### Ejemplo
 
 ```bash
-yarn start -- \
+pnpm start -- \
   --program stayke-treasury \
   --keypair ./keypair.json \
   --cluster devnet \
