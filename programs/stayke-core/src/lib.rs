@@ -10,7 +10,7 @@ pub use constants::*;
 pub use instructions::{cpi::*, *};
 pub use state::*;
 
-declare_id!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
+declare_id!("2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm");
 
 #[program]
 pub mod stayke_core {

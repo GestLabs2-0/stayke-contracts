@@ -20,6 +20,14 @@ import {
 import type { SolanaRpcType } from "../connection";
 import { confirmTx } from "../utils";
 
+/** Devnet program IDs from Anchor.toml — used as defaults for the allowed-programs allowlist. */
+const DEVNET_PROGRAMS = {
+  core: "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
+  escrow: "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
+  disputes: "89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt",
+  treasury: "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8",
+} as const;
+
 /**
  * GlobalConfig layout is adopted via wipe/re-init only (no migrate instruction).
  * If an account already exists at the GlobalConfig PDA, refuse and instruct operators
@@ -32,10 +40,20 @@ export async function initializeGlobalConfig(
     mintAddress,
     feeBps,
     minimumDeposit,
+    maxOperations,
+    coreProgram,
+    escrowProgram,
+    disputesProgram,
+    treasuryProgram,
   }: {
     mintAddress?: string;
     feeBps?: number;
     minimumDeposit?: number;
+    maxOperations?: number;
+    coreProgram?: string;
+    escrowProgram?: string;
+    disputesProgram?: string;
+    treasuryProgram?: string;
   },
 ) {
   if (!mintAddress) {
@@ -57,7 +75,12 @@ export async function initializeGlobalConfig(
     globalConfig: configPda[0],
     feeBps: feeBps ?? 500,
     minimumDeposit: minimumDeposit ?? 100000,
+    maxOperations: maxOperations ?? 3,
     usdcMint: address(mintAddress),
+    core: address(coreProgram ?? DEVNET_PROGRAMS.core),
+    escrow: address(escrowProgram ?? DEVNET_PROGRAMS.escrow),
+    disputes: address(disputesProgram ?? DEVNET_PROGRAMS.disputes),
+    treasury: address(treasuryProgram ?? DEVNET_PROGRAMS.treasury),
   });
 
   const { value: latestBlockhash } = await connection

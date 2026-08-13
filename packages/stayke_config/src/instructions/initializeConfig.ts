@@ -10,6 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -103,12 +105,20 @@ export type InitializeConfigInstructionData = {
   minimumDeposit: bigint;
   feeBps: bigint;
   maxOperations: number;
+  core: Address;
+  escrow: Address;
+  disputes: Address;
+  treasury: Address;
 };
 
 export type InitializeConfigInstructionDataArgs = {
   minimumDeposit: number | bigint;
   feeBps: number | bigint;
   maxOperations: number;
+  core: Address;
+  escrow: Address;
+  disputes: Address;
+  treasury: Address;
 };
 
 export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<InitializeConfigInstructionDataArgs> {
@@ -118,6 +128,10 @@ export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<In
       ["minimumDeposit", getU64Encoder()],
       ["feeBps", getU64Encoder()],
       ["maxOperations", getU8Encoder()],
+      ["core", getAddressEncoder()],
+      ["escrow", getAddressEncoder()],
+      ["disputes", getAddressEncoder()],
+      ["treasury", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_CONFIG_DISCRIMINATOR }),
   );
@@ -129,6 +143,10 @@ export function getInitializeConfigInstructionDataDecoder(): FixedSizeDecoder<In
     ["minimumDeposit", getU64Decoder()],
     ["feeBps", getU64Decoder()],
     ["maxOperations", getU8Decoder()],
+    ["core", getAddressDecoder()],
+    ["escrow", getAddressDecoder()],
+    ["disputes", getAddressDecoder()],
+    ["treasury", getAddressDecoder()],
   ]);
 }
 
@@ -161,6 +179,10 @@ export type InitializeConfigAsyncInput<
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
   maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  core: InitializeConfigInstructionDataArgs["core"];
+  escrow: InitializeConfigInstructionDataArgs["escrow"];
+  disputes: InitializeConfigInstructionDataArgs["disputes"];
+  treasury: InitializeConfigInstructionDataArgs["treasury"];
 };
 
 export async function getInitializeConfigInstructionAsync<
@@ -285,6 +307,10 @@ export type InitializeConfigInput<
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
   maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  core: InitializeConfigInstructionDataArgs["core"];
+  escrow: InitializeConfigInstructionDataArgs["escrow"];
+  disputes: InitializeConfigInstructionDataArgs["disputes"];
+  treasury: InitializeConfigInstructionDataArgs["treasury"];
 };
 
 export function getInitializeConfigInstruction<
