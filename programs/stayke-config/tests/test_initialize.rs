@@ -82,6 +82,12 @@ fn test_initialize_config_persists_program_ids() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
+            allowed_programs: stayke_config::AllowedPrograms {
+                core: Pubkey::new_unique(),
+                escrow: Pubkey::new_unique(),
+                disputes: Pubkey::new_unique(),
+                treasury: Pubkey::new_unique(),
+            },
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -145,6 +151,12 @@ fn test_no_migrate_instruction_surface() {
         minimum_deposit: 1,
         fee_bps: 1,
         free_ops: 1,
+        allowed_programs: stayke_config::AllowedPrograms {
+            core: Pubkey::new_unique(),
+            escrow: Pubkey::new_unique(),
+            disputes: Pubkey::new_unique(),
+            treasury: Pubkey::new_unique(),
+        },
     };
     assert!(!ix.data().is_empty());
 }

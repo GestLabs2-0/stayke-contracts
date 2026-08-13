@@ -121,7 +121,7 @@ import {
 } from "../pdas";
 
 export const STAYKE_CORE_PROGRAM_ADDRESS =
-  "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
 
 export enum StaykeCoreAccount {
   ConfigAcc,
@@ -390,7 +390,7 @@ export function identifyStaykeCoreInstruction(
 }
 
 export type ParsedStaykeCoreInstruction<
-  TProgram extends string = "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
+  TProgram extends string = "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
 > =
   | ({
       instructionType: StaykeCoreInstruction.AddInfraction;

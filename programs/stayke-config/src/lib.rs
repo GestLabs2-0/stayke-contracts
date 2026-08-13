@@ -12,7 +12,7 @@ pub use cpi_authority::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW");
+declare_id!("9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT");
 
 #[program]
 pub mod stayke_config {
@@ -23,8 +23,9 @@ pub mod stayke_config {
         minimum_deposit: u64,
         fee_bps: u64,
         free_ops: u8,
+        allowed_programs: AllowedPrograms,
     ) -> Result<()> {
-        handler_initialize_config(ctx, minimum_deposit, fee_bps, free_ops)
+        handler_initialize_config(ctx, minimum_deposit, fee_bps, free_ops, allowed_programs)
     }
 
     pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
