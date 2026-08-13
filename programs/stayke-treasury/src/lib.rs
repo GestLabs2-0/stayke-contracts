@@ -11,7 +11,7 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu");
+declare_id!("HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY");
 
 #[program]
 pub mod stayke_treasury {

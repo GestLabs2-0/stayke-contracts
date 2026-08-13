@@ -5,16 +5,15 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-stayke_config = "2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW"
-stayke_core="8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP"
-stayke_treasury="59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"
-stayke_escrow="FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"
-stayke_disputes="7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"
-
+[programs.devnet]
+stayke_config = "29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4"
+stayke_core = "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm"
+stayke_treasury = "3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8"
+stayke_escrow = "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a"
+stayke_disputes = "89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt"
 
 [provider]
-cluster = "localnet"
+cluster = "https://solana-devnet.g.alchemy.com/v2/RRPxZ9enn2QeJ47Hzs89nngHgfXTYGC0"
 wallet = "./keypair.json"
 
 [scripts]

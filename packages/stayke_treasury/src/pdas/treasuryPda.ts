@@ -17,7 +17,7 @@ export async function findTreasuryPdaPda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu" as Address<"59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu">,
+    programAddress = "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,

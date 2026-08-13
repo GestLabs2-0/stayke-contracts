@@ -64,7 +64,7 @@ import {
 } from "../pdas";
 
 export const STAYKE_TREASURY_PROGRAM_ADDRESS =
-  "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu" as Address<"59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu">;
+  "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">;
 
 export enum StaykeTreasuryAccount {
   TreasuryConfig,
@@ -153,7 +153,7 @@ export function identifyStaykeTreasuryInstruction(
 }
 
 export type ParsedStaykeTreasuryInstruction<
-  TProgram extends string = "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu",
+  TProgram extends string = "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY",
 > =
   | ({
       instructionType: StaykeTreasuryInstruction.CpiPenalizeTransfer;

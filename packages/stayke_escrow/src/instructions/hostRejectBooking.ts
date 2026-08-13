@@ -194,7 +194,7 @@ export async function getHostRejectBookingInstructionAsync<
   if (!accounts.hostProfile.value) {
     accounts.hostProfile.value = await getProgramDerivedAddress({
       programAddress:
-        "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">,
+        "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([

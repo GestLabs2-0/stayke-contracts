@@ -4,8 +4,8 @@ use anchor_spl::token_interface::{
 };
 
 use crate::{
-    error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED, PLATFORM_VAULT_CONFIG_SEED,
-    PLATFORM_VAULT_SEED,
+    error::StaykeConfigError, AllowedPrograms, GlobalConfig, GLOBAL_CONFIG_SEED,
+    PLATFORM_VAULT_CONFIG_SEED, PLATFORM_VAULT_SEED,
 };
 
 #[derive(Accounts)]
@@ -41,6 +41,7 @@ pub fn handler_initialize_config(
     minimum_deposit: u64,
     fee_bps: u64,
     max_operations: u8,
+    allowed_programs: AllowedPrograms,
 ) -> Result<()> {
     require!(fee_bps < 10_000, StaykeConfigError::InvalidFeeBps);
 
@@ -52,11 +53,11 @@ pub fn handler_initialize_config(
     global_config.usdc_mint = ctx.accounts.usdc_mint.key();
     global_config.platform_vault = ctx.accounts.platform_vault.key();
     global_config.platform_vault_bump = ctx.bumps.platform_vault_pda;
-    // Embedded declare_id! values — used as the canonical registry for CPI allowlisting.
-    global_config.core_program = pubkey!("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP");
-    global_config.escrow_program = pubkey!("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ");
-    global_config.disputes_program = pubkey!("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB");
-    global_config.treasury_program = pubkey!("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu");
+
+    global_config.core_program = allowed_programs.core;
+    global_config.escrow_program = allowed_programs.escrow;
+    global_config.disputes_program = allowed_programs.disputes;
+    global_config.treasury_program = allowed_programs.treasury;
     global_config.is_initialized = true;
     global_config.max_operations = max_operations;
     Ok(())
