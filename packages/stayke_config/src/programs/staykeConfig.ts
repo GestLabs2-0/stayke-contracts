@@ -39,9 +39,13 @@ import {
 } from "../accounts";
 import {
   getInitializeConfigInstructionAsync,
+  getWithdrawFeesInstructionAsync,
   parseInitializeConfigInstruction,
+  parseWithdrawFeesInstruction,
   type InitializeConfigAsyncInput,
   type ParsedInitializeConfigInstruction,
+  type ParsedWithdrawFeesInstruction,
+  type WithdrawFeesAsyncInput,
 } from "../instructions";
 import {
   findGlobalConfigPda,
@@ -79,6 +83,7 @@ export function identifyStaykeConfigAccount(
 
 export enum StaykeConfigInstruction {
   InitializeConfig,
+  WithdrawFees,
 }
 
 export function identifyStaykeConfigInstruction(
@@ -96,6 +101,17 @@ export function identifyStaykeConfigInstruction(
   ) {
     return StaykeConfigInstruction.InitializeConfig;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([198, 212, 171, 109, 144, 215, 174, 89]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeConfigInstruction.WithdrawFees;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "staykeConfig" },
@@ -104,9 +120,13 @@ export function identifyStaykeConfigInstruction(
 
 export type ParsedStaykeConfigInstruction<
   TProgram extends string = "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT",
-> = {
-  instructionType: StaykeConfigInstruction.InitializeConfig;
-} & ParsedInitializeConfigInstruction<TProgram>;
+> =
+  | ({
+      instructionType: StaykeConfigInstruction.InitializeConfig;
+    } & ParsedInitializeConfigInstruction<TProgram>)
+  | ({
+      instructionType: StaykeConfigInstruction.WithdrawFees;
+    } & ParsedWithdrawFeesInstruction<TProgram>);
 
 export function parseStaykeConfigInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -118,6 +138,13 @@ export function parseStaykeConfigInstruction<TProgram extends string>(
       return {
         instructionType: StaykeConfigInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case StaykeConfigInstruction.WithdrawFees: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeConfigInstruction.WithdrawFees,
+        ...parseWithdrawFeesInstruction(instruction),
       };
     }
     default:
@@ -147,6 +174,10 @@ export type StaykeConfigPluginInstructions = {
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
     SelfPlanAndSendFunctions;
+  withdrawFees: (
+    input: WithdrawFeesAsyncInput,
+  ) => ReturnType<typeof getWithdrawFeesInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type StaykeConfigPluginPdas = {
@@ -175,6 +206,11 @@ export function staykeConfigProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getInitializeConfigInstructionAsync(input),
+            ),
+          withdrawFees: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getWithdrawFeesInstructionAsync(input),
             ),
         },
         pdas: {

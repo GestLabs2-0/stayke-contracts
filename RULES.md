@@ -74,6 +74,9 @@ cargo deny check advisories
 # 3. Lint (zero warnings policy)
 cargo clippy --all-targets --tests -- -Dwarnings
 
+# 4. Build
+anchor build
+
 # 4. Tests
 cargo test --all-targets
 ```

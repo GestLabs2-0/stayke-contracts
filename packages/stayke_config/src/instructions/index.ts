@@ -7,3 +7,4 @@
  */
 
 export * from "./initializeConfig";
+export * from "./withdrawFees";

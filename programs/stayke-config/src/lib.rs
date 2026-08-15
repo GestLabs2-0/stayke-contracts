@@ -34,5 +34,7 @@ pub mod stayke_config {
         )
     }
 
-    // TODO: create instruction to withdraw fees from vault
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+        handler_withdraw_fees(ctx, amount)
+    }
 }

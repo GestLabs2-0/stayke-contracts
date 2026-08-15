@@ -16,4 +16,7 @@ pub enum StaykeConfigError {
 
     #[msg("Unauthorized: Only the authority can perform this action")]
     Unauthorized,
+
+    #[msg("Withdrawal amount must be greater than zero")]
+    ZeroAmount,
 }

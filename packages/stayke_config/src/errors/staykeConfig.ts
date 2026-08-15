@@ -24,13 +24,16 @@ export const STAYKE_CONFIG_ERROR__INVALID_VAULT_ACCOUNT = 0x1772; // 6002
 export const STAYKE_CONFIG_ERROR__INVALID_TOKEN_MINT = 0x1773; // 6003
 /** Unauthorized: Unauthorized: Only the authority can perform this action */
 export const STAYKE_CONFIG_ERROR__UNAUTHORIZED = 0x1774; // 6004
+/** ZeroAmount: Withdrawal amount must be greater than zero */
+export const STAYKE_CONFIG_ERROR__ZERO_AMOUNT = 0x1775; // 6005
 
 export type StaykeConfigError =
   | typeof STAYKE_CONFIG_ERROR__INVALID_FEE_BPS
   | typeof STAYKE_CONFIG_ERROR__INVALID_GLOBAL_CONFIG
   | typeof STAYKE_CONFIG_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_CONFIG_ERROR__INVALID_VAULT_ACCOUNT
-  | typeof STAYKE_CONFIG_ERROR__UNAUTHORIZED;
+  | typeof STAYKE_CONFIG_ERROR__UNAUTHORIZED
+  | typeof STAYKE_CONFIG_ERROR__ZERO_AMOUNT;
 
 let staykeConfigErrorMessages: Record<StaykeConfigError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
@@ -40,6 +43,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_CONFIG_ERROR__INVALID_TOKEN_MINT]: `The token mint does not match the configured USDC mint`,
     [STAYKE_CONFIG_ERROR__INVALID_VAULT_ACCOUNT]: `The treasury/vault account does not match the configured one`,
     [STAYKE_CONFIG_ERROR__UNAUTHORIZED]: `Unauthorized: Only the authority can perform this action`,
+    [STAYKE_CONFIG_ERROR__ZERO_AMOUNT]: `Withdrawal amount must be greater than zero`,
   };
 }
 
