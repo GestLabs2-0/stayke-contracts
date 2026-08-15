@@ -19,7 +19,7 @@ const FEE_BPS: u64 = 500;
 const TOKEN_PROGRAM_ID: Pubkey =
     Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const MINT_LEN: usize = 82;
-const MAX_OPERATIONS: u8 = 4;
+const FREE_OPS: u8 = 4;
 const TOKEN_ACCOUNT_LEN: usize = 165;
 
 // TODO: refactor tests to use code standards and avoid rebuilding from scratch
@@ -121,7 +121,7 @@ fn test_withdraw_fees_success() {
         &stayke_config::instruction::InitializeConfig {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
-            max_operations: MAX_OPERATIONS,
+            free_ops: FREE_OPS,
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -269,7 +269,7 @@ fn test_withdraw_fees_zero_amount_fails() {
         &stayke_config::instruction::InitializeConfig {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
-            max_operations: MAX_OPERATIONS,
+            free_ops: FREE_OPS,
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -374,7 +374,7 @@ fn test_withdraw_fees_unauthorized_fails() {
         &stayke_config::instruction::InitializeConfig {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
-            max_operations: MAX_OPERATIONS,
+            free_ops: FREE_OPS,
         }
         .data(),
         stayke_config::accounts::InitializeConfig {

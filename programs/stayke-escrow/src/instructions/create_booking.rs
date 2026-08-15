@@ -34,8 +34,9 @@ pub struct CreateBooking<'info> {
         constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
-        // TODO: add conditional constraint to disable minimum deposit as long as activities in platform are less than zero
-        constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (client_profile.completed_stays + client_profile.hosted_stays) < global_config.free_ops as u32
+            || client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
@@ -46,7 +47,9 @@ pub struct CreateBooking<'info> {
         bump = host_profile.bump,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.identity.is_some() @ EscrowError::HostNotVerified,
-        constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (host_profile.completed_stays + host_profile.hosted_stays) < global_config.free_ops as u32
+            || host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         )]
     pub host_profile: Box<Account<'info, UserProfile>>,
 
@@ -150,8 +153,9 @@ pub struct CreateBookingCrossYear<'info> {
         constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
         constraint = !client_profile.banned @ EscrowError::UserBanned,
         constraint = client_profile.identity.is_some() @ EscrowError::UserNotVerified,
-        // TODO: add conditional constraint to disable minimum deposit as long as activities in platform are less than zero
-        constraint = client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (client_profile.completed_stays + client_profile.hosted_stays) < global_config.free_ops as u32
+            || client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub client_profile: Account<'info, UserProfile>,
 
@@ -162,7 +166,9 @@ pub struct CreateBookingCrossYear<'info> {
         bump = host_profile.bump,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.identity.is_some() @ EscrowError::HostNotVerified,
-        constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (host_profile.completed_stays + host_profile.hosted_stays) < global_config.free_ops as u32
+            || host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
         )]
     pub host_profile: Box<Account<'info, UserProfile>>,
 

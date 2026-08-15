@@ -40,7 +40,7 @@ pub fn handler_initialize_config(
     ctx: Context<InitializeConfig>,
     minimum_deposit: u64,
     fee_bps: u64,
-    max_operations: u8,
+    free_ops: u8,
     allowed_programs: AllowedPrograms,
 ) -> Result<()> {
     require!(fee_bps < 10_000, StaykeConfigError::InvalidFeeBps);
@@ -59,7 +59,7 @@ pub fn handler_initialize_config(
     global_config.disputes_program = allowed_programs.disputes;
     global_config.treasury_program = allowed_programs.treasury;
     global_config.is_initialized = true;
-    global_config.max_operations = max_operations;
+    global_config.free_ops = free_ops;
     Ok(())
 }
 

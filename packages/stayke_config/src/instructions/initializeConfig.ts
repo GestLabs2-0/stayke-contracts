@@ -104,7 +104,7 @@ export type InitializeConfigInstructionData = {
   discriminator: ReadonlyUint8Array;
   minimumDeposit: bigint;
   feeBps: bigint;
-  maxOperations: number;
+  freeOps: number;
   core: Address;
   escrow: Address;
   disputes: Address;
@@ -114,7 +114,7 @@ export type InitializeConfigInstructionData = {
 export type InitializeConfigInstructionDataArgs = {
   minimumDeposit: number | bigint;
   feeBps: number | bigint;
-  maxOperations: number;
+  freeOps: number;
   core: Address;
   escrow: Address;
   disputes: Address;
@@ -127,7 +127,7 @@ export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<In
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["minimumDeposit", getU64Encoder()],
       ["feeBps", getU64Encoder()],
-      ["maxOperations", getU8Encoder()],
+      ["freeOps", getU8Encoder()],
       ["core", getAddressEncoder()],
       ["escrow", getAddressEncoder()],
       ["disputes", getAddressEncoder()],
@@ -142,7 +142,7 @@ export function getInitializeConfigInstructionDataDecoder(): FixedSizeDecoder<In
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["minimumDeposit", getU64Decoder()],
     ["feeBps", getU64Decoder()],
-    ["maxOperations", getU8Decoder()],
+    ["freeOps", getU8Decoder()],
     ["core", getAddressDecoder()],
     ["escrow", getAddressDecoder()],
     ["disputes", getAddressDecoder()],
@@ -178,7 +178,7 @@ export type InitializeConfigAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
-  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  freeOps: InitializeConfigInstructionDataArgs["freeOps"];
   core: InitializeConfigInstructionDataArgs["core"];
   escrow: InitializeConfigInstructionDataArgs["escrow"];
   disputes: InitializeConfigInstructionDataArgs["disputes"];
@@ -306,7 +306,7 @@ export type InitializeConfigInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minimumDeposit: InitializeConfigInstructionDataArgs["minimumDeposit"];
   feeBps: InitializeConfigInstructionDataArgs["feeBps"];
-  maxOperations: InitializeConfigInstructionDataArgs["maxOperations"];
+  freeOps: InitializeConfigInstructionDataArgs["freeOps"];
   core: InitializeConfigInstructionDataArgs["core"];
   escrow: InitializeConfigInstructionDataArgs["escrow"];
   disputes: InitializeConfigInstructionDataArgs["disputes"];

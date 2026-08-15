@@ -28,7 +28,9 @@ pub struct HostAcceptBooking<'info> {
         constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
-        constraint = host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+        // Free tier: deposit check is bypassed while (completed + hosted) < free_ops.
+        constraint = (host_profile.completed_stays + host_profile.hosted_stays) < global_config.free_ops as u32
+            || host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub host_profile: Account<'info, UserProfile>,
 

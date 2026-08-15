@@ -112,3 +112,17 @@ pub fn handler_add_infraction(
 
     Ok(())
 }
+
+/// CPI-gated instruction: increments the `completed_stays` counter of a user profile.
+/// Only the Escrow program may call this — called when a guest's stay is completed.
+pub fn handler_increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Escrow],
+    )?;
+
+    let user_profile = &mut ctx.accounts.user_profile;
+    user_profile.completed_stays = user_profile.completed_stays.saturating_add(1);
+    Ok(())
+}

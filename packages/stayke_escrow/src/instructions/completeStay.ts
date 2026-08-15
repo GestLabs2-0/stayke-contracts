@@ -40,7 +40,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowConfigPda, findEscrowTokenAccountPda } from "../pdas";
+import {
+  findCpiAuthorityPda,
+  findEscrowConfigPda,
+  findEscrowTokenAccountPda,
+} from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const COMPLETE_STAY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -66,6 +70,9 @@ export type CompleteStayInstruction<
   TAccountHostTokenAccount extends string | AccountMeta<string> = string,
   TAccountPlatformVault extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP",
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -82,7 +89,7 @@ export type CompleteStayInstruction<
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
-        ? ReadonlyAccount<TAccountClientProfile>
+        ? WritableAccount<TAccountClientProfile>
         : TAccountClientProfile,
       TAccountHostProfile extends string
         ? ReadonlyAccount<TAccountHostProfile>
@@ -108,6 +115,12 @@ export type CompleteStayInstruction<
       TAccountMint extends string
         ? WritableAccount<TAccountMint>
         : TAccountMint,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -154,10 +167,13 @@ export type CompleteStayAsyncInput<
   TAccountHostTokenAccount extends string = string,
   TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
+  /** The guest's UserProfile — must be mutable for CPI to increment completed_stays. */
   clientProfile?: Address<TAccountClientProfile>;
   /** The host's UserProfile — destination for the payment. */
   hostProfile: Address<TAccountHostProfile>;
@@ -170,6 +186,8 @@ export type CompleteStayAsyncInput<
   /** Platform fee vault. */
   platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
 };
 
@@ -185,6 +203,8 @@ export async function getCompleteStayInstructionAsync<
   TAccountHostTokenAccount extends string,
   TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
@@ -200,6 +220,8 @@ export async function getCompleteStayInstructionAsync<
     TAccountHostTokenAccount,
     TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -217,6 +239,8 @@ export async function getCompleteStayInstructionAsync<
     TAccountHostTokenAccount,
     TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >
 > {
@@ -228,7 +252,7 @@ export async function getCompleteStayInstructionAsync<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     client: { value: input.client ?? null, isWritable: false },
-    clientProfile: { value: input.clientProfile ?? null, isWritable: false },
+    clientProfile: { value: input.clientProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
@@ -243,6 +267,11 @@ export async function getCompleteStayInstructionAsync<
     },
     platformVault: { value: input.platformVault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -294,6 +323,13 @@ export async function getCompleteStayInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -313,6 +349,8 @@ export async function getCompleteStayInstructionAsync<
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
       getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getCompleteStayInstructionDataEncoder().encode({}),
@@ -330,6 +368,8 @@ export async function getCompleteStayInstructionAsync<
     TAccountHostTokenAccount,
     TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
@@ -346,10 +386,13 @@ export type CompleteStayInput<
   TAccountHostTokenAccount extends string = string,
   TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
+  /** The guest's UserProfile — must be mutable for CPI to increment completed_stays. */
   clientProfile: Address<TAccountClientProfile>;
   /** The host's UserProfile — destination for the payment. */
   hostProfile: Address<TAccountHostProfile>;
@@ -362,6 +405,8 @@ export type CompleteStayInput<
   /** Platform fee vault. */
   platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
 };
 
@@ -377,6 +422,8 @@ export function getCompleteStayInstruction<
   TAccountHostTokenAccount extends string,
   TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
@@ -392,6 +439,8 @@ export function getCompleteStayInstruction<
     TAccountHostTokenAccount,
     TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -408,6 +457,8 @@ export function getCompleteStayInstruction<
   TAccountHostTokenAccount,
   TAccountPlatformVault,
   TAccountMint,
+  TAccountCpiAuthority,
+  TAccountStaykeCoreProgram,
   TAccountTokenProgram
 > {
   // Program address.
@@ -418,7 +469,7 @@ export function getCompleteStayInstruction<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     client: { value: input.client ?? null, isWritable: false },
-    clientProfile: { value: input.clientProfile ?? null, isWritable: false },
+    clientProfile: { value: input.clientProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
@@ -433,6 +484,11 @@ export function getCompleteStayInstruction<
     },
     platformVault: { value: input.platformVault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -441,6 +497,10 @@ export function getCompleteStayInstruction<
   >;
 
   // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -460,6 +520,8 @@ export function getCompleteStayInstruction<
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
       getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getCompleteStayInstructionDataEncoder().encode({}),
@@ -477,6 +539,8 @@ export function getCompleteStayInstruction<
     TAccountHostTokenAccount,
     TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
@@ -489,6 +553,7 @@ export type ParsedCompleteStayInstruction<
   accounts: {
     payer: TAccountMetas[0];
     client: TAccountMetas[1];
+    /** The guest's UserProfile — must be mutable for CPI to increment completed_stays. */
     clientProfile: TAccountMetas[2];
     /** The host's UserProfile — destination for the payment. */
     hostProfile: TAccountMetas[3];
@@ -501,7 +566,9 @@ export type ParsedCompleteStayInstruction<
     /** Platform fee vault. */
     platformVault: TAccountMetas[9];
     mint: TAccountMetas[10];
-    tokenProgram: TAccountMetas[11];
+    cpiAuthority: TAccountMetas[11];
+    staykeCoreProgram: TAccountMetas[12];
+    tokenProgram: TAccountMetas[13];
   };
   data: CompleteStayInstructionData;
 };
@@ -514,12 +581,12 @@ export function parseCompleteStayInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCompleteStayInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 12) {
+  if (instruction.accounts.length < 14) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 12,
+        expectedAccountMetas: 14,
       },
     );
   }
@@ -543,6 +610,8 @@ export function parseCompleteStayInstruction<
       hostTokenAccount: getNextAccount(),
       platformVault: getNextAccount(),
       mint: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
       tokenProgram: getNextAccount(),
     },
     data: getCompleteStayInstructionDataDecoder().decode(instruction.data),

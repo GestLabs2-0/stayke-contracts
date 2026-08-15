@@ -69,6 +69,10 @@ pub mod stayke_core {
         handler_update_host_review(ctx, score)
     }
 
+    pub fn increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
+        handler_increment_completed_stays(ctx)
+    }
+
     // --------------------------------------------------------------------------
     // Identity Verification
     // ------------------------------------------------------------------------

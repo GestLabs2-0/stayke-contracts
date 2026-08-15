@@ -46,7 +46,7 @@ fn resolve_dispute_unauthorized_admin_fails() {
     );
     let gcfg = stayke_config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
-        max_operations: 4,
+        free_ops: 4,
         minimum_deposit: 100_000,
         fee_bps: 200,
         usdc_mint,
@@ -172,7 +172,7 @@ fn resolve_dispute_already_resolved_fails() {
     let gcfg = stayke_config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
         minimum_deposit: 100_000,
-        max_operations: 4,
+        free_ops: 4,
         fee_bps: 200,
         usdc_mint,
         is_initialized: true,

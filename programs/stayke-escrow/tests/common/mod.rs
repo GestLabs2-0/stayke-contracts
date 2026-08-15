@@ -41,7 +41,7 @@ pub fn setup_global_config(svm: &mut LiteSVM, escrow_program: Pubkey) -> Pubkey 
 
     let gc = config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
-        max_operations: 4,
+        free_ops: 4,
         minimum_deposit: 0, // zero so minimum deposit doesn't block
         fee_bps: 200,
         usdc_mint: Pubkey::new_unique(),
@@ -279,4 +279,146 @@ pub fn user_profile_pda(authority: Pubkey) -> Pubkey {
         &core::id(),
     )
     .0
+}
+
+// ---------------------------------------------------------------------------
+// Listing (stayke_core)
+// ---------------------------------------------------------------------------
+
+pub fn setup_listing(
+    svm: &mut LiteSVM,
+    user_profile: Pubkey,
+    listing_id: u16,
+    price: u64,
+    is_active: bool,
+) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[
+            core::constants::LISTING_SEED.as_bytes(),
+            user_profile.as_ref(),
+            listing_id.to_le_bytes().as_ref(),
+        ],
+        &core::id(),
+    );
+
+    let listing = core::state::Listing {
+        listing_id,
+        total_reviews: 0,
+        rating: 0,
+        price,
+        is_active,
+        is_occupied: false,
+        state_hash: [0u8; 32],
+        content_ref: [0u8; 32],
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("Listing", &listing),
+            owner: core::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
+}
+
+// ---------------------------------------------------------------------------
+// UserProfile with custom deposit / counters
+// ---------------------------------------------------------------------------
+
+#[allow(clippy::too_many_arguments)]
+pub fn setup_user_profile_custom(
+    svm: &mut LiteSVM,
+    authority: Pubkey,
+    deposited: u64,
+    completed_stays: u32,
+    hosted_stays: u32,
+) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[
+            core::constants::USER_PROFILE_SEED.as_bytes(),
+            authority.as_ref(),
+        ],
+        &core::id(),
+    );
+
+    let profile = core::state::UserProfile {
+        completed_stays,
+        hosted_stays,
+        authority,
+        identity: Some(Pubkey::new_unique()),
+        active_booking: None,
+        deposited,
+        lending: 0,
+        staked: 0,
+        banned: false,
+        listings: 0,
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("UserProfile", &profile),
+            owner: core::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
+}
+
+// ---------------------------------------------------------------------------
+// GlobalConfig with custom minimum_deposit and free_ops
+// ---------------------------------------------------------------------------
+
+pub fn setup_global_config_custom(
+    svm: &mut LiteSVM,
+    escrow_program: Pubkey,
+    minimum_deposit: u64,
+    free_ops: u8,
+) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
+        &config::id(),
+    );
+
+    let gc = config::state::GlobalConfig {
+        authority: Pubkey::new_unique(),
+        free_ops,
+        minimum_deposit,
+        fee_bps: 200,
+        usdc_mint: Pubkey::new_unique(),
+        is_initialized: true,
+        platform_vault: Pubkey::new_unique(),
+        platform_vault_bump: bump,
+        core_program: core::id(),
+        escrow_program,
+        disputes_program: Pubkey::new_unique(),
+        treasury_program: Pubkey::new_unique(),
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("GlobalConfig", &gc),
+            owner: config::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
 }

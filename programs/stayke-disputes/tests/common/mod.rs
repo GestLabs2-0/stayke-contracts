@@ -47,7 +47,7 @@ pub fn setup_global_config(
 
     let config = config::state::GlobalConfig {
         authority: Pubkey::new_unique(),
-        max_operations: 4,
+        free_ops: 4,
         minimum_deposit: 100_000,
         fee_bps: 200,
         usdc_mint: Pubkey::new_unique(),
