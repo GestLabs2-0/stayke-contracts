@@ -10,6 +10,8 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getI64Decoder,
   getI64Encoder,
   getStructDecoder,
@@ -26,27 +28,26 @@ import {
 import {
   getBookingStatusDecoder,
   getBookingStatusEncoder,
-  getDateComponentsDecoder,
-  getDateComponentsEncoder,
   type BookingStatus,
   type BookingStatusArgs,
-  type DateComponents,
-  type DateComponentsArgs,
 } from ".";
 
 export type Booking = {
+  /** Guest Pubkey */
   guest: Address;
+  /** Host Pubkey */
   host: Address;
+  /** Property pubkey */
   property: Address;
-  deposit: bigint;
+  /** Was money already deposited? */
+  isDeposit: boolean;
+  /** Check in as unix timestamp */
   checkIn: bigint;
+  /** Check out as unix timestamp */
   checkOut: bigint;
-  days: bigint;
-  checkInDate: DateComponents;
-  checkOutDate: DateComponents;
+  /** Total price by all nights */
   totalPrice: bigint;
-  /** 0 = no review yet; 1–5 = star rating */
-  review: number;
+  /** Booking Status */
   status: BookingStatus;
   /** Bump of the escrow token account PDA — needed to sign CPIs in complete_stay. */
   escrowBump: number;
@@ -54,18 +55,21 @@ export type Booking = {
 };
 
 export type BookingArgs = {
+  /** Guest Pubkey */
   guest: Address;
+  /** Host Pubkey */
   host: Address;
+  /** Property pubkey */
   property: Address;
-  deposit: number | bigint;
+  /** Was money already deposited? */
+  isDeposit: boolean;
+  /** Check in as unix timestamp */
   checkIn: number | bigint;
+  /** Check out as unix timestamp */
   checkOut: number | bigint;
-  days: number | bigint;
-  checkInDate: DateComponentsArgs;
-  checkOutDate: DateComponentsArgs;
+  /** Total price by all nights */
   totalPrice: number | bigint;
-  /** 0 = no review yet; 1–5 = star rating */
-  review: number;
+  /** Booking Status */
   status: BookingStatusArgs;
   /** Bump of the escrow token account PDA — needed to sign CPIs in complete_stay. */
   escrowBump: number;
@@ -77,14 +81,10 @@ export function getBookingEncoder(): FixedSizeEncoder<BookingArgs> {
     ["guest", getAddressEncoder()],
     ["host", getAddressEncoder()],
     ["property", getAddressEncoder()],
-    ["deposit", getU64Encoder()],
+    ["isDeposit", getBooleanEncoder()],
     ["checkIn", getI64Encoder()],
     ["checkOut", getI64Encoder()],
-    ["days", getU64Encoder()],
-    ["checkInDate", getDateComponentsEncoder()],
-    ["checkOutDate", getDateComponentsEncoder()],
     ["totalPrice", getU64Encoder()],
-    ["review", getU8Encoder()],
     ["status", getBookingStatusEncoder()],
     ["escrowBump", getU8Encoder()],
     ["bump", getU8Encoder()],
@@ -96,14 +96,10 @@ export function getBookingDecoder(): FixedSizeDecoder<Booking> {
     ["guest", getAddressDecoder()],
     ["host", getAddressDecoder()],
     ["property", getAddressDecoder()],
-    ["deposit", getU64Decoder()],
+    ["isDeposit", getBooleanDecoder()],
     ["checkIn", getI64Decoder()],
     ["checkOut", getI64Decoder()],
-    ["days", getU64Decoder()],
-    ["checkInDate", getDateComponentsDecoder()],
-    ["checkOutDate", getDateComponentsDecoder()],
     ["totalPrice", getU64Decoder()],
-    ["review", getU8Decoder()],
     ["status", getBookingStatusDecoder()],
     ["escrowBump", getU8Decoder()],
     ["bump", getU8Decoder()],

@@ -42,16 +42,30 @@ pub mod stayke_escrow {
         handler_host_accept_booking(ctx)
     }
 
-    pub fn host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()> {
-        handler_host_reject_booking(ctx)
+    pub fn host_reject_booking(ctx: Context<HostRejectBooking>, check_in: i64) -> Result<()> {
+        handler_host_reject_booking(ctx, check_in)
+    }
+
+    pub fn host_reject_booking_cross_year(
+        ctx: Context<HostRejectBookingCrossYear>,
+        check_in: i64,
+    ) -> Result<()> {
+        handler_host_reject_booking_cross_year(ctx, check_in)
     }
 
     pub fn client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Result<()> {
         handler_client_accept_reserve(ctx)
     }
 
-    pub fn client_reject_reserve(ctx: Context<ClientRejectReserve>) -> Result<()> {
-        handler_client_reject_reserve(ctx)
+    pub fn client_reject_reserve(ctx: Context<ClientRejectReserve>, check_in: i64) -> Result<()> {
+        handler_client_reject_reserve(ctx, check_in)
+    }
+
+    pub fn client_reject_reserve_cross_year(
+        ctx: Context<ClientRejectReserveCrossYear>,
+        check_in: i64,
+    ) -> Result<()> {
+        handler_client_reject_reserve_cross_year(ctx, check_in)
     }
 
     pub fn review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {

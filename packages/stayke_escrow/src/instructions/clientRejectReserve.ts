@@ -13,6 +13,8 @@ import {
   getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
@@ -29,7 +31,6 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -68,7 +69,7 @@ export type ClientRejectReserveInstruction<
             AccountSignerMeta<TAccountPayer>
         : TAccountPayer,
       TAccountClient extends string
-        ? ReadonlySignerAccount<TAccountClient> &
+        ? WritableSignerAccount<TAccountClient> &
             AccountSignerMeta<TAccountClient>
         : TAccountClient,
       TAccountClientProfile extends string
@@ -86,13 +87,19 @@ export type ClientRejectReserveInstruction<
 
 export type ClientRejectReserveInstructionData = {
   discriminator: ReadonlyUint8Array;
+  checkIn: bigint;
 };
 
-export type ClientRejectReserveInstructionDataArgs = {};
+export type ClientRejectReserveInstructionDataArgs = {
+  checkIn: number | bigint;
+};
 
 export function getClientRejectReserveInstructionDataEncoder(): FixedSizeEncoder<ClientRejectReserveInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["checkIn", getI64Encoder()],
+    ]),
     (value) => ({
       ...value,
       discriminator: CLIENT_REJECT_RESERVE_DISCRIMINATOR,
@@ -103,6 +110,7 @@ export function getClientRejectReserveInstructionDataEncoder(): FixedSizeEncoder
 export function getClientRejectReserveInstructionDataDecoder(): FixedSizeDecoder<ClientRejectReserveInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["checkIn", getI64Decoder()],
   ]);
 }
 
@@ -128,6 +136,7 @@ export type ClientRejectReserveAsyncInput<
   clientProfile?: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
+  checkIn: ClientRejectReserveInstructionDataArgs["checkIn"];
 };
 
 export async function getClientRejectReserveInstructionAsync<
@@ -163,7 +172,7 @@ export async function getClientRejectReserveInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
-    client: { value: input.client ?? null, isWritable: false },
+    client: { value: input.client ?? null, isWritable: true },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -172,6 +181,9 @@ export async function getClientRejectReserveInstructionAsync<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
+
+  // Original args.
+  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.clientProfile.value) {
@@ -203,7 +215,9 @@ export async function getClientRejectReserveInstructionAsync<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
     ],
-    data: getClientRejectReserveInstructionDataEncoder().encode({}),
+    data: getClientRejectReserveInstructionDataEncoder().encode(
+      args as ClientRejectReserveInstructionDataArgs,
+    ),
     programAddress,
   } as ClientRejectReserveInstruction<
     TProgramAddress,
@@ -227,6 +241,7 @@ export type ClientRejectReserveInput<
   clientProfile: Address<TAccountClientProfile>;
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
+  checkIn: ClientRejectReserveInstructionDataArgs["checkIn"];
 };
 
 export function getClientRejectReserveInstruction<
@@ -260,7 +275,7 @@ export function getClientRejectReserveInstruction<
   // Original accounts.
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
-    client: { value: input.client ?? null, isWritable: false },
+    client: { value: input.client ?? null, isWritable: true },
     clientProfile: { value: input.clientProfile ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
@@ -269,6 +284,9 @@ export function getClientRejectReserveInstruction<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
+
+  // Original args.
+  const args = { ...input };
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -279,7 +297,9 @@ export function getClientRejectReserveInstruction<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
     ],
-    data: getClientRejectReserveInstructionDataEncoder().encode({}),
+    data: getClientRejectReserveInstructionDataEncoder().encode(
+      args as ClientRejectReserveInstructionDataArgs,
+    ),
     programAddress,
   } as ClientRejectReserveInstruction<
     TProgramAddress,

@@ -46,41 +46,49 @@ import {
 } from "../accounts";
 import {
   getClientAcceptReserveInstructionAsync,
+  getClientRejectReserveCrossYearInstructionAsync,
   getClientRejectReserveInstructionAsync,
   getCompleteStayInstructionAsync,
   getCpiResolveDisputeTransferInstructionAsync,
   getCpiUpdateBookingStatusInstructionAsync,
   getCreateBookingInstructionAsync,
   getHostAcceptBookingInstructionAsync,
+  getHostRejectBookingCrossYearInstructionAsync,
   getHostRejectBookingInstructionAsync,
   getInitializeEscrowInstructionAsync,
   getReviewCompletedInstructionAsync,
   parseClientAcceptReserveInstruction,
+  parseClientRejectReserveCrossYearInstruction,
   parseClientRejectReserveInstruction,
   parseCompleteStayInstruction,
   parseCpiResolveDisputeTransferInstruction,
   parseCpiUpdateBookingStatusInstruction,
   parseCreateBookingInstruction,
   parseHostAcceptBookingInstruction,
+  parseHostRejectBookingCrossYearInstruction,
   parseHostRejectBookingInstruction,
   parseInitializeEscrowInstruction,
   parseReviewCompletedInstruction,
   type ClientAcceptReserveAsyncInput,
   type ClientRejectReserveAsyncInput,
+  type ClientRejectReserveCrossYearAsyncInput,
   type CompleteStayAsyncInput,
   type CpiResolveDisputeTransferAsyncInput,
   type CpiUpdateBookingStatusAsyncInput,
   type CreateBookingAsyncInput,
   type HostAcceptBookingAsyncInput,
   type HostRejectBookingAsyncInput,
+  type HostRejectBookingCrossYearAsyncInput,
   type InitializeEscrowAsyncInput,
   type ParsedClientAcceptReserveInstruction,
+  type ParsedClientRejectReserveCrossYearInstruction,
   type ParsedClientRejectReserveInstruction,
   type ParsedCompleteStayInstruction,
   type ParsedCpiResolveDisputeTransferInstruction,
   type ParsedCpiUpdateBookingStatusInstruction,
   type ParsedCreateBookingInstruction,
   type ParsedHostAcceptBookingInstruction,
+  type ParsedHostRejectBookingCrossYearInstruction,
   type ParsedHostRejectBookingInstruction,
   type ParsedInitializeEscrowInstruction,
   type ParsedReviewCompletedInstruction,
@@ -149,12 +157,14 @@ export function identifyStaykeEscrowAccount(
 export enum StaykeEscrowInstruction {
   ClientAcceptReserve,
   ClientRejectReserve,
+  ClientRejectReserveCrossYear,
   CompleteStay,
   CpiResolveDisputeTransfer,
   CpiUpdateBookingStatus,
   CreateBooking,
   HostAcceptBooking,
   HostRejectBooking,
+  HostRejectBookingCrossYear,
   InitializeEscrow,
   ReviewCompleted,
 }
@@ -184,6 +194,17 @@ export function identifyStaykeEscrowInstruction(
     )
   ) {
     return StaykeEscrowInstruction.ClientRejectReserve;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([156, 168, 251, 126, 133, 43, 227, 220]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeEscrowInstruction.ClientRejectReserveCrossYear;
   }
   if (
     containsBytes(
@@ -255,6 +276,17 @@ export function identifyStaykeEscrowInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([123, 241, 114, 228, 149, 154, 172, 11]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeEscrowInstruction.HostRejectBookingCrossYear;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([243, 160, 77, 153, 11, 92, 48, 209]),
       ),
       0,
@@ -289,6 +321,9 @@ export type ParsedStaykeEscrowInstruction<
       instructionType: StaykeEscrowInstruction.ClientRejectReserve;
     } & ParsedClientRejectReserveInstruction<TProgram>)
   | ({
+      instructionType: StaykeEscrowInstruction.ClientRejectReserveCrossYear;
+    } & ParsedClientRejectReserveCrossYearInstruction<TProgram>)
+  | ({
       instructionType: StaykeEscrowInstruction.CompleteStay;
     } & ParsedCompleteStayInstruction<TProgram>)
   | ({
@@ -306,6 +341,9 @@ export type ParsedStaykeEscrowInstruction<
   | ({
       instructionType: StaykeEscrowInstruction.HostRejectBooking;
     } & ParsedHostRejectBookingInstruction<TProgram>)
+  | ({
+      instructionType: StaykeEscrowInstruction.HostRejectBookingCrossYear;
+    } & ParsedHostRejectBookingCrossYearInstruction<TProgram>)
   | ({
       instructionType: StaykeEscrowInstruction.InitializeEscrow;
     } & ParsedInitializeEscrowInstruction<TProgram>)
@@ -330,6 +368,13 @@ export function parseStaykeEscrowInstruction<TProgram extends string>(
       return {
         instructionType: StaykeEscrowInstruction.ClientRejectReserve,
         ...parseClientRejectReserveInstruction(instruction),
+      };
+    }
+    case StaykeEscrowInstruction.ClientRejectReserveCrossYear: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeEscrowInstruction.ClientRejectReserveCrossYear,
+        ...parseClientRejectReserveCrossYearInstruction(instruction),
       };
     }
     case StaykeEscrowInstruction.CompleteStay: {
@@ -372,6 +417,13 @@ export function parseStaykeEscrowInstruction<TProgram extends string>(
       return {
         instructionType: StaykeEscrowInstruction.HostRejectBooking,
         ...parseHostRejectBookingInstruction(instruction),
+      };
+    }
+    case StaykeEscrowInstruction.HostRejectBookingCrossYear: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeEscrowInstruction.HostRejectBookingCrossYear,
+        ...parseHostRejectBookingCrossYearInstruction(instruction),
       };
     }
     case StaykeEscrowInstruction.InitializeEscrow: {
@@ -423,6 +475,10 @@ export type StaykeEscrowPluginInstructions = {
     input: MakeOptional<ClientRejectReserveAsyncInput, "payer">,
   ) => ReturnType<typeof getClientRejectReserveInstructionAsync> &
     SelfPlanAndSendFunctions;
+  clientRejectReserveCrossYear: (
+    input: MakeOptional<ClientRejectReserveCrossYearAsyncInput, "payer">,
+  ) => ReturnType<typeof getClientRejectReserveCrossYearInstructionAsync> &
+    SelfPlanAndSendFunctions;
   completeStay: (
     input: MakeOptional<CompleteStayAsyncInput, "payer">,
   ) => ReturnType<typeof getCompleteStayInstructionAsync> &
@@ -446,6 +502,10 @@ export type StaykeEscrowPluginInstructions = {
   hostRejectBooking: (
     input: MakeOptional<HostRejectBookingAsyncInput, "payer">,
   ) => ReturnType<typeof getHostRejectBookingInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  hostRejectBookingCrossYear: (
+    input: MakeOptional<HostRejectBookingCrossYearAsyncInput, "payer">,
+  ) => ReturnType<typeof getHostRejectBookingCrossYearInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeEscrow: (
     input: InitializeEscrowAsyncInput,
@@ -500,6 +560,14 @@ export function staykeEscrowProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
+          clientRejectReserveCrossYear: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClientRejectReserveCrossYearInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
           completeStay: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -538,6 +606,14 @@ export function staykeEscrowProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getHostRejectBookingInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
+          hostRejectBookingCrossYear: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getHostRejectBookingCrossYearInstructionAsync({
                 ...input,
                 payer: input.payer ?? client.payer,
               }),

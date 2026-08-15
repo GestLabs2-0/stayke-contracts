@@ -210,24 +210,10 @@ pub fn setup_booking(
         guest,
         host,
         property,
-        deposit: 0,
+        is_deposit: false,
         check_in: 0,
         check_out: 0,
-        days: 0,
-        check_in_date: escrow::utils::DateComponents {
-            day: 1,
-            month: 1,
-            year: 2026,
-            year_month: 202601,
-        },
-        check_out_date: escrow::utils::DateComponents {
-            day: 2,
-            month: 1,
-            year: 2026,
-            year_month: 202601,
-        },
         total_price: 0,
-        review: 0,
         status,
         escrow_bump: 255,
         bump: 255,
@@ -348,7 +334,7 @@ pub fn cpi_authority_pda(program_id: &Pubkey) -> Pubkey {
 // Listing (stayke_core)
 // ---------------------------------------------------------------------------
 
-pub fn setup_listing(svm: &mut LiteSVM, owner: Pubkey, host_profile: Pubkey) -> Pubkey {
+pub fn setup_listing(svm: &mut LiteSVM, _owner: Pubkey, host_profile: Pubkey) -> Pubkey {
     let listing_id: u16 = 1;
     let (listing_key, bump) = Pubkey::find_program_address(
         &[
