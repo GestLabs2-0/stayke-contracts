@@ -180,12 +180,14 @@ pub fn setup_booking_at_pda(
         guest: guest_profile,
         host: host_profile,
         property,
-        is_deposit: false,
         check_in,
         check_out,
         total_price: 100_000,
+        host_review: 0,
+        guest_review: 0,
         status,
         escrow_bump: 255,
+        updated_at: 0,
         bump,
     };
 
@@ -262,6 +264,17 @@ pub fn booking_days_pda(property: Pubkey, year: u32) -> Pubkey {
     .0
 }
 
+pub fn escrow_token_pda(booking: Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[
+            escrow::constants::ESCROW_PDA_SEED.as_bytes(),
+            booking.as_ref(),
+        ],
+        &escrow::id(),
+    )
+    .0
+}
+
 pub fn global_config_pda() -> Pubkey {
     Pubkey::find_program_address(
         &[config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
@@ -329,6 +342,63 @@ pub fn setup_listing(
 }
 
 // ---------------------------------------------------------------------------
+// SPL Token helpers (classic program, mirroring the disputes test suite).
+// The program uses `anchor_spl::token_interface` (Token2022-compatible); the
+// tests exercise it through the classic SPL Token program, which LiteSVM has
+// built-in.
+// ---------------------------------------------------------------------------
+
+/// Serialize a minimal SPL mint (82 bytes) with 6 decimals.
+pub fn make_mint(svm: &mut LiteSVM, key: Pubkey) {
+    let mut data = vec![0u8; 82];
+    data[44] = 6; // decimals
+    data[45] = 1; // is_initialized = true
+
+    svm.set_account(
+        key,
+        Account {
+            lamports: 1_000_000_000,
+            data,
+            owner: anchor_spl::token::ID,
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+}
+
+/// Serialize a minimal SPL token account (165 bytes) with the given balance.
+pub fn make_token_account(
+    svm: &mut LiteSVM,
+    key: Pubkey,
+    mint: Pubkey,
+    owner: Pubkey,
+    amount: u64,
+) {
+    // SPL Token Account layout (165 bytes):
+    //   mint (0..32), owner (32..64), amount u64 (64..72),
+    //   delegate COption<Pubkey> (72..108), state (108), is_native (109..121),
+    //   delegated_amount (121..129), close_authority (129..165)
+    let mut data = vec![0u8; 165];
+    data[0..32].copy_from_slice(&mint.to_bytes());
+    data[32..64].copy_from_slice(&owner.to_bytes());
+    data[64..72].copy_from_slice(&amount.to_le_bytes());
+    data[108] = 1; // AccountState::Initialized
+
+    svm.set_account(
+        key,
+        Account {
+            lamports: 1_000_000_000,
+            data,
+            owner: anchor_spl::token::ID,
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+}
+
+// ---------------------------------------------------------------------------
 // UserProfile with custom deposit / counters
 // ---------------------------------------------------------------------------
 
@@ -386,6 +456,7 @@ pub fn setup_global_config_custom(
     escrow_program: Pubkey,
     minimum_deposit: u64,
     free_ops: u8,
+    usdc_mint: Pubkey,
 ) -> Pubkey {
     let (pda, bump) = Pubkey::find_program_address(
         &[config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
@@ -397,7 +468,7 @@ pub fn setup_global_config_custom(
         free_ops,
         minimum_deposit,
         fee_bps: 200,
-        usdc_mint: Pubkey::new_unique(),
+        usdc_mint,
         is_initialized: true,
         platform_vault: Pubkey::new_unique(),
         platform_vault_bump: bump,

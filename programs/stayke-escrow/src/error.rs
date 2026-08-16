@@ -59,6 +59,8 @@ pub enum EscrowError {
     InsufficientDeposit,
     #[msg("User is not registered as a host")]
     UserNotHost,
+    #[msg("Client already has an active booking")]
+    ActiveBookingExists,
 
     // Scores
     #[msg("Invalid score — must be between 1 and 5")]
@@ -67,6 +69,10 @@ pub enum EscrowError {
     // Token
     #[msg("The token mint does not match the configured USDC mint")]
     InvalidTokenMint,
+    #[msg("Insufficient funds to cover the booking")]
+    InsufficientFunds,
+    #[msg("Price calculation overflow")]
+    PriceOverflow,
     #[msg("The treasury/vault account does not match the configured one")]
     InvalidVaultAccount,
     #[msg("Wrong guest pubkey passed")]

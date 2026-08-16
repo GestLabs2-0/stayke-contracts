@@ -38,6 +38,14 @@ pub mod stayke_escrow {
         handler_create_booking(ctx, check_in, check_out)
     }
 
+    pub fn create_booking_cross_year(
+        ctx: Context<CreateBookingCrossYear>,
+        check_in: i64,
+        check_out: i64,
+    ) -> Result<()> {
+        handler_create_booking_cross_year(ctx, check_in, check_out)
+    }
+
     pub fn host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {
         handler_host_accept_booking(ctx)
     }
@@ -51,10 +59,6 @@ pub mod stayke_escrow {
         check_in: i64,
     ) -> Result<()> {
         handler_host_reject_booking_cross_year(ctx, check_in)
-    }
-
-    pub fn client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Result<()> {
-        handler_client_accept_reserve(ctx)
     }
 
     pub fn client_reject_reserve(ctx: Context<ClientRejectReserve>, check_in: i64) -> Result<()> {
