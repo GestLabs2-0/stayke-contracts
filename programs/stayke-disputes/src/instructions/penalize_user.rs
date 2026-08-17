@@ -8,7 +8,7 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{ReputationProfile, UserProfile},
-    PenaltySeverity,
+    PenaltySeverity, REPUTATION_PROFILE_SEED, USER_PROFILE_SEED,
 };
 use stayke_treasury::{
     cpi::{accounts::PenalizeTransferCpi, cpi_penalize_transfer},
@@ -35,17 +35,35 @@ pub struct PenalizeUser<'info> {
 
     #[account(
         mut,
+        seeds = [USER_PROFILE_SEED.as_bytes(), penalized_user_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = penalized_user_profile.bump,
         constraint = !penalized_user_profile.banned @ DisputeError::UserBanned,
     )]
     pub penalized_user_profile: Box<Account<'info, UserProfile>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            REPUTATION_PROFILE_SEED.as_bytes(),
+            penalized_user_profile.authority.key().as_ref(),
+        ],
+        seeds::program = stayke_core::ID,
+        bump = penalized_reputation_profile.bump,
+        constraint = penalized_reputation_profile.authority == penalized_user_profile.authority
+            @ DisputeError::InvalidReputationProfile,
+    )]
     pub penalized_reputation_profile: Box<Account<'info, ReputationProfile>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = affected_token_account.mint == usdc_mint.key() @ DisputeError::InvalidTokenMint,
+        constraint = affected_token_account.owner == affected_wallet.key()
+            @ DisputeError::InvalidAffectedTokenAccount,
+    )]
     pub affected_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// CHECK: Wallet of the affected user, used for logging/events.
+    /// CHECK: Wallet of the compensation recipient; token account must be owned by this key.
     pub affected_wallet: UncheckedAccount<'info>,
 
     #[account(

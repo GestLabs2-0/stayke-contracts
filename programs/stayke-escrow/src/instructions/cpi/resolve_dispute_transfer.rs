@@ -6,6 +6,8 @@ use stayke_config::{
     assert_cpi_authority, error::StaykeConfigError, AllowedCaller, GlobalConfig, GLOBAL_CONFIG_SEED,
 };
 
+use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
+
 use crate::{
     constants::{BOOKING_SEED, ESCROW_PDA_SEED},
     error::EscrowError,
@@ -37,6 +39,22 @@ pub struct ResolveDisputeTransferCpi<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
+    )]
+    pub host_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), guest_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = guest_profile.bump,
+        constraint = booking.guest == guest_profile.key() @ EscrowError::UnauthorizedBooking,
+    )]
+    pub guest_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
@@ -52,12 +70,20 @@ pub struct ResolveDisputeTransferCpi<'info> {
     )]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// Host's USDC
-    #[account(mut)]
+    /// Host's USDC — must belong to the host wallet.
+    #[account(
+        mut,
+        constraint = host_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
+        constraint = host_token_account.owner == host_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
+    )]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// Guest's USDC
-    #[account(mut)]
+    /// Guest's USDC — must belong to the guest wallet.
+    #[account(
+        mut,
+        constraint = guest_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
+        constraint = guest_token_account.owner == guest_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
+    )]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Platform vault

@@ -71,6 +71,8 @@ pub enum EscrowError {
     InvalidVaultAccount,
     #[msg("Wrong guest pubkey passed")]
     WrongGuestPassed,
+    #[msg("Payout token account is not owned by the booking party")]
+    InvalidPayoutTokenAccount,
 
     // Config
     #[msg("Unauthorized admin action")]

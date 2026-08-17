@@ -77,8 +77,12 @@ pub struct CompleteStay<'info> {
     )]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// The host's USDC token account.
-    #[account(mut)]
+    /// Host payout ATA — must be a token account of `mint` owned by the host wallet.
+    #[account(
+        mut,
+        constraint = host_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
+        constraint = host_token_account.owner == host_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
+    )]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Platform fee vault.

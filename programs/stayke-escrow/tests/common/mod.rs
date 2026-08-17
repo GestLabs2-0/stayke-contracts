@@ -422,3 +422,80 @@ pub fn setup_global_config_custom(
 
     pda
 }
+
+pub fn escrow_token_pda(booking: Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[
+            escrow::constants::ESCROW_PDA_SEED.as_bytes(),
+            booking.as_ref(),
+        ],
+        &escrow::id(),
+    )
+}
+
+pub fn cpi_authority_pda(program_id: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[config::constants::CPI_AUTHORITY_SEED.as_bytes()],
+        program_id,
+    )
+    .0
+}
+
+pub fn setup_escrow_config(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[escrow::constants::ESCROW_CONFIG_SEED.as_bytes()],
+        &escrow::id(),
+    );
+    let cfg = escrow::EscrowConfig {
+        authority,
+        is_initialized: true,
+        bump,
+    };
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("EscrowConfig", &cfg),
+            owner: escrow::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+    pda
+}
+
+pub fn make_token_account(svm: &mut LiteSVM, key: Pubkey, mint: Pubkey, owner: Pubkey) {
+    let mut data = vec![0u8; 165];
+    data[0..32].copy_from_slice(&mint.to_bytes());
+    data[32..64].copy_from_slice(&owner.to_bytes());
+    data[108] = 1;
+    svm.set_account(
+        key,
+        Account {
+            lamports: 1_000_000_000,
+            data,
+            owner: anchor_spl::token::ID,
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+}
+
+pub fn make_mint(svm: &mut LiteSVM, key: Pubkey) {
+    let mut data = vec![0u8; 82];
+    data[44] = 6;
+    data[45] = 1;
+    svm.set_account(
+        key,
+        Account {
+            lamports: 1_000_000_000,
+            data,
+            owner: anchor_spl::token::ID,
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+}
