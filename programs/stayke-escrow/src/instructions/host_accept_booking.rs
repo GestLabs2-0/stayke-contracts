@@ -40,6 +40,7 @@ pub struct HostAcceptBooking<'info> {
         bump = booking.bump,
         constraint = booking.host == host_profile.key() @ EscrowError::InvalidBookingProperty,
         constraint = booking.status == BookingStatus::Pending @ EscrowError::InvalidBookingStatus,
+        constraint = booking.updated_at <= booking.updated_at + (24*60*60) @ EscrowError::ExceededAcceptTime
     )]
     pub booking: Account<'info, Booking>,
 
@@ -54,6 +55,7 @@ pub struct HostAcceptBooking<'info> {
 pub fn handler_host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
     booking.status = BookingStatus::HostAccepted;
+    booking.updated_at = Clock::get()?.unix_timestamp;
     emit!(BookingStatusUpdated {
         status: BookingStatus::HostAccepted,
         booking: booking.key()
