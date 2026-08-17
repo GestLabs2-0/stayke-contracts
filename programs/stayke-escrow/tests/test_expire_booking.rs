@@ -1,8 +1,8 @@
-//! LiteSVM integration tests for `host_reject_booking` /
-//! `host_reject_booking_cross_year`.
+//! LiteSVM integration tests for `expire_booking` / `expire_booking_crossday`.
 //!
-//! The host rejects a *Pending* booking, releasing the occupied calendar days
-//! and returning the escrowed USDC to the guest before closing the booking.
+//! The expire instructions let the guest close a *Pending* booking after more
+//! than 24 hours have elapsed without the host accepting it, returning the
+//! escrowed USDC to the guest and releasing the occupied calendar days.
 
 mod common;
 
@@ -43,27 +43,23 @@ const TOTAL_PRICE: u64 = 100_000;
 // ---------------------------------------------------------------------------
 
 #[allow(clippy::too_many_arguments)]
-fn host_reject_accounts(
+fn expire_booking_accounts(
     payer: Pubkey,
-    host: Pubkey,
-    host_profile: Pubkey,
     guest_profile: Pubkey,
     booking: Pubkey,
-    booking_days: Pubkey,
     escrow_token_account: Pubkey,
     guest_token_account: Pubkey,
+    booking_days: Pubkey,
     usdc_mint: Pubkey,
 ) -> Vec<anchor_lang::solana_program::instruction::AccountMeta> {
-    stayke_escrow::accounts::HostRejectBooking {
+    stayke_escrow::accounts::ExpireBooking {
         payer,
-        host,
-        host_profile,
         guest: guest_profile,
         booking,
-        booking_days,
-        global_config: global_config_pda(),
         escrow_token_account,
         guest_token_account,
+        booking_days,
+        global_config: global_config_pda(),
         mint: usdc_mint,
         token_program: anchor_spl::token::ID,
     }
@@ -71,29 +67,25 @@ fn host_reject_accounts(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn host_reject_cross_year_accounts(
+fn expire_booking_crossday_accounts(
     payer: Pubkey,
-    host: Pubkey,
-    host_profile: Pubkey,
     guest_profile: Pubkey,
     booking: Pubkey,
-    booking_days: Pubkey,
-    booking_days_next: Pubkey,
     escrow_token_account: Pubkey,
     guest_token_account: Pubkey,
+    booking_days: Pubkey,
+    booking_days_next: Pubkey,
     usdc_mint: Pubkey,
 ) -> Vec<anchor_lang::solana_program::instruction::AccountMeta> {
-    stayke_escrow::accounts::HostRejectBookingCrossYear {
+    stayke_escrow::accounts::ExpireBookingCrossDays {
         payer,
-        host,
-        host_profile,
         guest: guest_profile,
         booking,
+        escrow_token_account,
+        guest_token_account,
         booking_days,
         booking_days_next,
         global_config: global_config_pda(),
-        escrow_token_account,
-        guest_token_account,
         mint: usdc_mint,
         token_program: anchor_spl::token::ID,
     }
@@ -116,14 +108,14 @@ fn token_balance(svm: &litesvm::LiteSVM, account: &Pubkey) -> u64 {
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_returns_funds_releases_days_and_closes_account() {
+fn expire_booking_releases_days_transfers_funds_and_closes_account() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
@@ -153,40 +145,42 @@ fn host_reject_booking_returns_funds_releases_days_and_closes_account() {
         booking,
         TOTAL_PRICE,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
 
+    // Ensure the 24 h timer is satisfied: updated_at (0) + 86400 < clock.
+    set_clock(&mut svm, CHECK_IN_JAN_1_2025);
+
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             guest_profile,
             booking,
-            bd,
             escrow_token_account,
-            guest_ata,
+            client_ata,
+            bd,
             usdc_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(
         res.is_ok(),
-        "Expected successful host_reject_booking, got: {:?}",
+        "Expected successful expire_booking, got: {:?}",
         res.err()
     );
 
+    // Booking account should be closed.
     assert!(svm.get_account(&booking).is_none());
 
+    // BookingDays should have released days 1..5 of January.
     let bd_data: stayke_escrow::state::BookingDays =
         AnchorDeserialize::deserialize(&mut &svm.get_account(&bd).unwrap().data[8..]).unwrap();
     assert_eq!(
@@ -194,22 +188,23 @@ fn host_reject_booking_returns_funds_releases_days_and_closes_account() {
         "January days should be released"
     );
 
-    assert_eq!(token_balance(&svm, &guest_ata), TOTAL_PRICE);
+    // Escrow funds should have been returned to the guest.
+    assert_eq!(token_balance(&svm, &client_ata), TOTAL_PRICE);
 }
 
 // ===========================================================================
-// Single-year — error: wrong booking status
+// Single-year — error: not over 24 h
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_wrong_status_fails() {
+fn expire_booking_not_over_24_hours_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
@@ -217,6 +212,82 @@ fn host_reject_booking_wrong_status_fails() {
 
     setup_booking_days(&mut svm, property, 2025, [0u32; 12]);
 
+    // updated_at == now, so the 24 h timer is NOT satisfied.
+    let booking = setup_booking_with_escrow(
+        &mut svm,
+        guest_profile,
+        host_profile,
+        property,
+        CHECK_IN_JAN_1_2025,
+        CHECK_OUT_JAN_5_2025,
+        BookingStatus::Pending,
+        TOTAL_PRICE,
+        CHECK_IN_JAN_1_2025,
+    );
+
+    let escrow_token_account = escrow_token_pda(booking);
+    make_token_account(
+        &mut svm,
+        escrow_token_account,
+        usdc_mint,
+        booking,
+        TOTAL_PRICE,
+    );
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
+
+    let bd = booking_days_pda(property, 2025);
+    set_clock(&mut svm, CHECK_IN_JAN_1_2025);
+
+    let instruction = Instruction::new_with_bytes(
+        stayke_escrow::id(),
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
+            payer.pubkey(),
+            guest_profile,
+            booking,
+            escrow_token_account,
+            client_ata,
+            bd,
+            usdc_mint,
+        ),
+    );
+
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
+    let res = svm.send_transaction(tx);
+    assert!(res.is_err());
+    assert_eq!(
+        res.unwrap_err().err,
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(stayke_escrow::error::EscrowError::NotOver24Hours))
+        )
+    );
+}
+
+// ===========================================================================
+// Single-year — error: wrong booking status
+// ===========================================================================
+
+#[test]
+fn expire_booking_wrong_status_fails() {
+    let (mut svm, payer) = build_svm_with_escrow_programs();
+    let guest = Keypair::new();
+    let host = Keypair::new();
+    let property = Pubkey::new_unique();
+
+    let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
+
+    let usdc_mint = Pubkey::new_unique();
+    make_mint(&mut svm, usdc_mint);
+    setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
+
+    setup_booking_days(&mut svm, property, 2025, [0u32; 12]);
+
+    // Booking is Active, not Pending.
     let booking = setup_booking_with_escrow(
         &mut svm,
         guest_profile,
@@ -237,31 +308,29 @@ fn host_reject_booking_wrong_status_fails() {
         booking,
         TOTAL_PRICE,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
+    set_clock(&mut svm, CHECK_IN_JAN_1_2025);
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             guest_profile,
             booking,
-            bd,
             escrow_token_account,
-            guest_ata,
+            client_ata,
+            bd,
             usdc_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
@@ -276,100 +345,20 @@ fn host_reject_booking_wrong_status_fails() {
 }
 
 // ===========================================================================
-// Single-year — error: wrong host
-// ===========================================================================
-
-#[test]
-fn host_reject_booking_wrong_host_fails() {
-    let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
-    let wrong_host = Keypair::new();
-    let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
-    let wrong_host_profile = setup_user_profile(&mut svm, wrong_host.pubkey());
-    let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
-
-    let usdc_mint = Pubkey::new_unique();
-    make_mint(&mut svm, usdc_mint);
-    setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
-
-    setup_booking_days(&mut svm, property, 2025, [0u32; 12]);
-
-    let booking = setup_booking_with_escrow(
-        &mut svm,
-        guest_profile,
-        host_profile,
-        property,
-        CHECK_IN_JAN_1_2025,
-        CHECK_OUT_JAN_5_2025,
-        BookingStatus::Pending,
-        TOTAL_PRICE,
-        0,
-    );
-
-    let escrow_token_account = escrow_token_pda(booking);
-    make_token_account(
-        &mut svm,
-        escrow_token_account,
-        usdc_mint,
-        booking,
-        TOTAL_PRICE,
-    );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
-
-    let bd = booking_days_pda(property, 2025);
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
-            payer.pubkey(),
-            wrong_host.pubkey(),
-            wrong_host_profile,
-            guest_profile,
-            booking,
-            bd,
-            escrow_token_account,
-            guest_ata,
-            usdc_mint,
-        ),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &wrong_host])
-        .unwrap();
-    let res = svm.send_transaction(tx);
-    assert!(res.is_err());
-    assert_eq!(
-        res.unwrap_err().err,
-        TransactionError::InstructionError(
-            0,
-            Custom(u32::from(
-                stayke_escrow::error::EscrowError::InvalidBookingProperty
-            ))
-        )
-    );
-}
-
-// ===========================================================================
 // Single-year — error: wrong guest
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_wrong_guest_fails() {
+fn expire_booking_wrong_guest_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
     let wrong_guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let wrong_guest_profile = setup_user_profile(&mut svm, wrong_guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
@@ -397,31 +386,31 @@ fn host_reject_booking_wrong_guest_fails() {
         booking,
         TOTAL_PRICE,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, wrong_guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, wrong_guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
+    set_clock(&mut svm, CHECK_IN_JAN_1_2025);
 
+    // Pass wrong_guest_profile as client_profile — should fail
+    // `booking.guest == client_profile.key()`.
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             wrong_guest_profile,
             booking,
-            bd,
             escrow_token_account,
-            guest_ata,
+            client_ata,
+            bd,
             usdc_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
@@ -436,105 +425,26 @@ fn host_reject_booking_wrong_guest_fails() {
 }
 
 // ===========================================================================
-// Single-year — error: insufficient escrow funds
-// ===========================================================================
-
-#[test]
-fn host_reject_booking_insufficient_funds_fails() {
-    let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
-    let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
-    let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
-
-    let usdc_mint = Pubkey::new_unique();
-    make_mint(&mut svm, usdc_mint);
-    setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
-
-    let mut days = [0u32; 12];
-    days[0] = stayke_escrow::utils::bitmap_days(1, 5);
-    setup_booking_days(&mut svm, property, 2025, days);
-
-    let booking = setup_booking_with_escrow(
-        &mut svm,
-        guest_profile,
-        host_profile,
-        property,
-        CHECK_IN_JAN_1_2025,
-        CHECK_OUT_JAN_5_2025,
-        BookingStatus::Pending,
-        TOTAL_PRICE,
-        0,
-    );
-
-    // Escrow holds less than total_price.
-    let escrow_token_account = escrow_token_pda(booking);
-    make_token_account(
-        &mut svm,
-        escrow_token_account,
-        usdc_mint,
-        booking,
-        TOTAL_PRICE - 1,
-    );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
-
-    let bd = booking_days_pda(property, 2025);
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
-            payer.pubkey(),
-            host.pubkey(),
-            host_profile,
-            guest_profile,
-            booking,
-            bd,
-            escrow_token_account,
-            guest_ata,
-            usdc_mint,
-        ),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
-    let res = svm.send_transaction(tx);
-    assert!(res.is_err());
-    assert_eq!(
-        res.unwrap_err().err,
-        TransactionError::InstructionError(
-            0,
-            Custom(u32::from(
-                stayke_escrow::error::EscrowError::InsufficientFunds
-            ))
-        )
-    );
-}
-
-// ===========================================================================
 // Single-year — error: invalid token mint
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_wrong_mint_fails() {
+fn expire_booking_wrong_mint_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
     setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
 
-    // A different, valid mint that does NOT match global_config.usdc_mint.
+    // A different, valid mint that does NOT match global_config.usdc_mint. The
+    // escrow/client token accounts are minted against it so their own
+    // `token::mint` constraints pass and only the mint's `usdc_mint` check fires.
     let wrong_mint = Pubkey::new_unique();
     make_mint(&mut svm, wrong_mint);
 
@@ -560,31 +470,29 @@ fn host_reject_booking_wrong_mint_fails() {
         booking,
         TOTAL_PRICE,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, wrong_mint, guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, wrong_mint, guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
+    set_clock(&mut svm, CHECK_IN_JAN_1_2025);
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBooking {}.data(),
-        host_reject_accounts(
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             guest_profile,
             booking,
-            bd,
             escrow_token_account,
-            guest_ata,
+            client_ata,
+            bd,
             wrong_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
@@ -599,27 +507,106 @@ fn host_reject_booking_wrong_mint_fails() {
 }
 
 // ===========================================================================
-// Cross-year — happy path
+// Single-year — error: cross-year booking with single-year instruction
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_cross_year_returns_funds_releases_days_and_closes_account() {
+fn expire_booking_single_year_fails_cross_year_booking() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
     setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
 
+    setup_booking_days(&mut svm, property, 2025, [0u32; 12]);
+
+    // Cross-year booking, but we call the single-year instruction.
+    let booking = setup_booking_with_escrow(
+        &mut svm,
+        guest_profile,
+        host_profile,
+        property,
+        CHECK_IN_DEC_28_2025,
+        CHECK_OUT_JAN_3_2026,
+        BookingStatus::Pending,
+        TOTAL_PRICE,
+        0,
+    );
+
+    let escrow_token_account = escrow_token_pda(booking);
+    make_token_account(
+        &mut svm,
+        escrow_token_account,
+        usdc_mint,
+        booking,
+        TOTAL_PRICE,
+    );
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
+
+    let bd = booking_days_pda(property, 2025);
+    set_clock(&mut svm, CHECK_IN_DEC_28_2025);
+
+    let instruction = Instruction::new_with_bytes(
+        stayke_escrow::id(),
+        &stayke_escrow::instruction::ExpireBooking {}.data(),
+        expire_booking_accounts(
+            payer.pubkey(),
+            guest_profile,
+            booking,
+            escrow_token_account,
+            client_ata,
+            bd,
+            usdc_mint,
+        ),
+    );
+
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
+    let res = svm.send_transaction(tx);
+    assert!(res.is_err());
+    assert_eq!(
+        res.unwrap_err().err,
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(
+                stayke_escrow::error::EscrowError::SingleYearUnbookingInvalid
+            ))
+        )
+    );
+}
+
+// ===========================================================================
+// Cross-year — happy path
+// ===========================================================================
+
+#[test]
+fn expire_booking_cross_year_releases_days_transfers_funds_and_closes_account() {
+    let (mut svm, payer) = build_svm_with_escrow_programs();
+    let guest = Keypair::new();
+    let host = Keypair::new();
+    let property = Pubkey::new_unique();
+
+    let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
+
+    let usdc_mint = Pubkey::new_unique();
+    make_mint(&mut svm, usdc_mint);
+    setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
+
+    // Dec 28–31 occupied in 2025.
     let mut days_2025 = [0u32; 12];
     days_2025[11] = stayke_escrow::utils::bitmap_days(28, 31);
     setup_booking_days(&mut svm, property, 2025, days_2025);
 
+    // Jan 1–3 occupied in 2026.
     let mut days_2026 = [0u32; 12];
     days_2026[0] = stayke_escrow::utils::bitmap_days(1, 3);
     setup_booking_days(&mut svm, property, 2026, days_2026);
@@ -644,37 +631,35 @@ fn host_reject_booking_cross_year_returns_funds_releases_days_and_closes_account
         booking,
         TOTAL_PRICE,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
     let bd_next = booking_days_pda(property, 2026);
+    set_clock(&mut svm, CHECK_IN_DEC_28_2025);
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBookingCrossYear {}.data(),
-        host_reject_cross_year_accounts(
+        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
+        expire_booking_crossday_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             guest_profile,
             booking,
+            escrow_token_account,
+            client_ata,
             bd,
             bd_next,
-            escrow_token_account,
-            guest_ata,
             usdc_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(
         res.is_ok(),
-        "Expected successful host_reject_booking_cross_year, got: {:?}",
+        "Expected successful expire_booking_crossday, got: {:?}",
         res.err()
     );
 
@@ -694,7 +679,7 @@ fn host_reject_booking_cross_year_returns_funds_releases_days_and_closes_account
         "January days should be released"
     );
 
-    assert_eq!(token_balance(&svm, &guest_ata), TOTAL_PRICE);
+    assert_eq!(token_balance(&svm, &client_ata), TOTAL_PRICE);
 }
 
 // ===========================================================================
@@ -702,14 +687,14 @@ fn host_reject_booking_cross_year_returns_funds_releases_days_and_closes_account
 // ===========================================================================
 
 #[test]
-fn host_reject_booking_cross_year_insufficient_funds_fails() {
+fn expire_booking_cross_year_insufficient_funds_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
-    let host = Keypair::new();
     let guest = Keypair::new();
+    let host = Keypair::new();
     let property = Pubkey::new_unique();
 
-    let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
 
     let usdc_mint = Pubkey::new_unique();
     make_mint(&mut svm, usdc_mint);
@@ -744,33 +729,31 @@ fn host_reject_booking_cross_year_insufficient_funds_fails() {
         booking,
         TOTAL_PRICE - 1,
     );
-    let guest_ata = Pubkey::new_unique();
-    make_token_account(&mut svm, guest_ata, usdc_mint, guest.pubkey(), 0);
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
 
     let bd = booking_days_pda(property, 2025);
     let bd_next = booking_days_pda(property, 2026);
+    set_clock(&mut svm, CHECK_IN_DEC_28_2025);
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::HostRejectBookingCrossYear {}.data(),
-        host_reject_cross_year_accounts(
+        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
+        expire_booking_crossday_accounts(
             payer.pubkey(),
-            host.pubkey(),
-            host_profile,
             guest_profile,
             booking,
+            escrow_token_account,
+            client_ata,
             bd,
             bd_next,
-            escrow_token_account,
-            guest_ata,
             usdc_mint,
         ),
     );
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     let res = svm.send_transaction(tx);
     assert!(res.is_err());
     assert_eq!(
@@ -780,6 +763,83 @@ fn host_reject_booking_cross_year_insufficient_funds_fails() {
             Custom(u32::from(
                 stayke_escrow::error::EscrowError::InsufficientFunds
             ))
+        )
+    );
+}
+
+// ===========================================================================
+// Cross-year — error: not over 24 h
+// ===========================================================================
+
+#[test]
+fn expire_booking_cross_year_not_over_24_hours_fails() {
+    let (mut svm, payer) = build_svm_with_escrow_programs();
+    let guest = Keypair::new();
+    let host = Keypair::new();
+    let property = Pubkey::new_unique();
+
+    let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
+    let host_profile = setup_user_profile(&mut svm, host.pubkey());
+
+    let usdc_mint = Pubkey::new_unique();
+    make_mint(&mut svm, usdc_mint);
+    setup_global_config_custom(&mut svm, stayke_escrow::id(), 0, 4, usdc_mint);
+
+    setup_booking_days(&mut svm, property, 2025, [0u32; 12]);
+    setup_booking_days(&mut svm, property, 2026, [0u32; 12]);
+
+    let booking = setup_booking_with_escrow(
+        &mut svm,
+        guest_profile,
+        host_profile,
+        property,
+        CHECK_IN_DEC_28_2025,
+        CHECK_OUT_JAN_3_2026,
+        BookingStatus::Pending,
+        TOTAL_PRICE,
+        CHECK_IN_DEC_28_2025,
+    );
+
+    let escrow_token_account = escrow_token_pda(booking);
+    make_token_account(
+        &mut svm,
+        escrow_token_account,
+        usdc_mint,
+        booking,
+        TOTAL_PRICE,
+    );
+    let client_ata = Pubkey::new_unique();
+    make_token_account(&mut svm, client_ata, usdc_mint, guest.pubkey(), 0);
+
+    let bd = booking_days_pda(property, 2025);
+    let bd_next = booking_days_pda(property, 2026);
+    set_clock(&mut svm, CHECK_IN_DEC_28_2025);
+
+    let instruction = Instruction::new_with_bytes(
+        stayke_escrow::id(),
+        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
+        expire_booking_crossday_accounts(
+            payer.pubkey(),
+            guest_profile,
+            booking,
+            escrow_token_account,
+            client_ata,
+            bd,
+            bd_next,
+            usdc_mint,
+        ),
+    );
+
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
+    let res = svm.send_transaction(tx);
+    assert!(res.is_err());
+    assert_eq!(
+        res.unwrap_err().err,
+        TransactionError::InstructionError(
+            0,
+            Custom(u32::from(stayke_escrow::error::EscrowError::NotOver24Hours))
         )
     );
 }
