@@ -18,3 +18,10 @@ pub struct BookingStatusUpdated {
     pub booking: Pubkey,
     pub status: BookingStatus,
 }
+
+#[event]
+pub struct BookingExpired {
+    pub booking: Pubkey,
+    pub guest: Pubkey,
+    pub host: Pubkey,
+}

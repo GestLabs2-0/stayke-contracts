@@ -80,6 +80,10 @@ pub enum EscrowError {
     #[msg("Wrong guest pubkey passed")]
     WrongGuestPassed,
 
+    // Expire booking
+    #[msg("Pending booking must be over 24h")]
+    NotOver24Hours,
+
     // Config
     #[msg("Unauthorized admin action")]
     UnauthorizedAdmin,
