@@ -45,10 +45,10 @@ pub struct ReputationProfile {
     pub host_cancellations: u32,
     /// Number of cancellations as client
     pub client_cancellations: u32,
-    /// Number of cancellations as host within 24 hours of the stay
-    pub host_cancellations_within_48h: u32,
-    /// Number of cancellations as host within 24 hours of the stay
-    pub client_cancellations_within_48h: u32,
+    /// Number of reviews skipped as host
+    pub host_reviews_skipped: u32,
+    /// Number of reviews skipped as guest
+    pub guest_reviews_skipped: u32,
     /// Infraction counter
     pub low_infractions: u8,
     /// Infraction counter

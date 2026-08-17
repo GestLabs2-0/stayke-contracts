@@ -83,6 +83,20 @@ pub fn handler_clear_active_booking(ctx: Context<UpdateUserProfile>) -> Result<(
     Ok(())
 }
 
+/// CPI-gated instruction: links a booking into the guest's active-booking slot.
+/// Only the Escrow program may call this.
+pub fn handler_set_active_booking(ctx: Context<UpdateUserProfile>, booking: Pubkey) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Escrow],
+    )?;
+
+    let user_profile = &mut ctx.accounts.user_profile;
+    user_profile.active_booking = Some(booking);
+    Ok(())
+}
+
 pub fn handler_add_infraction(
     ctx: Context<UpdateReputationProfile>,
     severity: PenaltySeverity,

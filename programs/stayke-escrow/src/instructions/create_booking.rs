@@ -228,7 +228,7 @@ pub struct CreateBookingCrossYear<'info> {
         constraint = (client_profile.completed_stays + client_profile.hosted_stays) < global_config.free_ops as u32
             || client_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
-    pub client_profile: Account<'info, UserProfile>,
+    pub client_profile: Box<Account<'info, UserProfile>>,
 
     /// The host's UserProfile from stayke-core.
     #[account(
@@ -252,7 +252,7 @@ pub struct CreateBookingCrossYear<'info> {
     pub booking: Account<'info, Booking>,
 
     #[account(seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump)]
-    pub property: Account<'info, Listing>,
+    pub property: Box<Account<'info, Listing>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
