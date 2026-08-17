@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 //! Shared helpers for stayke-escrow LiteSVM tests.
 
+use anchor_lang::solana_program::clock::Clock;
 use anchor_lang::AnchorSerialize;
 use litesvm::LiteSVM;
 use solana_account::Account;
@@ -204,6 +205,78 @@ pub fn setup_booking_at_pda(
     .unwrap();
 
     pda
+}
+
+// ---------------------------------------------------------------------------
+// Booking with a correctly derived escrow bump (for instructions that transfer
+// out of the escrow, whose authority is the booking PDA).
+// ---------------------------------------------------------------------------
+
+#[allow(clippy::too_many_arguments)]
+pub fn setup_booking_with_escrow(
+    svm: &mut LiteSVM,
+    guest_profile: Pubkey,
+    host_profile: Pubkey,
+    property: Pubkey,
+    check_in: i64,
+    check_out: i64,
+    status: escrow::state::BookingStatus,
+    total_price: u64,
+    updated_at: i64,
+) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[
+            escrow::constants::BOOKING_SEED.as_bytes(),
+            property.as_ref(),
+            guest_profile.as_ref(),
+            check_in.to_le_bytes().as_ref(),
+        ],
+        &escrow::id(),
+    );
+
+    let (_, escrow_bump) = Pubkey::find_program_address(
+        &[escrow::constants::ESCROW_PDA_SEED.as_bytes(), pda.as_ref()],
+        &escrow::id(),
+    );
+
+    let booking = escrow::state::Booking {
+        guest: guest_profile,
+        host: host_profile,
+        property,
+        check_in,
+        check_out,
+        total_price,
+        host_review: 0,
+        guest_review: 0,
+        status,
+        escrow_bump,
+        updated_at,
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("Booking", &booking),
+            owner: escrow::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
+}
+
+// ---------------------------------------------------------------------------
+// Clock sysvar manipulation (expire_booking's 24 h timer reads the clock).
+// ---------------------------------------------------------------------------
+
+pub fn set_clock(svm: &mut LiteSVM, unix_timestamp: i64) {
+    let mut clock = svm.get_sysvar::<Clock>();
+    clock.unix_timestamp = unix_timestamp;
+    svm.set_sysvar::<Clock>(&clock);
 }
 
 // ---------------------------------------------------------------------------
