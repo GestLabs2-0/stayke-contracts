@@ -31,7 +31,7 @@ pub enum EscrowError {
     BookingNotActive,
     #[msg("Booking must be in ReviewCompleted status to complete the stay")]
     BookingNotReviewCompleted,
-    #[msg("Too early to activate booking — check-in must be within 24 h")]
+    #[msg("Too early to start booking — check-in time not reached")]
     TooEarlyToActivate,
     #[msg("Exceeded time to accept booking")]
     ExceededAcceptTime,
@@ -87,4 +87,11 @@ pub enum EscrowError {
     // Config
     #[msg("Unauthorized admin action")]
     UnauthorizedAdmin,
+
+    // Booking lifecycle (permissionless transitions) — appended at the end to
+    // preserve the numeric error codes of all previously shipped variants.
+    #[msg("Booking must be in HostAccepted status to start")]
+    BookingNotAccepted,
+    #[msg("Too early to complete booking — check-out time not reached")]
+    TooEarlyToComplete,
 }

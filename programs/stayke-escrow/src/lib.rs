@@ -50,6 +50,14 @@ pub mod stayke_escrow {
         handler_host_accept_booking(ctx)
     }
 
+    pub fn booking_starts(ctx: Context<BookingStarts>) -> Result<()> {
+        handler_booking_starts(ctx)
+    }
+
+    pub fn booking_completes(ctx: Context<BookingCompletes>) -> Result<()> {
+        handler_booking_completes(ctx)
+    }
+
     pub fn host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()> {
         handler_host_reject_booking(ctx)
     }
