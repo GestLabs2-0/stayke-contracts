@@ -1,3 +1,5 @@
+pub mod booking_completes;
+pub mod booking_starts;
 pub mod client_reject_reserve;
 pub mod close_booking;
 pub mod complete_stay;
@@ -8,6 +10,8 @@ pub mod host_accept_booking;
 pub mod host_reject_booking;
 pub mod initialize;
 
+pub use booking_completes::*;
+pub use booking_starts::*;
 pub use client_reject_reserve::*;
 pub use close_booking::*;
 pub use complete_stay::*;
