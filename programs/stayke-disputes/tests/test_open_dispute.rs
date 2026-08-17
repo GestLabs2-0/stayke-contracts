@@ -250,7 +250,7 @@ fn open_dispute_booking_not_active_fails() {
         TransactionError::InstructionError(
             0,
             Custom(u32::from(
-                stayke_disputes::error::DisputeError::BookingNotActive
+                stayke_disputes::error::DisputeError::BookingNotDisputable
             ))
         )
     );

@@ -89,8 +89,8 @@ pub mod stayke_escrow {
         handler_review_completed(ctx, score)
     }
 
-    pub fn complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
-        handler_complete_stay(ctx)
+    pub fn release_funds(ctx: Context<ReleaseFunds>) -> Result<()> {
+        handler_release_funds(ctx)
     }
 
     // ---------------------------------------------------------------------------

@@ -5,56 +5,50 @@ use anchor_spl::token_interface::{
 use stayke_core::program::StaykeCore;
 use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
 
-use stayke_config::{
-    error::StaykeConfigError, GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED,
-};
+use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 
-use crate::EscrowConfig;
 use crate::{
-    constants::{BOOKING_SEED, ESCROW_CONFIG_SEED, ESCROW_PDA_SEED},
+    constants::{BOOKING_SEED, ESCROW_PDA_SEED},
     error::EscrowError,
     events::BookingStatusUpdated,
     state::{Booking, BookingStatus},
 };
 
 // ---------------------------------------------------------------------------
-// Complete stay — distributes escrow to host (minus fee) and platform vault
+// Release funds — permissionless settlement of a completed stay once the
+// dispute window closes.
 // ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
-pub struct CompleteStay<'info> {
+pub struct ReleaseFunds<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    pub client: Signer<'info>,
-
-    /// The guest's UserProfile — must be mutable for CPI to increment completed_stays.
+    /// The guest's UserProfile — mutable for the `completed_stays` CPI.
     #[account(
         mut,
-        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), guest_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
-        bump = client_profile.bump,
-        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
-        constraint = !client_profile.banned @ EscrowError::UserBanned,
+        bump = guest_profile.bump,
+        constraint = guest_profile.key() == booking.guest @ EscrowError::UnauthorizedBooking,
     )]
-    pub client_profile: Box<Account<'info, UserProfile>>,
+    pub guest_profile: Box<Account<'info, UserProfile>>,
 
-    /// The host's UserProfile — destination for the payment.
+    /// The host's UserProfile — mutable for the `hosted_stays` CPI.
     #[account(
+        mut,
         seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
+        constraint = host_profile.key() == booking.host @ EscrowError::InvalidHostBooking,
     )]
-    pub host_profile: Account<'info, UserProfile>,
+    pub host_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
         mut,
-        close = client,
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
-        constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
-        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
-        constraint = booking.status == BookingStatus::ReviewCompleted @ EscrowError::BookingNotReviewCompleted,
+        constraint = booking.status == BookingStatus::Completed @ EscrowError::BookingNotCompleted,
     )]
     pub booking: Box<Account<'info, Booking>>,
 
@@ -65,30 +59,37 @@ pub struct CompleteStay<'info> {
     )]
     pub global_config: Box<Account<'info, GlobalConfig>>,
 
-    #[account(seeds = [ESCROW_CONFIG_SEED.as_bytes()], bump = escrow_config.bump)]
-    pub escrow_config: Box<Account<'info, EscrowConfig>>,
-
     #[account(
         mut,
         seeds = [ESCROW_PDA_SEED.as_bytes(), booking.key().as_ref()],
         bump = booking.escrow_bump,
         token::mint = mint,
         token::authority = booking,
+        token::token_program = token_program,
     )]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// The host's USDC token account.
-    #[account(mut)]
+    /// The host's USDC token account — the funds destination, bound to the
+    /// host's authority so the caller cannot redirect the payment.
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = host_profile.authority,
+        token::token_program = token_program,
+    )]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Platform fee vault.
     #[account(
         mut,
-        constraint = platform_vault.key() == global_config.platform_vault @ StaykeConfigError::InvalidVaultAccount,
+        constraint = platform_vault.key() == global_config.platform_vault @ EscrowError::InvalidVaultAccount,
     )]
     pub platform_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, constraint = mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
+    #[account(
+        mut,
+        constraint = mint.key() == global_config.usdc_mint @ EscrowError::InvalidTokenMint,
+    )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// CHECK: Escrow CPI authority PDA — signs privileged core mutators.
@@ -99,8 +100,23 @@ pub struct CompleteStay<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler_complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
+pub fn handler_release_funds(ctx: Context<ReleaseFunds>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
+    let now = Clock::get()?.unix_timestamp;
+
+    // Dispute window: funds can only be released 24h after the stay completed.
+    require!(
+        now >= booking.updated_at + (24 * 60 * 60),
+        EscrowError::ReleaseWindowNotElapsed
+    );
+
+    // A disputed booking can no longer be released here. The `Completed`
+    // constraint already enforces this, but keep the invariant explicit.
+    require!(
+        booking.status != BookingStatus::Disputed,
+        EscrowError::BookingNotDisputable
+    );
+
     let config = &ctx.accounts.global_config;
     let decimals = ctx.accounts.mint.decimals;
 
@@ -118,7 +134,6 @@ pub fn handler_complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
     ]];
 
     if host_amount > 0 {
-        // TODO: should I implement somekind of conditional if the host is banned. What happens to the money if the host is banned after the stay is completed but before the booking is closed?
         token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.key(),
@@ -152,38 +167,60 @@ pub fn handler_complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
         )?;
     }
 
-    // Close the escrow token account, returning rent to the client.
+    // Close the escrow token account, returning rent to the permissionless caller.
     token_interface::close_account(CpiContext::new_with_signer(
         ctx.accounts.token_program.key(),
         CloseAccount {
             account: ctx.accounts.escrow_token_account.to_account_info(),
-            destination: ctx.accounts.client.to_account_info(),
+            destination: ctx.accounts.payer.to_account_info(),
             authority: booking.to_account_info(),
         },
         booking_seeds,
     ))?;
 
-    booking.status = BookingStatus::Completed;
-
-    emit!(BookingStatusUpdated {
-        status: BookingStatus::Completed,
-        booking: booking.key()
-    });
+    booking.status = BookingStatus::Released;
 
     // CPI to stayke-core: increment the guest's completed_stays counter.
-    // This feeds the free-tier deposit bypass logic.
     let bump = ctx.bumps.cpi_authority;
     let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
-    let increment_accounts = stayke_core::cpi::accounts::UpdateUserProfile {
-        user_profile: ctx.accounts.client_profile.to_account_info(),
+
+    let guest_cpi_accounts = stayke_core::cpi::accounts::UpdateUserProfile {
+        user_profile: ctx.accounts.guest_profile.to_account_info(),
         global_config: ctx.accounts.global_config.to_account_info(),
         cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
     };
     stayke_core::cpi::increment_completed_stays(CpiContext::new_with_signer(
         ctx.accounts.stayke_core_program.key(),
-        increment_accounts,
+        guest_cpi_accounts,
         signer_seeds,
     ))?;
 
+    let guest_cpi_accounts = stayke_core::cpi::accounts::UpdateUserProfile {
+        user_profile: ctx.accounts.guest_profile.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
+    };
+    stayke_core::cpi::clear_active_booking(CpiContext::new_with_signer(
+        ctx.accounts.stayke_core_program.key(),
+        guest_cpi_accounts,
+        signer_seeds,
+    ))?;
+
+    // CPI to stayke-core: increment the host's hosted_stays counter.
+    let host_cpi_accounts = stayke_core::cpi::accounts::UpdateUserProfile {
+        user_profile: ctx.accounts.host_profile.to_account_info(),
+        global_config: ctx.accounts.global_config.to_account_info(),
+        cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
+    };
+    stayke_core::cpi::increment_hosted_stays(CpiContext::new_with_signer(
+        ctx.accounts.stayke_core_program.key(),
+        host_cpi_accounts,
+        signer_seeds,
+    ))?;
+
+    emit!(BookingStatusUpdated {
+        status: BookingStatus::Released,
+        booking: booking.key()
+    });
     Ok(())
 }

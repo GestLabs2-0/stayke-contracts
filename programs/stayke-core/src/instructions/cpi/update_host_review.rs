@@ -10,7 +10,6 @@ use stayke_config::{
 #[derive(Accounts)]
 pub struct UpdateHostReview<'info> {
     #[account(
-        mut,
         seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         bump = host_profile.bump,
     )]
@@ -47,7 +46,5 @@ pub fn handler_update_host_review(ctx: Context<UpdateHostReview>, score: u8) -> 
     reputation.host_reviews = reputation.host_reviews.saturating_add(1);
     reputation.total_score_host = reputation.total_score_host.saturating_add(score as u64);
 
-    let profile = &mut ctx.accounts.host_profile;
-    profile.hosted_stays = profile.hosted_stays.saturating_add(1);
     Ok(())
 }

@@ -67,8 +67,9 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>, reason: DisputeReason) ->
         DisputeError::UnauthorizedDisputeInitiator
     );
     require!(
-        ctx.accounts.booking.status == BookingStatus::Active,
-        DisputeError::BookingNotActive
+        ctx.accounts.booking.status == BookingStatus::Active
+            || ctx.accounts.booking.status == BookingStatus::Completed,
+        DisputeError::BookingNotDisputable
     );
 
     let booking = &ctx.accounts.booking;

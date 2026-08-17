@@ -587,3 +587,61 @@ pub fn setup_global_config_custom(
 
     pda
 }
+
+// ---------------------------------------------------------------------------
+// GlobalConfig with an explicit platform vault (for fund-settlement tests).
+// ---------------------------------------------------------------------------
+
+pub fn setup_global_config_with_vault(
+    svm: &mut LiteSVM,
+    escrow_program: Pubkey,
+    usdc_mint: Pubkey,
+    platform_vault: Pubkey,
+) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
+        &config::id(),
+    );
+
+    let gc = config::state::GlobalConfig {
+        authority: Pubkey::new_unique(),
+        free_ops: 4,
+        minimum_deposit: 0,
+        fee_bps: 200,
+        usdc_mint,
+        is_initialized: true,
+        platform_vault,
+        platform_vault_bump: bump,
+        core_program: core::id(),
+        escrow_program,
+        disputes_program: Pubkey::new_unique(),
+        treasury_program: Pubkey::new_unique(),
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("GlobalConfig", &gc),
+            owner: config::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
+}
+
+// ---------------------------------------------------------------------------
+// Escrow CPI authority PDA.
+// ---------------------------------------------------------------------------
+
+pub fn cpi_authority_pda() -> Pubkey {
+    Pubkey::find_program_address(
+        &[config::constants::CPI_AUTHORITY_SEED.as_bytes()],
+        &escrow::id(),
+    )
+    .0
+}

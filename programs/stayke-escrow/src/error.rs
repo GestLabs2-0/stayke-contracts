@@ -94,4 +94,12 @@ pub enum EscrowError {
     BookingNotAccepted,
     #[msg("Too early to complete booking — check-out time not reached")]
     TooEarlyToComplete,
+
+    // Release funds
+    #[msg("Booking must be in Completed status to release funds")]
+    BookingNotCompleted,
+    #[msg("Release window (24h) has not elapsed")]
+    ReleaseWindowNotElapsed,
+    #[msg("Booking must be in Active or Completed status to open a dispute")]
+    BookingNotDisputable,
 }

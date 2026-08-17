@@ -77,6 +77,10 @@ pub mod stayke_core {
         handler_increment_completed_stays(ctx)
     }
 
+    pub fn increment_hosted_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
+        handler_increment_hosted_stays(ctx)
+    }
+
     // --------------------------------------------------------------------------
     // Identity Verification
     // ------------------------------------------------------------------------
