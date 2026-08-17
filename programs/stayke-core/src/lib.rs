@@ -50,6 +50,10 @@ pub mod stayke_core {
         handler_clear_active_booking(ctx)
     }
 
+    pub fn set_active_booking(ctx: Context<UpdateUserProfile>, booking: Pubkey) -> Result<()> {
+        handler_set_active_booking(ctx, booking)
+    }
+
     pub fn add_infraction(
         ctx: Context<UpdateReputationProfile>,
         severity: PenaltySeverity,
