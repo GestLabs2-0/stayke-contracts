@@ -33,6 +33,8 @@ pub enum EscrowError {
     BookingNotReviewCompleted,
     #[msg("Too early to activate booking — check-in must be within 24 h")]
     TooEarlyToActivate,
+    #[msg("Exceeded time to accept booking")]
+    ExceededAcceptTime,
 
     // Auth
     #[msg("Only the client can perform this action on their booking")]
