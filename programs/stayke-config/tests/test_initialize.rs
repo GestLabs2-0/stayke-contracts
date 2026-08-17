@@ -115,34 +115,11 @@ fn test_initialize_config_persists_program_ids() {
         .expect("deserialize GlobalConfig");
 
     assert!(config.is_initialized);
-    assert_ne!(config.core_program, Pubkey::default());
-    assert_ne!(config.escrow_program, Pubkey::default());
-    assert_ne!(config.disputes_program, Pubkey::default());
-    assert_ne!(config.treasury_program, Pubkey::default());
-    assert_eq!(
-        config.core_program,
-        "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.escrow_program,
-        "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.disputes_program,
-        "7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.treasury_program,
-        "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
+    assert_eq!(config.free_ops, FREE_OPS);
+    assert_eq!(config.core_program, stayke_config::CORE_PROGRAM_ID);
+    assert_eq!(config.escrow_program, stayke_config::ESCROW_PROGRAM_ID);
+    assert_eq!(config.disputes_program, stayke_config::DISPUTES_PROGRAM_ID);
+    assert_eq!(config.treasury_program, stayke_config::TREASURY_PROGRAM_ID);
 }
 
 #[test]

@@ -54,6 +54,7 @@ pub struct ClientAcceptReserve<'info> {
     #[account(
         mut,
         seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
+        seeds::program = stayke_core::ID,
         bump = listing.bump,
         constraint = booking.property == listing.key() @ EscrowError::InvalidBookingProperty
     )]

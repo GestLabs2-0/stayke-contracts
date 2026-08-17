@@ -12,7 +12,8 @@ pub use cpi_authority::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT");
+// Must match Anchor.toml [programs.devnet].
+declare_id!("29A2HXuDHX8WQoPnYbFP4DR4W6HjQTBDA2N5pCPZEFs4");
 
 #[program]
 pub mod stayke_config {

@@ -11,7 +11,8 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY");
+// Must match Anchor.toml [programs.devnet].
+declare_id!("3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8");
 
 #[program]
 pub mod stayke_treasury {

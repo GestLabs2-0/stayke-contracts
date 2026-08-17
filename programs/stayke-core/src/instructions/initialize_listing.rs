@@ -51,6 +51,7 @@ pub fn handler_initialize_listing(
     listing.content_ref = content_ref;
     listing.state_hash = state_hash;
     listing.is_active = true;
+    listing.bump = ctx.bumps.listing;
 
     Ok(())
 }
