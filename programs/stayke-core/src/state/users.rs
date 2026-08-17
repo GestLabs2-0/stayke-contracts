@@ -45,6 +45,7 @@ pub struct ReputationProfile {
     pub host_cancellations: u32,
     /// Number of cancellations as client
     pub client_cancellations: u32,
+    // TODO: delete fields host_reviews_skipped after full MVP
     /// Number of reviews skipped as host
     pub host_reviews_skipped: u32,
     /// Number of reviews skipped as guest

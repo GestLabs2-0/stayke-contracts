@@ -93,6 +93,14 @@ pub mod stayke_escrow {
         handler_release_funds(ctx)
     }
 
+    pub fn host_review(ctx: Context<HostReview>, score: u8) -> Result<()> {
+        handler_host_review(ctx, score)
+    }
+
+    pub fn guest_review(ctx: Context<GuestReview>, score: u8) -> Result<()> {
+        handler_guest_review(ctx, score)
+    }
+
     // ---------------------------------------------------------------------------
     // CPI endpoints for stayke-disputes
     // ---------------------------------------------------------------------------

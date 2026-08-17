@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
     constants::{REPUTATION_PROFILE_SEED, USER_PROFILE_SEED},
-    cpi::accounts::UpdateHostReview,
     program::StaykeCore,
     ReputationProfile, UserProfile,
 };
@@ -10,40 +9,34 @@ use stayke_core::{
 use crate::{
     constants::BOOKING_SEED,
     error::EscrowError,
-    // events::BookingStatusUpdated,
+    events::ReviewSubmitted,
     state::{Booking, BookingStatus},
 };
 
+// ---------------------------------------------------------------------------
+// Guest: rate the host after the booking is settled.
+// ---------------------------------------------------------------------------
+
 #[derive(Accounts)]
-pub struct CloseBooking<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
+pub struct GuestReview<'info> {
+    pub guest: Signer<'info>,
 
-    pub client: Signer<'info>,
-
-    #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), client.key().as_ref()],
-        seeds::program = stayke_core::ID,
-        bump = client_profile.bump,
-        constraint = client.key() == client_profile.authority @ EscrowError::UnauthorizedBooking,
-        constraint = !client_profile.banned @ EscrowError::UserBanned,
-    )]
-    pub client_profile: Account<'info, UserProfile>,
-
-    /// Host UserProfile (correct seed family).
+    /// The host's UserProfile — used to derive and validate the host's
+    /// ReputationProfile for the review CPI.
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
+        constraint = host_profile.key() == booking.host @ EscrowError::InvalidHostBooking,
     )]
     pub host_profile: Account<'info, UserProfile>,
 
-    /// Host ReputationProfile (correct seed family).
     #[account(
         mut,
         seeds = [REPUTATION_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_reputation.bump,
+        constraint = host_reputation.authority == host_profile.authority @ EscrowError::InvalidHostBooking,
     )]
     pub host_reputation: Account<'info, ReputationProfile>,
 
@@ -51,16 +44,19 @@ pub struct CloseBooking<'info> {
         mut,
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
-        constraint = booking.guest == client_profile.key() @ EscrowError::UnauthorizedBooking,
-        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
-        constraint = booking.status == BookingStatus::Active @ EscrowError::BookingNotActive,
+        constraint = booking.guest == guest.key() @ EscrowError::UnauthorizedBooking,
+        constraint = booking.guest_review == 0 @ EscrowError::ReviewAlreadySubmitted,
+        constraint = booking.status == BookingStatus::Completed
+            || booking.status == BookingStatus::Released
+            || booking.status == BookingStatus::DisputeResolved
+            || booking.status == BookingStatus::DisputeRejected @ EscrowError::InvalidBookingStatus,
     )]
     pub booking: Account<'info, Booking>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
-        seeds::program = stayke_config::ID,
         bump = global_config.bump,
+        seeds::program = stayke_config::ID,
         constraint = global_config.is_initialized,
     )]
     pub global_config: Account<'info, GlobalConfig>,
@@ -72,12 +68,15 @@ pub struct CloseBooking<'info> {
     pub stayke_core_program: Program<'info, StaykeCore>,
 }
 
-pub fn handler_review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
+pub fn handler_guest_review(ctx: Context<GuestReview>, score: u8) -> Result<()> {
     require!((1..=5).contains(&score), EscrowError::InvalidScore);
+
+    let booking = &mut ctx.accounts.booking;
+    booking.guest_review = score;
 
     let bump = ctx.bumps.cpi_authority;
     let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
-    let review_accounts = UpdateHostReview {
+    let review_accounts = stayke_core::cpi::accounts::UpdateHostReview {
         host_profile: ctx.accounts.host_profile.to_account_info(),
         host_reputation: ctx.accounts.host_reputation.to_account_info(),
         global_config: ctx.accounts.global_config.to_account_info(),
@@ -92,13 +91,12 @@ pub fn handler_review_completed(ctx: Context<CloseBooking>, score: u8) -> Result
         score,
     )?;
 
-    // let booking = &mut ctx.accounts.booking;
-    // booking.status = BookingStatus::ReviewCompleted;
-
-    // emit!(BookingStatusUpdated {
-    //     status: BookingStatus::ReviewCompleted,
-    //     booking: booking.key(),
-    // });
+    emit!(ReviewSubmitted {
+        booking: booking.key(),
+        reviewer: ctx.accounts.guest.key(),
+        rating: score,
+        is_host_review: false,
+    });
 
     Ok(())
 }

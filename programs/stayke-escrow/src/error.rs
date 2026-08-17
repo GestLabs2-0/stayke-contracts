@@ -102,4 +102,9 @@ pub enum EscrowError {
     ReleaseWindowNotElapsed,
     #[msg("Booking must be in Active or Completed status to open a dispute")]
     BookingNotDisputable,
+
+    // Reviews — appended at the end to preserve the numeric error codes of all
+    // previously shipped variants.
+    #[msg("Review has already been submitted for this booking")]
+    ReviewAlreadySubmitted,
 }

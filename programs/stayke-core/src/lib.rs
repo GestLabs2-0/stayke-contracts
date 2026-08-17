@@ -73,6 +73,10 @@ pub mod stayke_core {
         handler_update_host_review(ctx, score)
     }
 
+    pub fn update_client_review(ctx: Context<UpdateClientReview>, score: u8) -> Result<()> {
+        handler_update_client_review(ctx, score)
+    }
+
     pub fn increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
         handler_increment_completed_stays(ctx)
     }

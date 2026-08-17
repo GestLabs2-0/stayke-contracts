@@ -25,3 +25,11 @@ pub struct BookingExpired {
     pub guest: Pubkey,
     pub host: Pubkey,
 }
+
+#[event]
+pub struct ReviewSubmitted {
+    pub booking: Pubkey,
+    pub reviewer: Pubkey,
+    pub rating: u8,
+    pub is_host_review: bool,
+}
