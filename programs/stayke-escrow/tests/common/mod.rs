@@ -2,7 +2,7 @@
 //! Shared helpers for stayke-escrow LiteSVM tests.
 
 use anchor_lang::solana_program::clock::Clock;
-use anchor_lang::AnchorSerialize;
+use anchor_lang::{AnchorSerialize, Space};
 use litesvm::LiteSVM;
 use solana_account::Account;
 use solana_pubkey::Pubkey;
@@ -27,6 +27,27 @@ pub fn to_account_data<T: AnchorSerialize>(name: &str, value: &T) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&discriminator(name));
     value.serialize(&mut data).unwrap();
+    data
+}
+
+/// Serializes into a properly sized account buffer: an 8-byte discriminator
+/// plus `T::INIT_SPACE`, zero-padding the tail. Required for accounts with
+/// `Option` fields that can grow when written (e.g. `UserProfile::active_booking`
+/// going from `None` to `Some`), which the compact `to_account_data` under-sizes.
+pub fn to_account_data_spaced<T: AnchorSerialize + Space>(name: &str, value: &T) -> Vec<u8> {
+    let mut data = vec![0u8; 8 + T::INIT_SPACE];
+    data[..8].copy_from_slice(&discriminator(name));
+
+    let mut encoded = Vec::new();
+    value.serialize(&mut encoded).unwrap();
+    assert!(
+        encoded.len() <= T::INIT_SPACE,
+        "serialized account ({} bytes) exceeds INIT_SPACE ({} bytes)",
+        encoded.len(),
+        T::INIT_SPACE
+    );
+    data[8..8 + encoded.len()].copy_from_slice(&encoded);
+
     data
 }
 
@@ -102,7 +123,7 @@ pub fn setup_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
         pda,
         Account {
             lamports: 1_000_000_000,
-            data: to_account_data("UserProfile", &profile),
+            data: to_account_data_spaced("UserProfile", &profile),
             owner: core::id(),
             executable: false,
             rent_epoch: u64::MAX,
@@ -509,7 +530,7 @@ pub fn setup_user_profile_custom(
         pda,
         Account {
             lamports: 1_000_000_000,
-            data: to_account_data("UserProfile", &profile),
+            data: to_account_data_spaced("UserProfile", &profile),
             owner: core::id(),
             executable: false,
             rent_epoch: u64::MAX,
