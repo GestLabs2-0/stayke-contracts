@@ -135,6 +135,50 @@ pub fn setup_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
 }
 
 // ---------------------------------------------------------------------------
+// ReputationProfile (stayke_core)
+// ---------------------------------------------------------------------------
+
+pub fn setup_reputation_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pubkey {
+    let (pda, bump) = Pubkey::find_program_address(
+        &[
+            core::constants::REPUTATION_PROFILE_SEED.as_bytes(),
+            authority.as_ref(),
+        ],
+        &core::id(),
+    );
+
+    let profile = core::state::ReputationProfile {
+        authority,
+        host_reviews: 0,
+        total_score_host: 0,
+        client_reviews: 0,
+        total_score_client: 0,
+        host_cancellations: 0,
+        client_cancellations: 0,
+        host_reviews_skipped: 0,
+        guest_reviews_skipped: 0,
+        low_infractions: 0,
+        medium_infractions: 0,
+        high_infractions: 0,
+        bump,
+    };
+
+    svm.set_account(
+        pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("ReputationProfile", &profile),
+            owner: core::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    pda
+}
+
+// ---------------------------------------------------------------------------
 // BookingDays (stayke_escrow)
 // ---------------------------------------------------------------------------
 
@@ -381,6 +425,17 @@ pub fn user_profile_pda(authority: Pubkey) -> Pubkey {
     Pubkey::find_program_address(
         &[
             core::constants::USER_PROFILE_SEED.as_bytes(),
+            authority.as_ref(),
+        ],
+        &core::id(),
+    )
+    .0
+}
+
+pub fn reputation_profile_pda(authority: Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[
+            core::constants::REPUTATION_PROFILE_SEED.as_bytes(),
             authority.as_ref(),
         ],
         &core::id(),

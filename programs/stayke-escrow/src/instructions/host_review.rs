@@ -21,6 +21,16 @@ use crate::{
 pub struct HostReview<'info> {
     pub host: Signer<'info>,
 
+    /// The host's UserProfile — validates the reviewer is the booking's host.
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
+        constraint = host_profile.key() == booking.host @ EscrowError::InvalidHostBooking,
+    )]
+    pub host_profile: Account<'info, UserProfile>,
+
     /// The guest's UserProfile — used to derive and validate the guest's
     /// ReputationProfile for the review CPI.
     #[account(
@@ -44,7 +54,6 @@ pub struct HostReview<'info> {
         mut,
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
-        constraint = booking.host == host.key() @ EscrowError::UnauthorizedHost,
         constraint = booking.host_review == 0 @ EscrowError::ReviewAlreadySubmitted,
         constraint = booking.status == BookingStatus::Completed
             || booking.status == BookingStatus::Released
