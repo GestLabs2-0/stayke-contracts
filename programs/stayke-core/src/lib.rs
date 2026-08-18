@@ -1,12 +1,14 @@
 #![allow(clippy::diverging_sub_expression)]
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use events::*;
 pub use instructions::{cpi::*, *};
 pub use state::*;
 
@@ -75,6 +77,14 @@ pub mod stayke_core {
 
     pub fn update_client_review(ctx: Context<UpdateClientReview>, score: u8) -> Result<()> {
         handler_update_client_review(ctx, score)
+    }
+
+    pub fn update_listing_review(
+        ctx: Context<UpdateListingReview>,
+        score: u8,
+        reviewer: Pubkey,
+    ) -> Result<()> {
+        handler_update_listing_review(ctx, score, reviewer)
     }
 
     pub fn increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {

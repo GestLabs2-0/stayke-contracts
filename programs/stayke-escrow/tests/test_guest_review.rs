@@ -34,6 +34,7 @@ fn guest_review_accounts(
     guest_profile: Pubkey,
     host_profile: Pubkey,
     host_reputation: Pubkey,
+    listing: Pubkey,
     booking: Pubkey,
 ) -> Vec<anchor_lang::solana_program::instruction::AccountMeta> {
     stayke_escrow::accounts::GuestReview {
@@ -41,6 +42,7 @@ fn guest_review_accounts(
         guest_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         global_config: global_config_pda(),
         cpi_authority: cpi_authority_pda(),
@@ -57,6 +59,7 @@ fn send_guest_review(
     guest_profile: Pubkey,
     host_profile: Pubkey,
     host_reputation: Pubkey,
+    listing: Pubkey,
     booking: Pubkey,
     score: u8,
 ) -> Result<(), TransactionError> {
@@ -68,6 +71,7 @@ fn send_guest_review(
             guest_profile,
             host_profile,
             host_reputation,
+            listing,
             booking,
         ),
     );
@@ -75,6 +79,11 @@ fn send_guest_review(
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer, guest]).unwrap();
     svm.send_transaction(tx).map(|_| ()).map_err(|e| e.err)
+}
+
+fn read_listing(svm: &litesvm::LiteSVM, account: &Pubkey) -> stayke_core::state::Listing {
+    let data = &svm.get_account(account).unwrap().data;
+    AnchorDeserialize::deserialize(&mut &data[8..]).unwrap()
 }
 
 fn set_guest_review(svm: &mut litesvm::LiteSVM, booking: Pubkey, value: u8) {
@@ -103,18 +112,17 @@ fn guest_review_sets_booking_and_updates_host_reputation() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
     let host = Keypair::new();
     let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
     let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
     setup_global_config(&mut svm, stayke_escrow::id());
+    let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
     let booking = setup_booking_at_pda(
         &mut svm,
         guest_profile,
         host_profile,
-        property,
+        listing,
         CHECK_IN,
         CHECK_OUT,
         BookingStatus::Completed,
@@ -127,6 +135,7 @@ fn guest_review_sets_booking_and_updates_host_reputation() {
         guest_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         SCORE,
     )
@@ -141,6 +150,10 @@ fn guest_review_sets_booking_and_updates_host_reputation() {
             .unwrap();
     assert_eq!(rep.host_reviews, 1);
     assert_eq!(rep.total_score_host, SCORE as u64);
+
+    let listing_data = read_listing(&svm, &listing);
+    assert_eq!(listing_data.total_reviews, 1);
+    assert_eq!(listing_data.rating, SCORE as u64);
 }
 
 // ===========================================================================
@@ -157,18 +170,17 @@ fn guest_review_accepts_released_and_dispute_resolution_statuses() {
         let (mut svm, payer) = build_svm_with_escrow_programs();
         let host = Keypair::new();
         let guest = Keypair::new();
-        let property = Pubkey::new_unique();
-
         let host_profile = setup_user_profile(&mut svm, host.pubkey());
         let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
         let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
         setup_global_config(&mut svm, stayke_escrow::id());
+        let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
         let booking = setup_booking_at_pda(
             &mut svm,
             guest_profile,
             host_profile,
-            property,
+            listing,
             CHECK_IN,
             CHECK_OUT,
             status,
@@ -181,6 +193,7 @@ fn guest_review_accepts_released_and_dispute_resolution_statuses() {
             guest_profile,
             host_profile,
             host_reputation,
+            listing,
             booking,
             SCORE,
         )
@@ -202,18 +215,17 @@ fn guest_review_wrong_caller_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
     let host = Keypair::new();
     let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
     let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
     setup_global_config(&mut svm, stayke_escrow::id());
+    let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
     let booking = setup_booking_at_pda(
         &mut svm,
         guest_profile,
         host_profile,
-        property,
+        listing,
         CHECK_IN,
         CHECK_OUT,
         BookingStatus::Completed,
@@ -228,6 +240,7 @@ fn guest_review_wrong_caller_fails() {
         host_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         SCORE,
     )
@@ -252,18 +265,17 @@ fn guest_review_invalid_status_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
     let host = Keypair::new();
     let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
     let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
     setup_global_config(&mut svm, stayke_escrow::id());
+    let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
     let booking = setup_booking_at_pda(
         &mut svm,
         guest_profile,
         host_profile,
-        property,
+        listing,
         CHECK_IN,
         CHECK_OUT,
         BookingStatus::Active,
@@ -276,6 +288,7 @@ fn guest_review_invalid_status_fails() {
         guest_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         SCORE,
     )
@@ -296,18 +309,17 @@ fn guest_review_disputed_status_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
     let host = Keypair::new();
     let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
     let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
     setup_global_config(&mut svm, stayke_escrow::id());
+    let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
     let booking = setup_booking_at_pda(
         &mut svm,
         guest_profile,
         host_profile,
-        property,
+        listing,
         CHECK_IN,
         CHECK_OUT,
         BookingStatus::Disputed,
@@ -320,6 +332,7 @@ fn guest_review_disputed_status_fails() {
         guest_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         SCORE,
     )
@@ -345,18 +358,17 @@ fn guest_review_invalid_score_fails() {
         let (mut svm, payer) = build_svm_with_escrow_programs();
         let host = Keypair::new();
         let guest = Keypair::new();
-        let property = Pubkey::new_unique();
-
         let host_profile = setup_user_profile(&mut svm, host.pubkey());
         let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
         let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
         setup_global_config(&mut svm, stayke_escrow::id());
+        let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
         let booking = setup_booking_at_pda(
             &mut svm,
             guest_profile,
             host_profile,
-            property,
+            listing,
             CHECK_IN,
             CHECK_OUT,
             BookingStatus::Completed,
@@ -369,6 +381,7 @@ fn guest_review_invalid_score_fails() {
             guest_profile,
             host_profile,
             host_reputation,
+            listing,
             booking,
             score,
         )
@@ -392,18 +405,17 @@ fn guest_review_already_reviewed_fails() {
     let (mut svm, payer) = build_svm_with_escrow_programs();
     let host = Keypair::new();
     let guest = Keypair::new();
-    let property = Pubkey::new_unique();
-
     let host_profile = setup_user_profile(&mut svm, host.pubkey());
     let guest_profile = setup_user_profile(&mut svm, guest.pubkey());
     let host_reputation = setup_reputation_profile(&mut svm, host.pubkey());
     setup_global_config(&mut svm, stayke_escrow::id());
+    let listing = setup_listing(&mut svm, host_profile, 1, 100_000, true);
 
     let booking = setup_booking_at_pda(
         &mut svm,
         guest_profile,
         host_profile,
-        property,
+        listing,
         CHECK_IN,
         CHECK_OUT,
         BookingStatus::Completed,
@@ -417,6 +429,7 @@ fn guest_review_already_reviewed_fails() {
         guest_profile,
         host_profile,
         host_reputation,
+        listing,
         booking,
         SCORE,
     )
