@@ -8,9 +8,12 @@ Motor del booking: calendario, vault USDC por reserva y liquidación (feliz o v�
 ## Camino rápido
 
 1. `initialize_escrow` enlaza a `GlobalConfig`.
-2. Guest: `create_booking` (sin mover fondos aún) → host accept/reject → guest `client_accept_reserve` (USDC al vault).
-3. Happy path: `review_completed` → `complete_stay` (host + fee a platform vault).
-4. Disputa: Escrow solo reacciona a CPIs desde Disputes (`cpi_update_booking_status`, `cpi_resolve_dispute_transfer`).
+2. Guest: `create_booking` crea `Pending` **y fondea el escrow** (transfiere el precio total al vault del booking). Ya no existe un paso aparte de pago.
+3. Host: `host_accept_booking` → `HostAccepted`, o `host_reject_booking` → `Cancelled` (refund al guest).
+4. Transiciones permissionless por tiempo: `booking_starts` (`HostAccepted` → `Active` al llegar check-in) y `booking_completes` (`Active` → `Completed` al llegar check-out).
+5. Happy path: `release_funds` (tras ventana de 24 h) → host + `fee_bps` a platform vault.
+6. Reviews: `host_review` (host→guest) y `guest_review` (guest→host), permitidas en `Completed`/`Released`/`DisputeResolved`/`DisputeRejected`.
+7. Disputa: Escrow solo reacciona a CPIs desde Disputes (`cpi_update_booking_status`, `cpi_resolve_dispute_transfer`).
 
 ## Detalles
 
@@ -19,36 +22,64 @@ Motor del booking: calendario, vault USDC por reserva y liquidación (feliz o v�
 | Instrucción | Rol |
 |-------------|-----|
 | `initialize_escrow` | Config del programa |
-| `create_booking` | Guest crea `Pending`; gates de perfil/depósito |
-| `host_accept_booking` / `host_reject_booking` | Host responde |
-| `client_accept_reserve` / `client_reject_reserve` | Guest confirma (paga) o cancela |
-| `review_completed` | Score 1–5; escribe reputación host |
-| `complete_stay` | Distribuye escrow → host + `fee_bps` a platform |
-| `cpi_update_booking_status` | CPI Disputes → congela booking |
-| `cpi_resolve_dispute_transfer` | CPI Disputes → reparte vault y cierra |
+| `create_booking` / `create_booking_cross_year` | Guest crea `Pending`; gates de perfil/depósito/active_booking; **fondea el escrow** |
+| `host_accept_booking` | Host acepta → `HostAccepted` |
+| `host_reject_booking` / `host_reject_booking_cross_year` | Host rechaza → `Cancelled` + refund al guest |
+| `booking_starts` | Permissionless: `HostAccepted` → `Active` al llegar check-in; CPI core `set_active_booking` |
+| `booking_completes` | Permissionless: `Active` → `Completed` al llegar check-out |
+| `release_funds` | Distribuye escrow → host + `fee_bps` a platform; CPIs core (`increment_completed_stays`, `clear_active_booking`, `increment_hosted_stays`) |
+| `host_review` | Host califica guest (1–5); escribe `host_review` + reputación guest |
+| `guest_review` | Guest califica host (1–5); escribe `guest_review` + reputación host |
+| `review_completed` | **Legacy** — solo escribe reputación host, sin transición de estado |
+| `guest_cancel_booking` / `guest_cancel_booking_cross_year` | Guest cancela; split de refund según ventana (ver constantes) |
+| `host_cancel_booking` / `host_cancel_booking_cross_year` | Host cancela; full refund + posible slash de depósito |
+| `cancel_booking` | **Deprecado** — usar `guest_cancel_booking` / `host_cancel_booking` |
+| `client_reject_reserve` / `client_reject_reserve_cross_year` | Guest rechaza reserva → `Cancelled`, libera días |
+| `expire_booking` / `expire_booking_crossday` | Expira `Pending` tras 24 h → refund al guest |
+| `cpi_update_booking_status` | CPI Disputes → congela booking (`Disputed`) o lo cierra (`DisputeResolved`/`DisputeRejected`) |
+| `cpi_resolve_dispute_transfer` | CPI Disputes → reparte vault según `host_share_bps` |
 
 ### Policy SoT vs On-chain gate — `minimum_deposit`
 
 | Capa | Qué dice |
 |------|----------|
 | **SoT** | Bond de comportamiento opcional en Stage 1 para listar/reservar (L1, L4); escrow de reserva obligatorio al confirmar ([ECONOMIC-MODEL](https://github.com/GestLabs2-0/docs/blob/main/architecture/ECONOMIC-MODEL.md), [ADR-007](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-007-bond-escrow-separation.md)). |
-| **On-chain** | En `create_booking`, guest y host deben cumplir `deposited >= global_config.minimum_deposit`. El mismo umbral reaparece en `host_accept_booking` y `client_accept_reserve` (guest). También se exige `identity.is_some()` y no banned. |
-| **Gap** | El depósito en treasury actúa como gate duro de booking; la SoT no exige bond para esas acciones en Stage 1. **No** interpretar el gate como política SoT ya cumplida. Fix de código → fuera de este change. |
+| **On-chain** | En `create_booking`, guest y host deben cumplir `(completed_stays + hosted_stays) < free_ops || deposited >= minimum_deposit` (bypass de free tier). El mismo gate reaparece en `host_accept_booking` (host). Además se exige `identity.is_some()`, no banned, y para el guest `active_booking.is_none()`. |
+| **Gap** | El depósito en treasury actúa como gate de booking (con free tier); la SoT no exige bond para esas acciones en Stage 1. **No** interpretar el gate como política SoT ya cumplida. Fix de código → fuera de este change. |
+
+### Política de cancelación (constantes compile-time)
+
+`programs/stayke-escrow/src/constants.rs` — hardcodeadas para el MVP (a futuro se leerán del `Listing`/`UserProfile`):
+
+| Constante | Valor | Uso |
+|-----------|-------|-----|
+| `CANCELLATION_WINDOW_HOURS` | 72 | Ventana (horas antes de check-in) que activa el split/penalización |
+| `CANCELLATION_REFUND_PERCENTAGE` | 60 | % del `total_price` reembolsado al guest al cancelar dentro de ventana |
+| `CANCELLATION_HOST_SHARE_PERCENTAGE` | 75 | % del remanente post-refund para el host (Stayke retiene el resto) |
+| `HOST_CANCELLATION_PENALTY_PERCENTAGE` | 10 | % del depósito del host slasheado al cancelar dentro de ventana |
+
+Fuera de la ventana: guest cancel → full refund (0 host, 0 fee); host cancel → full refund y **sin** slash.
 
 ### Lifecycle (estados)
 
-`Pending` → `HostAccepted` → `Active` → `ReviewCompleted` → `Completed`  
+`Pending` → `HostAccepted` → `Active` → `Completed` → `Released`  
 Ramas: `Cancelled`; `Disputed` → `DisputeResolved` | `DisputeRejected`.
 
-Fondos de booking se mueven en `client_accept_reserve` (entrada) y `complete_stay` / `cpi_resolve_dispute_transfer` (salida). El bond/treasury es instrumento distinto (ADR-007).
+- Fondos de booking entran en `create_booking` y salen en `release_funds`, `cpi_resolve_dispute_transfer`, `host_reject_booking`, `expire_booking` y los `*_cancel_booking`. El bond/treasury es instrumento distinto (ADR-007).
+- `Released` marca que el escrow ya fue drenado y cerrado (terminal de fondos). Ya no existe el estado `ReviewCompleted`.
+- `updated_at` se refresca en `host_accept_booking`, `booking_starts` y `booking_completes`; este último dispara las dos ventanas paralelas post-stay: 24 h para `release_funds` y 72 h para reviews.
 
 ## Gaps
 
 - Gate `minimum_deposit` vs política L1/L4 (callout arriba).
+- `host_accept_booking` tiene un chequeo de ventana tautológico (`booking.updated_at <= booking.updated_at + 24h` siempre true): no fuerza el accept dentro de 24 h.
+- `host_reject_booking_cross_year` transfiere el refund pero **no** cierra el vault (`close_account` ausente, a diferencia de la variante single-year).
 - Caso borde host baneado mid-settlement: TODO en código (ver [security](./stayke-todos-security.guide.md)).
 
 ## Checklist
 
 - [ ] Distingo escrow de booking vs depósito treasury
 - [ ] Leí el callout Policy SoT vs On-chain gate
-- [ ] Sé que disputa liquida vía CPI, no vía `complete_stay`
+- [ ] Sé que el escrow se fondea en `create_booking` (no hay `client_accept_reserve`)
+- [ ] Sé que disputa liquida vía CPI, no vía `release_funds`
+- [ ] Conozco las constantes de cancelación y dónde se aplican

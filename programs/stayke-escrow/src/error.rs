@@ -31,8 +31,10 @@ pub enum EscrowError {
     BookingNotActive,
     #[msg("Booking must be in ReviewCompleted status to complete the stay")]
     BookingNotReviewCompleted,
-    #[msg("Too early to activate booking — check-in must be within 24 h")]
+    #[msg("Too early to start booking — check-in time not reached")]
     TooEarlyToActivate,
+    #[msg("Exceeded time to accept booking")]
+    ExceededAcceptTime,
 
     // Auth
     #[msg("Only the client can perform this action on their booking")]
@@ -59,6 +61,8 @@ pub enum EscrowError {
     InsufficientDeposit,
     #[msg("User is not registered as a host")]
     UserNotHost,
+    #[msg("Client already has an active booking")]
+    ActiveBookingExists,
 
     // Scores
     #[msg("Invalid score — must be between 1 and 5")]
@@ -67,12 +71,51 @@ pub enum EscrowError {
     // Token
     #[msg("The token mint does not match the configured USDC mint")]
     InvalidTokenMint,
+    #[msg("Insufficient funds to cover the booking")]
+    InsufficientFunds,
+    #[msg("Price calculation overflow")]
+    PriceOverflow,
     #[msg("The treasury/vault account does not match the configured one")]
     InvalidVaultAccount,
     #[msg("Wrong guest pubkey passed")]
     WrongGuestPassed,
 
+    // Expire booking
+    #[msg("Pending booking must be over 24h")]
+    NotOver24Hours,
+
     // Config
     #[msg("Unauthorized admin action")]
     UnauthorizedAdmin,
+
+    // Booking lifecycle (permissionless transitions) — appended at the end to
+    // preserve the numeric error codes of all previously shipped variants.
+    #[msg("Booking must be in HostAccepted status to start")]
+    BookingNotAccepted,
+    #[msg("Too early to complete booking — check-out time not reached")]
+    TooEarlyToComplete,
+
+    // Release funds
+    #[msg("Booking must be in Completed status to release funds")]
+    BookingNotCompleted,
+    #[msg("Release window (24h) has not elapsed")]
+    ReleaseWindowNotElapsed,
+    #[msg("Booking must be in Active or Completed status to open a dispute")]
+    BookingNotDisputable,
+
+    // Reviews — appended at the end to preserve the numeric error codes of all
+    // previously shipped variants.
+    #[msg("Review has already been submitted for this booking")]
+    ReviewAlreadySubmitted,
+
+    // Cancellation — appended at the end to preserve the numeric error codes of
+    // all previously shipped variants.
+    #[msg("Booking can only be cancelled before check-in")]
+    CheckInPassed,
+    #[msg("Only the guest or host of the booking can cancel it")]
+    UnauthorizedCancellation,
+    #[msg("Invalid cancellation window")]
+    InvalidCancellationWindow,
+    #[msg("Invalid cancellation percentage")]
+    InvalidCancellationPercentage,
 }

@@ -122,6 +122,12 @@ fn test_withdraw_fees_success() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
+            allowed_programs: stayke_config::AllowedPrograms {
+                core: Pubkey::new_unique(),
+                escrow: Pubkey::new_unique(),
+                disputes: Pubkey::new_unique(),
+                treasury: Pubkey::new_unique(),
+            },
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -270,6 +276,12 @@ fn test_withdraw_fees_zero_amount_fails() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
+            allowed_programs: stayke_config::AllowedPrograms {
+                core: Pubkey::new_unique(),
+                escrow: Pubkey::new_unique(),
+                disputes: Pubkey::new_unique(),
+                treasury: Pubkey::new_unique(),
+            },
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -375,6 +387,12 @@ fn test_withdraw_fees_unauthorized_fails() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
+            allowed_programs: stayke_config::AllowedPrograms {
+                core: Pubkey::new_unique(),
+                escrow: Pubkey::new_unique(),
+                disputes: Pubkey::new_unique(),
+                treasury: Pubkey::new_unique(),
+            },
         }
         .data(),
         stayke_config::accounts::InitializeConfig {

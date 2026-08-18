@@ -55,7 +55,7 @@ pub fn handler_cpi_penalize_transfer(ctx: Context<PenalizeTransferCpi>, amount: 
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
-        &[AllowedCaller::Disputes],
+        &[AllowedCaller::Disputes, AllowedCaller::Escrow],
     )?;
     let config = &ctx.accounts.config;
 

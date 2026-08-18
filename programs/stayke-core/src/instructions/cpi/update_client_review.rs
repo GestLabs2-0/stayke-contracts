@@ -8,20 +8,20 @@ use stayke_config::{
 };
 
 #[derive(Accounts)]
-pub struct UpdateHostReview<'info> {
+pub struct UpdateClientReview<'info> {
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
-        bump = host_profile.bump,
+        seeds = [USER_PROFILE_SEED.as_bytes(), client_profile.authority.key().as_ref()],
+        bump = client_profile.bump,
     )]
-    pub host_profile: Account<'info, UserProfile>,
+    pub client_profile: Account<'info, UserProfile>,
 
     #[account(
         mut,
-        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
-        bump = host_reputation.bump,
-        constraint = host_reputation.authority == host_profile.authority @ StaykeError::Unauthorized,
+        seeds = [REPUTATION_PROFILE_SEED.as_bytes(), client_profile.authority.key().as_ref()],
+        bump = client_reputation.bump,
+        constraint = client_reputation.authority == client_profile.authority @ StaykeError::Unauthorized,
     )]
-    pub host_reputation: Account<'info, ReputationProfile>,
+    pub client_reputation: Account<'info, ReputationProfile>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
@@ -34,7 +34,7 @@ pub struct UpdateHostReview<'info> {
     pub cpi_authority: Signer<'info>,
 }
 
-pub fn handler_update_host_review(ctx: Context<UpdateHostReview>, score: u8) -> Result<()> {
+pub fn handler_update_client_review(ctx: Context<UpdateClientReview>, score: u8) -> Result<()> {
     require!((1..=5).contains(&score), StaykeError::InvalidScore);
     assert_cpi_authority(
         &ctx.accounts.global_config,
@@ -42,9 +42,9 @@ pub fn handler_update_host_review(ctx: Context<UpdateHostReview>, score: u8) -> 
         &[AllowedCaller::Escrow],
     )?;
 
-    let reputation = &mut ctx.accounts.host_reputation;
-    reputation.host_reviews = reputation.host_reviews.saturating_add(1);
-    reputation.total_score_host = reputation.total_score_host.saturating_add(score as u64);
+    let reputation = &mut ctx.accounts.client_reputation;
+    reputation.client_reviews = reputation.client_reviews.saturating_add(1);
+    reputation.total_score_client = reputation.total_score_client.saturating_add(score as u64);
 
     Ok(())
 }
