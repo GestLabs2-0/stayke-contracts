@@ -85,11 +85,6 @@ pub mod stayke_escrow {
         handler_client_reject_reserve_cross_year(ctx, check_in)
     }
 
-    /// Deprecated: use `guest_cancel_booking` or `host_cancel_booking`.
-    pub fn cancel_booking(ctx: Context<CancelBooking>) -> Result<()> {
-        handler_cancel_booking(ctx)
-    }
-
     pub fn guest_cancel_booking(ctx: Context<GuestCancelBooking>) -> Result<()> {
         handler_guest_cancel_booking(ctx)
     }
