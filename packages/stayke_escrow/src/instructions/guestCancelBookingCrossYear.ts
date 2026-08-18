@@ -10,7 +10,6 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
@@ -29,40 +28,46 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowTokenAccountPda } from "../pdas";
+import { findCpiAuthorityPda, findEscrowTokenAccountPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
-export const HOST_REJECT_BOOKING_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([126, 31, 200, 145, 63, 158, 188, 85]);
+export const GUEST_CANCEL_BOOKING_CROSS_YEAR_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([235, 96, 56, 80, 77, 188, 210, 240]);
 
-export function getHostRejectBookingDiscriminatorBytes(): ReadonlyUint8Array {
+export function getGuestCancelBookingCrossYearDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    HOST_REJECT_BOOKING_DISCRIMINATOR,
+    GUEST_CANCEL_BOOKING_CROSS_YEAR_DISCRIMINATOR,
   );
 }
 
-export type HostRejectBookingInstruction<
+export type GuestCancelBookingCrossYearInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
-  TAccountPayer extends string | AccountMeta<string> = string,
-  TAccountHost extends string | AccountMeta<string> = string,
+  TAccountCaller extends string | AccountMeta<string> = string,
+  TAccountGuestProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
-  TAccountGuest extends string | AccountMeta<string> = string,
+  TAccountGuestReputation extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountBookingDays extends string | AccountMeta<string> = string,
+  TAccountBookingDaysNext extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
   TAccountGuestTokenAccount extends string | AccountMeta<string> = string,
+  TAccountHostTokenAccount extends string | AccountMeta<string> = string,
+  TAccountPlatformVault extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -70,25 +75,28 @@ export type HostRejectBookingInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountPayer extends string
-        ? ReadonlySignerAccount<TAccountPayer> &
-            AccountSignerMeta<TAccountPayer>
-        : TAccountPayer,
-      TAccountHost extends string
-        ? ReadonlySignerAccount<TAccountHost> & AccountSignerMeta<TAccountHost>
-        : TAccountHost,
+      TAccountCaller extends string
+        ? WritableSignerAccount<TAccountCaller> &
+            AccountSignerMeta<TAccountCaller>
+        : TAccountCaller,
+      TAccountGuestProfile extends string
+        ? ReadonlyAccount<TAccountGuestProfile>
+        : TAccountGuestProfile,
       TAccountHostProfile extends string
         ? ReadonlyAccount<TAccountHostProfile>
         : TAccountHostProfile,
-      TAccountGuest extends string
-        ? ReadonlyAccount<TAccountGuest>
-        : TAccountGuest,
+      TAccountGuestReputation extends string
+        ? WritableAccount<TAccountGuestReputation>
+        : TAccountGuestReputation,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
       TAccountBookingDays extends string
         ? WritableAccount<TAccountBookingDays>
         : TAccountBookingDays,
+      TAccountBookingDaysNext extends string
+        ? WritableAccount<TAccountBookingDaysNext>
+        : TAccountBookingDaysNext,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -98,9 +106,21 @@ export type HostRejectBookingInstruction<
       TAccountGuestTokenAccount extends string
         ? WritableAccount<TAccountGuestTokenAccount>
         : TAccountGuestTokenAccount,
+      TAccountHostTokenAccount extends string
+        ? WritableAccount<TAccountHostTokenAccount>
+        : TAccountHostTokenAccount,
+      TAccountPlatformVault extends string
+        ? WritableAccount<TAccountPlatformVault>
+        : TAccountPlatformVault,
       TAccountMint extends string
-        ? ReadonlyAccount<TAccountMint>
+        ? WritableAccount<TAccountMint>
         : TAccountMint,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -108,102 +128,133 @@ export type HostRejectBookingInstruction<
     ]
   >;
 
-export type HostRejectBookingInstructionData = {
+export type GuestCancelBookingCrossYearInstructionData = {
   discriminator: ReadonlyUint8Array;
 };
 
-export type HostRejectBookingInstructionDataArgs = {};
+export type GuestCancelBookingCrossYearInstructionDataArgs = {};
 
-export function getHostRejectBookingInstructionDataEncoder(): FixedSizeEncoder<HostRejectBookingInstructionDataArgs> {
+export function getGuestCancelBookingCrossYearInstructionDataEncoder(): FixedSizeEncoder<GuestCancelBookingCrossYearInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: HOST_REJECT_BOOKING_DISCRIMINATOR }),
+    (value) => ({
+      ...value,
+      discriminator: GUEST_CANCEL_BOOKING_CROSS_YEAR_DISCRIMINATOR,
+    }),
   );
 }
 
-export function getHostRejectBookingInstructionDataDecoder(): FixedSizeDecoder<HostRejectBookingInstructionData> {
+export function getGuestCancelBookingCrossYearInstructionDataDecoder(): FixedSizeDecoder<GuestCancelBookingCrossYearInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
   ]);
 }
 
-export function getHostRejectBookingInstructionDataCodec(): FixedSizeCodec<
-  HostRejectBookingInstructionDataArgs,
-  HostRejectBookingInstructionData
+export function getGuestCancelBookingCrossYearInstructionDataCodec(): FixedSizeCodec<
+  GuestCancelBookingCrossYearInstructionDataArgs,
+  GuestCancelBookingCrossYearInstructionData
 > {
   return combineCodec(
-    getHostRejectBookingInstructionDataEncoder(),
-    getHostRejectBookingInstructionDataDecoder(),
+    getGuestCancelBookingCrossYearInstructionDataEncoder(),
+    getGuestCancelBookingCrossYearInstructionDataDecoder(),
   );
 }
 
-export type HostRejectBookingAsyncInput<
-  TAccountPayer extends string = string,
-  TAccountHost extends string = string,
+export type GuestCancelBookingCrossYearAsyncInput<
+  TAccountCaller extends string = string,
+  TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
-  TAccountGuest extends string = string,
+  TAccountGuestReputation extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountBookingDaysNext extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountGuestTokenAccount extends string = string,
+  TAccountHostTokenAccount extends string = string,
+  TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  payer: TransactionSigner<TAccountPayer>;
-  host: TransactionSigner<TAccountHost>;
-  hostProfile?: Address<TAccountHostProfile>;
-  guest: Address<TAccountGuest>;
+  caller: TransactionSigner<TAccountCaller>;
+  guestProfile: Address<TAccountGuestProfile>;
+  hostProfile: Address<TAccountHostProfile>;
+  guestReputation: Address<TAccountGuestReputation>;
   booking: Address<TAccountBooking>;
+  /** In the future, property will store config data for slashing guest cancelation */
   bookingDays: Address<TAccountBookingDays>;
+  /** Availability bitmap for the following year — released on cancellation. */
+  bookingDaysNext: Address<TAccountBookingDaysNext>;
   globalConfig?: Address<TAccountGlobalConfig>;
   escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
   guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  hostTokenAccount: Address<TAccountHostTokenAccount>;
+  platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  /** stayke-core. */
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
 };
 
-export async function getHostRejectBookingInstructionAsync<
-  TAccountPayer extends string,
-  TAccountHost extends string,
+export async function getGuestCancelBookingCrossYearInstructionAsync<
+  TAccountCaller extends string,
+  TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
-  TAccountGuest extends string,
+  TAccountGuestReputation extends string,
   TAccountBooking extends string,
   TAccountBookingDays extends string,
+  TAccountBookingDaysNext extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountGuestTokenAccount extends string,
+  TAccountHostTokenAccount extends string,
+  TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: HostRejectBookingAsyncInput<
-    TAccountPayer,
-    TAccountHost,
+  input: GuestCancelBookingCrossYearAsyncInput<
+    TAccountCaller,
+    TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountGuest,
+    TAccountGuestReputation,
     TAccountBooking,
     TAccountBookingDays,
+    TAccountBookingDaysNext,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountGuestTokenAccount,
+    TAccountHostTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  HostRejectBookingInstruction<
+  GuestCancelBookingCrossYearInstruction<
     TProgramAddress,
-    TAccountPayer,
-    TAccountHost,
+    TAccountCaller,
+    TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountGuest,
+    TAccountGuestReputation,
     TAccountBooking,
     TAccountBookingDays,
+    TAccountBookingDaysNext,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountGuestTokenAccount,
+    TAccountHostTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >
 > {
@@ -213,12 +264,13 @@ export async function getHostRejectBookingInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isWritable: false },
-    host: { value: input.host ?? null, isWritable: false },
+    caller: { value: input.caller ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guest: { value: input.guest ?? null, isWritable: false },
+    guestReputation: { value: input.guestReputation ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
@@ -228,7 +280,17 @@ export async function getHostRejectBookingInstructionAsync<
       value: input.guestTokenAccount ?? null,
       isWritable: true,
     },
-    mint: { value: input.mint ?? null, isWritable: false },
+    hostTokenAccount: {
+      value: input.hostTokenAccount ?? null,
+      isWritable: true,
+    },
+    platformVault: { value: input.platformVault ?? null, isWritable: true },
+    mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -237,22 +299,6 @@ export async function getHostRejectBookingInstructionAsync<
   >;
 
   // Resolve default values.
-  if (!accounts.hostProfile.value) {
-    accounts.hostProfile.value = await getProgramDerivedAddress({
-      programAddress:
-        "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">,
-      seeds: [
-        getBytesEncoder().encode(
-          new Uint8Array([
-            117, 115, 101, 114, 95, 112, 114, 111, 102, 105, 108, 101,
-          ]),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount("host", accounts.host.value),
-        ),
-      ],
-    });
-  }
   if (!accounts.globalConfig.value) {
     accounts.globalConfig.value = await getProgramDerivedAddress({
       programAddress:
@@ -274,6 +320,13 @@ export async function getHostRejectBookingInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -282,102 +335,140 @@ export async function getHostRejectBookingInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
-      getAccountMeta("host", accounts.host),
+      getAccountMeta("caller", accounts.caller),
+      getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("guest", accounts.guest),
+      getAccountMeta("guestReputation", accounts.guestReputation),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
+      getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getHostRejectBookingInstructionDataEncoder().encode({}),
+    data: getGuestCancelBookingCrossYearInstructionDataEncoder().encode({}),
     programAddress,
-  } as HostRejectBookingInstruction<
+  } as GuestCancelBookingCrossYearInstruction<
     TProgramAddress,
-    TAccountPayer,
-    TAccountHost,
+    TAccountCaller,
+    TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountGuest,
+    TAccountGuestReputation,
     TAccountBooking,
     TAccountBookingDays,
+    TAccountBookingDaysNext,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountGuestTokenAccount,
+    TAccountHostTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
 
-export type HostRejectBookingInput<
-  TAccountPayer extends string = string,
-  TAccountHost extends string = string,
+export type GuestCancelBookingCrossYearInput<
+  TAccountCaller extends string = string,
+  TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
-  TAccountGuest extends string = string,
+  TAccountGuestReputation extends string = string,
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountBookingDaysNext extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountGuestTokenAccount extends string = string,
+  TAccountHostTokenAccount extends string = string,
+  TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  payer: TransactionSigner<TAccountPayer>;
-  host: TransactionSigner<TAccountHost>;
+  caller: TransactionSigner<TAccountCaller>;
+  guestProfile: Address<TAccountGuestProfile>;
   hostProfile: Address<TAccountHostProfile>;
-  guest: Address<TAccountGuest>;
+  guestReputation: Address<TAccountGuestReputation>;
   booking: Address<TAccountBooking>;
+  /** In the future, property will store config data for slashing guest cancelation */
   bookingDays: Address<TAccountBookingDays>;
+  /** Availability bitmap for the following year — released on cancellation. */
+  bookingDaysNext: Address<TAccountBookingDaysNext>;
   globalConfig: Address<TAccountGlobalConfig>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
   guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  hostTokenAccount: Address<TAccountHostTokenAccount>;
+  platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  /** stayke-core. */
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
 };
 
-export function getHostRejectBookingInstruction<
-  TAccountPayer extends string,
-  TAccountHost extends string,
+export function getGuestCancelBookingCrossYearInstruction<
+  TAccountCaller extends string,
+  TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
-  TAccountGuest extends string,
+  TAccountGuestReputation extends string,
   TAccountBooking extends string,
   TAccountBookingDays extends string,
+  TAccountBookingDaysNext extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountGuestTokenAccount extends string,
+  TAccountHostTokenAccount extends string,
+  TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: HostRejectBookingInput<
-    TAccountPayer,
-    TAccountHost,
+  input: GuestCancelBookingCrossYearInput<
+    TAccountCaller,
+    TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountGuest,
+    TAccountGuestReputation,
     TAccountBooking,
     TAccountBookingDays,
+    TAccountBookingDaysNext,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountGuestTokenAccount,
+    TAccountHostTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): HostRejectBookingInstruction<
+): GuestCancelBookingCrossYearInstruction<
   TProgramAddress,
-  TAccountPayer,
-  TAccountHost,
+  TAccountCaller,
+  TAccountGuestProfile,
   TAccountHostProfile,
-  TAccountGuest,
+  TAccountGuestReputation,
   TAccountBooking,
   TAccountBookingDays,
+  TAccountBookingDaysNext,
   TAccountGlobalConfig,
   TAccountEscrowTokenAccount,
   TAccountGuestTokenAccount,
+  TAccountHostTokenAccount,
+  TAccountPlatformVault,
   TAccountMint,
+  TAccountCpiAuthority,
+  TAccountStaykeCoreProgram,
   TAccountTokenProgram
 > {
   // Program address.
@@ -386,12 +477,13 @@ export function getHostRejectBookingInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isWritable: false },
-    host: { value: input.host ?? null, isWritable: false },
+    caller: { value: input.caller ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guest: { value: input.guest ?? null, isWritable: false },
+    guestReputation: { value: input.guestReputation ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
@@ -401,7 +493,17 @@ export function getHostRejectBookingInstruction<
       value: input.guestTokenAccount ?? null,
       isWritable: true,
     },
-    mint: { value: input.mint ?? null, isWritable: false },
+    hostTokenAccount: {
+      value: input.hostTokenAccount ?? null,
+      isWritable: true,
+    },
+    platformVault: { value: input.platformVault ?? null, isWritable: true },
+    mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -410,6 +512,10 @@ export function getHostRejectBookingInstruction<
   >;
 
   // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -418,71 +524,89 @@ export function getHostRejectBookingInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
-      getAccountMeta("host", accounts.host),
+      getAccountMeta("caller", accounts.caller),
+      getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("guest", accounts.guest),
+      getAccountMeta("guestReputation", accounts.guestReputation),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
+      getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getHostRejectBookingInstructionDataEncoder().encode({}),
+    data: getGuestCancelBookingCrossYearInstructionDataEncoder().encode({}),
     programAddress,
-  } as HostRejectBookingInstruction<
+  } as GuestCancelBookingCrossYearInstruction<
     TProgramAddress,
-    TAccountPayer,
-    TAccountHost,
+    TAccountCaller,
+    TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountGuest,
+    TAccountGuestReputation,
     TAccountBooking,
     TAccountBookingDays,
+    TAccountBookingDaysNext,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountGuestTokenAccount,
+    TAccountHostTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
 
-export type ParsedHostRejectBookingInstruction<
+export type ParsedGuestCancelBookingCrossYearInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    payer: TAccountMetas[0];
-    host: TAccountMetas[1];
+    caller: TAccountMetas[0];
+    guestProfile: TAccountMetas[1];
     hostProfile: TAccountMetas[2];
-    guest: TAccountMetas[3];
+    guestReputation: TAccountMetas[3];
     booking: TAccountMetas[4];
+    /** In the future, property will store config data for slashing guest cancelation */
     bookingDays: TAccountMetas[5];
-    globalConfig: TAccountMetas[6];
-    escrowTokenAccount: TAccountMetas[7];
-    guestTokenAccount: TAccountMetas[8];
-    mint: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
+    /** Availability bitmap for the following year — released on cancellation. */
+    bookingDaysNext: TAccountMetas[6];
+    globalConfig: TAccountMetas[7];
+    escrowTokenAccount: TAccountMetas[8];
+    guestTokenAccount: TAccountMetas[9];
+    hostTokenAccount: TAccountMetas[10];
+    platformVault: TAccountMetas[11];
+    mint: TAccountMetas[12];
+    /** stayke-core. */
+    cpiAuthority: TAccountMetas[13];
+    staykeCoreProgram: TAccountMetas[14];
+    tokenProgram: TAccountMetas[15];
   };
-  data: HostRejectBookingInstructionData;
+  data: GuestCancelBookingCrossYearInstructionData;
 };
 
-export function parseHostRejectBookingInstruction<
+export function parseGuestCancelBookingCrossYearInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedHostRejectBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 11) {
+): ParsedGuestCancelBookingCrossYearInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 16) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 11,
+        expectedAccountMetas: 16,
       },
     );
   }
@@ -495,18 +619,25 @@ export function parseHostRejectBookingInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      payer: getNextAccount(),
-      host: getNextAccount(),
+      caller: getNextAccount(),
+      guestProfile: getNextAccount(),
       hostProfile: getNextAccount(),
-      guest: getNextAccount(),
+      guestReputation: getNextAccount(),
       booking: getNextAccount(),
       bookingDays: getNextAccount(),
+      bookingDaysNext: getNextAccount(),
       globalConfig: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
       guestTokenAccount: getNextAccount(),
+      hostTokenAccount: getNextAccount(),
+      platformVault: getNextAccount(),
       mint: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
       tokenProgram: getNextAccount(),
     },
-    data: getHostRejectBookingInstructionDataDecoder().decode(instruction.data),
+    data: getGuestCancelBookingCrossYearInstructionDataDecoder().decode(
+      instruction.data,
+    ),
   };
 }

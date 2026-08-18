@@ -10,4 +10,5 @@ export * from "./bookingStatus";
 export * from "./globalConfig";
 export * from "./listing";
 export * from "./reputationProfile";
+export * from "./treasuryConfig";
 export * from "./userProfile";

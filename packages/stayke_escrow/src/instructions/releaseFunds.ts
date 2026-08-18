@@ -10,15 +10,11 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -32,41 +28,43 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findEscrowTokenAccountPda } from "../pdas";
+import { findCpiAuthorityPda, findEscrowTokenAccountPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
-export const CPI_RESOLVE_DISPUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([222, 17, 226, 59, 156, 240, 159, 82]);
+export const RELEASE_FUNDS_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  225, 88, 91, 108, 126, 52, 2, 26,
+]);
 
-export function getCpiResolveDisputeTransferDiscriminatorBytes(): ReadonlyUint8Array {
+export function getReleaseFundsDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CPI_RESOLVE_DISPUTE_TRANSFER_DISCRIMINATOR,
+    RELEASE_FUNDS_DISCRIMINATOR,
   );
 }
 
-export type CpiResolveDisputeTransferInstruction<
+export type ReleaseFundsInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
-  TAccountCpiAuthority extends string | AccountMeta<string> = string,
-  TAccountBooking extends string | AccountMeta<string> = string,
-  TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountGuestProfile extends string | AccountMeta<string> = string,
+  TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountBooking extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
   TAccountHostTokenAccount extends string | AccountMeta<string> = string,
-  TAccountGuestTokenAccount extends string | AccountMeta<string> = string,
-  TAccountPlatformVaultTokenAccount extends string | AccountMeta<string> =
-    string,
+  TAccountPlatformVault extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
+  TAccountCpiAuthority extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -74,19 +72,19 @@ export type CpiResolveDisputeTransferInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountCpiAuthority extends string
-        ? ReadonlySignerAccount<TAccountCpiAuthority> &
-            AccountSignerMeta<TAccountCpiAuthority>
-        : TAccountCpiAuthority,
+      TAccountPayer extends string
+        ? WritableSignerAccount<TAccountPayer> &
+            AccountSignerMeta<TAccountPayer>
+        : TAccountPayer,
+      TAccountGuestProfile extends string
+        ? WritableAccount<TAccountGuestProfile>
+        : TAccountGuestProfile,
+      TAccountHostProfile extends string
+        ? WritableAccount<TAccountHostProfile>
+        : TAccountHostProfile,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
-      TAccountHostProfile extends string
-        ? ReadonlyAccount<TAccountHostProfile>
-        : TAccountHostProfile,
-      TAccountGuestProfile extends string
-        ? ReadonlyAccount<TAccountGuestProfile>
-        : TAccountGuestProfile,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -96,15 +94,18 @@ export type CpiResolveDisputeTransferInstruction<
       TAccountHostTokenAccount extends string
         ? WritableAccount<TAccountHostTokenAccount>
         : TAccountHostTokenAccount,
-      TAccountGuestTokenAccount extends string
-        ? WritableAccount<TAccountGuestTokenAccount>
-        : TAccountGuestTokenAccount,
-      TAccountPlatformVaultTokenAccount extends string
-        ? WritableAccount<TAccountPlatformVaultTokenAccount>
-        : TAccountPlatformVaultTokenAccount,
+      TAccountPlatformVault extends string
+        ? WritableAccount<TAccountPlatformVault>
+        : TAccountPlatformVault,
       TAccountMint extends string
         ? WritableAccount<TAccountMint>
         : TAccountMint,
+      TAccountCpiAuthority extends string
+        ? ReadonlyAccount<TAccountCpiAuthority>
+        : TAccountCpiAuthority,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -112,121 +113,112 @@ export type CpiResolveDisputeTransferInstruction<
     ]
   >;
 
-export type CpiResolveDisputeTransferInstructionData = {
-  discriminator: ReadonlyUint8Array;
-  hostShareBps: number;
-  rejected: boolean;
-};
+export type ReleaseFundsInstructionData = { discriminator: ReadonlyUint8Array };
 
-export type CpiResolveDisputeTransferInstructionDataArgs = {
-  hostShareBps: number;
-  rejected: boolean;
-};
+export type ReleaseFundsInstructionDataArgs = {};
 
-export function getCpiResolveDisputeTransferInstructionDataEncoder(): FixedSizeEncoder<CpiResolveDisputeTransferInstructionDataArgs> {
+export function getReleaseFundsInstructionDataEncoder(): FixedSizeEncoder<ReleaseFundsInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["hostShareBps", getU16Encoder()],
-      ["rejected", getBooleanEncoder()],
-    ]),
-    (value) => ({
-      ...value,
-      discriminator: CPI_RESOLVE_DISPUTE_TRANSFER_DISCRIMINATOR,
-    }),
+    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
+    (value) => ({ ...value, discriminator: RELEASE_FUNDS_DISCRIMINATOR }),
   );
 }
 
-export function getCpiResolveDisputeTransferInstructionDataDecoder(): FixedSizeDecoder<CpiResolveDisputeTransferInstructionData> {
+export function getReleaseFundsInstructionDataDecoder(): FixedSizeDecoder<ReleaseFundsInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["hostShareBps", getU16Decoder()],
-    ["rejected", getBooleanDecoder()],
   ]);
 }
 
-export function getCpiResolveDisputeTransferInstructionDataCodec(): FixedSizeCodec<
-  CpiResolveDisputeTransferInstructionDataArgs,
-  CpiResolveDisputeTransferInstructionData
+export function getReleaseFundsInstructionDataCodec(): FixedSizeCodec<
+  ReleaseFundsInstructionDataArgs,
+  ReleaseFundsInstructionData
 > {
   return combineCodec(
-    getCpiResolveDisputeTransferInstructionDataEncoder(),
-    getCpiResolveDisputeTransferInstructionDataDecoder(),
+    getReleaseFundsInstructionDataEncoder(),
+    getReleaseFundsInstructionDataDecoder(),
   );
 }
 
-export type CpiResolveDisputeTransferAsyncInput<
-  TAccountCpiAuthority extends string = string,
-  TAccountBooking extends string = string,
-  TAccountHostProfile extends string = string,
+export type ReleaseFundsAsyncInput<
+  TAccountPayer extends string = string,
   TAccountGuestProfile extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountHostTokenAccount extends string = string,
-  TAccountGuestTokenAccount extends string = string,
-  TAccountPlatformVaultTokenAccount extends string = string,
+  TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
-  booking: Address<TAccountBooking>;
-  hostProfile: Address<TAccountHostProfile>;
+  payer: TransactionSigner<TAccountPayer>;
+  /** The guest's UserProfile — mutable for the `completed_stays` CPI. */
   guestProfile: Address<TAccountGuestProfile>;
+  /** The host's UserProfile — mutable for the `hosted_stays` CPI. */
+  hostProfile: Address<TAccountHostProfile>;
+  booking: Address<TAccountBooking>;
   globalConfig?: Address<TAccountGlobalConfig>;
   escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
-  /** Host's USDC — must belong to the host wallet. */
+  /**
+   * The host's USDC token account — the funds destination, bound to the
+   * host's authority so the caller cannot redirect the payment.
+   */
   hostTokenAccount: Address<TAccountHostTokenAccount>;
-  /** Guest's USDC — must belong to the guest wallet. */
-  guestTokenAccount: Address<TAccountGuestTokenAccount>;
-  /** Platform vault */
-  platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
+  /** Platform fee vault. */
+  platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  cpiAuthority?: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: CpiResolveDisputeTransferInstructionDataArgs["hostShareBps"];
-  rejected: CpiResolveDisputeTransferInstructionDataArgs["rejected"];
 };
 
-export async function getCpiResolveDisputeTransferInstructionAsync<
-  TAccountCpiAuthority extends string,
-  TAccountBooking extends string,
-  TAccountHostProfile extends string,
+export async function getReleaseFundsInstructionAsync<
+  TAccountPayer extends string,
   TAccountGuestProfile extends string,
+  TAccountHostProfile extends string,
+  TAccountBooking extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountHostTokenAccount extends string,
-  TAccountGuestTokenAccount extends string,
-  TAccountPlatformVaultTokenAccount extends string,
+  TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: CpiResolveDisputeTransferAsyncInput<
-    TAccountCpiAuthority,
-    TAccountBooking,
-    TAccountHostProfile,
+  input: ReleaseFundsAsyncInput<
+    TAccountPayer,
     TAccountGuestProfile,
+    TAccountHostProfile,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
-    TAccountPlatformVaultTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  CpiResolveDisputeTransferInstruction<
+  ReleaseFundsInstruction<
     TProgramAddress,
-    TAccountCpiAuthority,
-    TAccountBooking,
-    TAccountHostProfile,
+    TAccountPayer,
     TAccountGuestProfile,
+    TAccountHostProfile,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
-    TAccountPlatformVaultTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >
 > {
@@ -236,10 +228,10 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    payer: { value: input.payer ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
@@ -249,24 +241,19 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
       value: input.hostTokenAccount ?? null,
       isWritable: true,
     },
-    guestTokenAccount: {
-      value: input.guestTokenAccount ?? null,
-      isWritable: true,
-    },
-    platformVaultTokenAccount: {
-      value: input.platformVaultTokenAccount ?? null,
-      isWritable: true,
-    },
+    platformVault: { value: input.platformVault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.globalConfig.value) {
@@ -290,6 +277,13 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
       ),
     });
   }
+  if (!accounts.cpiAuthority.value) {
+    accounts.cpiAuthority.value = await findCpiAuthorityPda();
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -298,112 +292,116 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
-      getAccountMeta("booking", accounts.booking),
-      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
-      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
-      getAccountMeta(
-        "platformVaultTokenAccount",
-        accounts.platformVaultTokenAccount,
-      ),
+      getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getCpiResolveDisputeTransferInstructionDataEncoder().encode(
-      args as CpiResolveDisputeTransferInstructionDataArgs,
-    ),
+    data: getReleaseFundsInstructionDataEncoder().encode({}),
     programAddress,
-  } as CpiResolveDisputeTransferInstruction<
+  } as ReleaseFundsInstruction<
     TProgramAddress,
-    TAccountCpiAuthority,
-    TAccountBooking,
-    TAccountHostProfile,
+    TAccountPayer,
     TAccountGuestProfile,
+    TAccountHostProfile,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
-    TAccountPlatformVaultTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
 
-export type CpiResolveDisputeTransferInput<
-  TAccountCpiAuthority extends string = string,
-  TAccountBooking extends string = string,
-  TAccountHostProfile extends string = string,
+export type ReleaseFundsInput<
+  TAccountPayer extends string = string,
   TAccountGuestProfile extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
   TAccountHostTokenAccount extends string = string,
-  TAccountGuestTokenAccount extends string = string,
-  TAccountPlatformVaultTokenAccount extends string = string,
+  TAccountPlatformVault extends string = string,
   TAccountMint extends string = string,
+  TAccountCpiAuthority extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
-  booking: Address<TAccountBooking>;
-  hostProfile: Address<TAccountHostProfile>;
+  payer: TransactionSigner<TAccountPayer>;
+  /** The guest's UserProfile — mutable for the `completed_stays` CPI. */
   guestProfile: Address<TAccountGuestProfile>;
+  /** The host's UserProfile — mutable for the `hosted_stays` CPI. */
+  hostProfile: Address<TAccountHostProfile>;
+  booking: Address<TAccountBooking>;
   globalConfig: Address<TAccountGlobalConfig>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
-  /** Host's USDC — must belong to the host wallet. */
+  /**
+   * The host's USDC token account — the funds destination, bound to the
+   * host's authority so the caller cannot redirect the payment.
+   */
   hostTokenAccount: Address<TAccountHostTokenAccount>;
-  /** Guest's USDC — must belong to the guest wallet. */
-  guestTokenAccount: Address<TAccountGuestTokenAccount>;
-  /** Platform vault */
-  platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
+  /** Platform fee vault. */
+  platformVault: Address<TAccountPlatformVault>;
   mint: Address<TAccountMint>;
+  cpiAuthority: Address<TAccountCpiAuthority>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: CpiResolveDisputeTransferInstructionDataArgs["hostShareBps"];
-  rejected: CpiResolveDisputeTransferInstructionDataArgs["rejected"];
 };
 
-export function getCpiResolveDisputeTransferInstruction<
-  TAccountCpiAuthority extends string,
-  TAccountBooking extends string,
-  TAccountHostProfile extends string,
+export function getReleaseFundsInstruction<
+  TAccountPayer extends string,
   TAccountGuestProfile extends string,
+  TAccountHostProfile extends string,
+  TAccountBooking extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
   TAccountHostTokenAccount extends string,
-  TAccountGuestTokenAccount extends string,
-  TAccountPlatformVaultTokenAccount extends string,
+  TAccountPlatformVault extends string,
   TAccountMint extends string,
+  TAccountCpiAuthority extends string,
+  TAccountStaykeCoreProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: CpiResolveDisputeTransferInput<
-    TAccountCpiAuthority,
-    TAccountBooking,
-    TAccountHostProfile,
+  input: ReleaseFundsInput<
+    TAccountPayer,
     TAccountGuestProfile,
+    TAccountHostProfile,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
-    TAccountPlatformVaultTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): CpiResolveDisputeTransferInstruction<
+): ReleaseFundsInstruction<
   TProgramAddress,
-  TAccountCpiAuthority,
-  TAccountBooking,
-  TAccountHostProfile,
+  TAccountPayer,
   TAccountGuestProfile,
+  TAccountHostProfile,
+  TAccountBooking,
   TAccountGlobalConfig,
   TAccountEscrowTokenAccount,
   TAccountHostTokenAccount,
-  TAccountGuestTokenAccount,
-  TAccountPlatformVaultTokenAccount,
+  TAccountPlatformVault,
   TAccountMint,
+  TAccountCpiAuthority,
+  TAccountStaykeCoreProgram,
   TAccountTokenProgram
 > {
   // Program address.
@@ -412,10 +410,10 @@ export function getCpiResolveDisputeTransferInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    payer: { value: input.payer ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
@@ -425,15 +423,13 @@ export function getCpiResolveDisputeTransferInstruction<
       value: input.hostTokenAccount ?? null,
       isWritable: true,
     },
-    guestTokenAccount: {
-      value: input.guestTokenAccount ?? null,
-      isWritable: true,
-    },
-    platformVaultTokenAccount: {
-      value: input.platformVaultTokenAccount ?? null,
-      isWritable: true,
-    },
+    platformVault: { value: input.platformVault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
+    cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -441,10 +437,11 @@ export function getCpiResolveDisputeTransferInstruction<
     ResolvedInstructionAccount
   >;
 
-  // Original args.
-  const args = { ...input };
-
   // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
@@ -453,79 +450,81 @@ export function getCpiResolveDisputeTransferInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
-      getAccountMeta("booking", accounts.booking),
-      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("payer", accounts.payer),
       getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
       getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
-      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
-      getAccountMeta(
-        "platformVaultTokenAccount",
-        accounts.platformVaultTokenAccount,
-      ),
+      getAccountMeta("platformVault", accounts.platformVault),
       getAccountMeta("mint", accounts.mint),
+      getAccountMeta("cpiAuthority", accounts.cpiAuthority),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getCpiResolveDisputeTransferInstructionDataEncoder().encode(
-      args as CpiResolveDisputeTransferInstructionDataArgs,
-    ),
+    data: getReleaseFundsInstructionDataEncoder().encode({}),
     programAddress,
-  } as CpiResolveDisputeTransferInstruction<
+  } as ReleaseFundsInstruction<
     TProgramAddress,
-    TAccountCpiAuthority,
-    TAccountBooking,
-    TAccountHostProfile,
+    TAccountPayer,
     TAccountGuestProfile,
+    TAccountHostProfile,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
     TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
-    TAccountPlatformVaultTokenAccount,
+    TAccountPlatformVault,
     TAccountMint,
+    TAccountCpiAuthority,
+    TAccountStaykeCoreProgram,
     TAccountTokenProgram
   >);
 }
 
-export type ParsedCpiResolveDisputeTransferInstruction<
+export type ParsedReleaseFundsInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    cpiAuthority: TAccountMetas[0];
-    booking: TAccountMetas[1];
+    payer: TAccountMetas[0];
+    /** The guest's UserProfile — mutable for the `completed_stays` CPI. */
+    guestProfile: TAccountMetas[1];
+    /** The host's UserProfile — mutable for the `hosted_stays` CPI. */
     hostProfile: TAccountMetas[2];
-    guestProfile: TAccountMetas[3];
+    booking: TAccountMetas[3];
     globalConfig: TAccountMetas[4];
     escrowTokenAccount: TAccountMetas[5];
-    /** Host's USDC — must belong to the host wallet. */
+    /**
+     * The host's USDC token account — the funds destination, bound to the
+     * host's authority so the caller cannot redirect the payment.
+     */
     hostTokenAccount: TAccountMetas[6];
-    /** Guest's USDC — must belong to the guest wallet. */
-    guestTokenAccount: TAccountMetas[7];
-    /** Platform vault */
-    platformVaultTokenAccount: TAccountMetas[8];
-    mint: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
+    /** Platform fee vault. */
+    platformVault: TAccountMetas[7];
+    mint: TAccountMetas[8];
+    cpiAuthority: TAccountMetas[9];
+    staykeCoreProgram: TAccountMetas[10];
+    tokenProgram: TAccountMetas[11];
   };
-  data: CpiResolveDisputeTransferInstructionData;
+  data: ReleaseFundsInstructionData;
 };
 
-export function parseCpiResolveDisputeTransferInstruction<
+export function parseReleaseFundsInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedCpiResolveDisputeTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 11) {
+): ParsedReleaseFundsInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 11,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -538,20 +537,19 @@ export function parseCpiResolveDisputeTransferInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      cpiAuthority: getNextAccount(),
-      booking: getNextAccount(),
-      hostProfile: getNextAccount(),
+      payer: getNextAccount(),
       guestProfile: getNextAccount(),
+      hostProfile: getNextAccount(),
+      booking: getNextAccount(),
       globalConfig: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
       hostTokenAccount: getNextAccount(),
-      guestTokenAccount: getNextAccount(),
-      platformVaultTokenAccount: getNextAccount(),
+      platformVault: getNextAccount(),
       mint: getNextAccount(),
+      cpiAuthority: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
       tokenProgram: getNextAccount(),
     },
-    data: getCpiResolveDisputeTransferInstructionDataDecoder().decode(
-      instruction.data,
-    ),
+    data: getReleaseFundsInstructionDataDecoder().decode(instruction.data),
   };
 }
