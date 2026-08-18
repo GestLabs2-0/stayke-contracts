@@ -10,6 +10,7 @@ use solana_signer::Signer;
 use stayke_config as config;
 use stayke_core as core;
 use stayke_escrow as escrow;
+use stayke_treasury as treasury;
 
 // ---------------------------------------------------------------------------
 // Discriminator
@@ -373,6 +374,18 @@ pub fn build_svm_with_escrow_programs() -> (LiteSVM, solana_keypair::Keypair) {
     (svm, payer)
 }
 
+/// Like [`build_svm_with_escrow_programs`] but also loads the treasury program,
+/// required by `cancel_booking` (host-deposit slash CPIs into stayke-treasury).
+pub fn build_svm_with_all_programs() -> (LiteSVM, solana_keypair::Keypair) {
+    let (mut svm, payer) = build_svm_with_escrow_programs();
+    svm.add_program(
+        treasury::id(),
+        include_bytes!("../../../../target/deploy/stayke_treasury.so"),
+    )
+    .unwrap();
+    (svm, payer)
+}
+
 // ---------------------------------------------------------------------------
 // PDA helpers
 // ---------------------------------------------------------------------------
@@ -699,4 +712,59 @@ pub fn cpi_authority_pda() -> Pubkey {
         &escrow::id(),
     )
     .0
+}
+
+// ---------------------------------------------------------------------------
+// Treasury (stayke_treasury)
+// ---------------------------------------------------------------------------
+
+pub fn treasury_config_pda() -> Pubkey {
+    Pubkey::find_program_address(
+        &[treasury::TREASURY_CONFIG_SEED.as_bytes()],
+        &treasury::id(),
+    )
+    .0
+}
+
+pub fn treasury_pda() -> Pubkey {
+    Pubkey::find_program_address(&[treasury::TREASURY_SEED.as_bytes()], &treasury::id()).0
+}
+
+/// Creates the treasury config account, its signer PDA and a vault token
+/// account (owned by the treasury PDA) holding `vault_amount` USDC.
+/// Returns `(treasury_config, treasury_vault)`.
+pub fn setup_treasury(svm: &mut LiteSVM, usdc_mint: Pubkey, vault_amount: u64) -> (Pubkey, Pubkey) {
+    let (config_pda, config_bump) = Pubkey::find_program_address(
+        &[treasury::TREASURY_CONFIG_SEED.as_bytes()],
+        &treasury::id(),
+    );
+    let (treasury_pda, treasury_bump) =
+        Pubkey::find_program_address(&[treasury::TREASURY_SEED.as_bytes()], &treasury::id());
+
+    let vault = Pubkey::new_unique();
+
+    let config = treasury::state::TreasuryConfig {
+        authority: Pubkey::new_unique(),
+        treasury_vault: vault,
+        treasury_bump,
+        global_config: global_config_pda(),
+        is_initialized: true,
+        bump: config_bump,
+    };
+
+    svm.set_account(
+        config_pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: to_account_data("TreasuryConfig", &config),
+            owner: treasury::id(),
+            executable: false,
+            rent_epoch: u64::MAX,
+        },
+    )
+    .unwrap();
+
+    make_token_account(svm, vault, usdc_mint, treasury_pda, vault_amount);
+
+    (config_pda, vault)
 }

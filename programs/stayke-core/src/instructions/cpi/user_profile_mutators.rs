@@ -57,7 +57,11 @@ pub fn handler_update_deposit(
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
-        &[AllowedCaller::Treasury, AllowedCaller::Disputes],
+        &[
+            AllowedCaller::Treasury,
+            AllowedCaller::Disputes,
+            AllowedCaller::Escrow,
+        ],
     )?;
 
     let user_profile = &mut ctx.accounts.user_profile;
@@ -152,5 +156,36 @@ pub fn handler_increment_hosted_stays(ctx: Context<UpdateUserProfile>) -> Result
 
     let user_profile = &mut ctx.accounts.user_profile;
     user_profile.hosted_stays = user_profile.hosted_stays.saturating_add(1);
+    Ok(())
+}
+
+/// CPI-gated instruction: increments the `client_cancellations` counter of a
+/// reputation profile. Only the Escrow program may call this — called when a
+/// guest cancels their booking.
+pub fn handler_increment_client_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Escrow],
+    )?;
+
+    let reputation_profile = &mut ctx.accounts.reputation_profile;
+    reputation_profile.client_cancellations =
+        reputation_profile.client_cancellations.saturating_add(1);
+    Ok(())
+}
+
+/// CPI-gated instruction: increments the `host_cancellations` counter of a
+/// reputation profile. Only the Escrow program may call this — called when a
+/// host cancels a booking before check-in.
+pub fn handler_increment_host_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+    assert_cpi_authority(
+        &ctx.accounts.global_config,
+        &ctx.accounts.cpi_authority.key(),
+        &[AllowedCaller::Escrow],
+    )?;
+
+    let reputation_profile = &mut ctx.accounts.reputation_profile;
+    reputation_profile.host_cancellations = reputation_profile.host_cancellations.saturating_add(1);
     Ok(())
 }

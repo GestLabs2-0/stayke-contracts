@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 
-use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{
+    self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
 use stayke_config::{self, GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
 
@@ -20,16 +22,18 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct HostRejectBooking<'info> {
-    #[account(mut)]
+    // Payer is only a referenced for transaction paid using the relayer
     pub payer: Signer<'info>,
 
+    #[account(
+        constraint = host_profile.authority == host.key() @ EscrowError::UnauthorizedHost
+    )]
     pub host: Signer<'info>,
 
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
         seeds::program = stayke_core::ID,
         bump = host_profile.bump,
-        constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
         constraint = !host_profile.banned @ EscrowError::UserBanned,
         constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
     )]
@@ -134,6 +138,16 @@ pub fn handler_host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()
         booking.total_price,
         mint.decimals,
     )?;
+
+    token_interface::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.key(),
+        CloseAccount {
+            account: ctx.accounts.escrow_token_account.to_account_info(),
+            destination: ctx.accounts.payer.to_account_info(),
+            authority: booking.to_account_info(),
+        },
+        booking_seeds,
+    ))?;
 
     emit!(BookingStatusUpdated {
         status: BookingStatus::Cancelled,

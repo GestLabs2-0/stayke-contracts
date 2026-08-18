@@ -85,6 +85,14 @@ pub mod stayke_core {
         handler_increment_hosted_stays(ctx)
     }
 
+    pub fn increment_client_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+        handler_increment_client_cancellations(ctx)
+    }
+
+    pub fn increment_host_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+        handler_increment_host_cancellations(ctx)
+    }
+
     // --------------------------------------------------------------------------
     // Identity Verification
     // ------------------------------------------------------------------------

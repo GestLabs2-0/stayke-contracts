@@ -107,4 +107,15 @@ pub enum EscrowError {
     // previously shipped variants.
     #[msg("Review has already been submitted for this booking")]
     ReviewAlreadySubmitted,
+
+    // Cancellation — appended at the end to preserve the numeric error codes of
+    // all previously shipped variants.
+    #[msg("Booking can only be cancelled before check-in")]
+    CheckInPassed,
+    #[msg("Only the guest or host of the booking can cancel it")]
+    UnauthorizedCancellation,
+    #[msg("Invalid cancellation window")]
+    InvalidCancellationWindow,
+    #[msg("Invalid cancellation percentage")]
+    InvalidCancellationPercentage,
 }
