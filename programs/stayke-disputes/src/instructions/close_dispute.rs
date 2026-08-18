@@ -10,7 +10,7 @@ use stayke_core::{
     LISTING_SEED, USER_PROFILE_SEED,
 };
 
-use stayke_escrow::state::Booking;
+use stayke_escrow::{constants::BOOKING_SEED, state::Booking};
 
 use crate::{
     constants::{DISPUTE_CONFIG_PDA_SEED, DISPUTE_PDA_SEED},
@@ -40,6 +40,11 @@ pub struct CloseDispute<'info> {
     pub dispute: Box<Account<'info, Dispute>>,
 
     /// Dispute PDA is seeded from this booking key.
+    #[account(
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds::program = stayke_escrow::ID,
+        bump = booking.bump
+    )]
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(

@@ -20,6 +20,6 @@ pub const CORE_PROGRAM_ID: Pubkey =
 pub const ESCROW_PROGRAM_ID: Pubkey =
     Pubkey::from_str_const("68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a");
 pub const DISPUTES_PROGRAM_ID: Pubkey =
-    Pubkey::from_str_const("89yo4qWuvaQcAPtAcutNB6vht3JwvEwMMLbSwpMM2Czt");
+    Pubkey::from_str_const("8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ");
 pub const TREASURY_PROGRAM_ID: Pubkey =
-    Pubkey::from_str_const("3JE5y7vtjkZkA6s3eRAKorT1eQmgoJQmnVqpy15uUjq8");
+    Pubkey::from_str_const("HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY");

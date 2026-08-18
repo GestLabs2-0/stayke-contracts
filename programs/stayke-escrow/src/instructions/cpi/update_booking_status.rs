@@ -48,8 +48,8 @@ pub fn handler_cpi_update_booking_status(
     // Only allow specific transitions like Active -> Disputed or Disputed -> Resolved
     if status == BookingStatus::Disputed {
         require!(
-            booking.status == BookingStatus::Active,
-            EscrowError::BookingNotActive
+            booking.status == BookingStatus::Active || booking.status == BookingStatus::Completed,
+            EscrowError::BookingNotDisputable
         );
     } else if status == BookingStatus::DisputeResolved || status == BookingStatus::DisputeRejected {
         require!(

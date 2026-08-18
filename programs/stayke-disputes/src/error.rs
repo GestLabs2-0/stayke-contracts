@@ -15,8 +15,8 @@ pub enum DisputeError {
 
     #[msg("Only the guest or host can open a dispute")]
     UnauthorizedDisputeInitiator,
-    #[msg("Booking must be in Active status to open a dispute")]
-    BookingNotActive,
+    #[msg("Booking must be in Active or Completed status to open a dispute")]
+    BookingNotDisputable,
     #[msg("Dispute is already resolved or rejected")]
     DisputeNotOpen,
 

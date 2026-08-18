@@ -75,6 +75,10 @@ fn test_initialize_config_persists_program_ids() {
         &[stayke_config::constants::PLATFORM_VAULT_CONFIG_SEED.as_bytes()],
         &program_id,
     );
+    let core = Pubkey::new_unique();
+    let escrow = Pubkey::new_unique();
+    let disputes = Pubkey::new_unique();
+    let treasury = Pubkey::new_unique();
 
     let instruction = Instruction::new_with_bytes(
         program_id,
@@ -83,10 +87,10 @@ fn test_initialize_config_persists_program_ids() {
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
             allowed_programs: stayke_config::AllowedPrograms {
-                core: Pubkey::new_unique(),
-                escrow: Pubkey::new_unique(),
-                disputes: Pubkey::new_unique(),
-                treasury: Pubkey::new_unique(),
+                core,
+                escrow,
+                disputes,
+                treasury,
             },
         }
         .data(),
