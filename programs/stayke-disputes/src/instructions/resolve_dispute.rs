@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
 use stayke_escrow::{
     cpi::{accounts::ResolveDisputeTransferCpi, cpi_resolve_dispute_transfer},
     program::StaykeEscrow,
@@ -38,6 +39,22 @@ pub struct ResolveDispute<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = booking.host == host_profile.key() @ DisputeError::UnboundBookingAccount,
+    )]
+    pub host_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), guest_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = guest_profile.bump,
+        constraint = booking.guest == guest_profile.key() @ DisputeError::UnboundBookingAccount,
+    )]
+    pub guest_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         seeds::program = stayke_config::ID,
         bump = global_config.bump,
@@ -51,9 +68,17 @@ pub struct ResolveDispute<'info> {
 
     #[account(mut)]
     pub escrow_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = host_token_account.mint == usdc_mint.key() @ DisputeError::InvalidTokenMint,
+        constraint = host_token_account.owner == host_profile.authority @ DisputeError::InvalidPayoutTokenAccount,
+    )]
     pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = guest_token_account.mint == usdc_mint.key() @ DisputeError::InvalidTokenMint,
+        constraint = guest_token_account.owner == guest_profile.authority @ DisputeError::InvalidPayoutTokenAccount,
+    )]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
@@ -78,6 +103,8 @@ pub fn handler_resolve_dispute(
     let cpi_accounts = ResolveDisputeTransferCpi {
         cpi_authority: ctx.accounts.cpi_authority.to_account_info(),
         booking: ctx.accounts.booking.to_account_info(),
+        host_profile: ctx.accounts.host_profile.to_account_info(),
+        guest_profile: ctx.accounts.guest_profile.to_account_info(),
         global_config: ctx.accounts.global_config.to_account_info(),
         escrow_token_account: ctx.accounts.escrow_token_account.to_account_info(),
         host_token_account: ctx.accounts.host_token_account.to_account_info(),

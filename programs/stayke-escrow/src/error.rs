@@ -79,6 +79,8 @@ pub enum EscrowError {
     InvalidVaultAccount,
     #[msg("Wrong guest pubkey passed")]
     WrongGuestPassed,
+    #[msg("Payout token account is not owned by the booking party")]
+    InvalidPayoutTokenAccount,
 
     // Expire booking
     #[msg("Pending booking must be over 24h")]

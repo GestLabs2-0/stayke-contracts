@@ -34,4 +34,13 @@ pub enum DisputeError {
     UserBanned,
     #[msg("User is not verified")]
     UserNotVerified,
+
+    #[msg("Profile or listing is not bound to this booking")]
+    UnboundBookingAccount,
+    #[msg("Reputation profile does not belong to the penalized user")]
+    InvalidReputationProfile,
+    #[msg("Payout token account is not owned by the booking party")]
+    InvalidPayoutTokenAccount,
+    #[msg("Token account is not owned by the affected wallet")]
+    InvalidAffectedTokenAccount,
 }

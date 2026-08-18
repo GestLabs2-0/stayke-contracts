@@ -7,9 +7,10 @@ use stayke_core::{
     },
     program::StaykeCore,
     state::{Listing, UserProfile},
+    LISTING_SEED, USER_PROFILE_SEED,
 };
 
-use stayke_escrow::state::Booking;
+use stayke_escrow::{constants::BOOKING_SEED, state::Booking};
 
 use crate::{
     constants::{DISPUTE_CONFIG_PDA_SEED, DISPUTE_PDA_SEED},
@@ -27,7 +28,7 @@ pub struct CloseDispute<'info> {
         constraint = config.admins.contains(&admin.key()) @ DisputeError::UnauthorizedAdmin,
         bump = config.bump,
     )]
-    pub config: Account<'info, DisputeConfig>,
+    pub config: Box<Account<'info, DisputeConfig>>,
 
     #[account(
         mut,
@@ -36,19 +37,46 @@ pub struct CloseDispute<'info> {
         bump = dispute.bump,
         constraint = dispute.status != DisputeStatus::Open @ DisputeError::DisputeNotOpen,
     )]
-    pub dispute: Account<'info, Dispute>,
+    pub dispute: Box<Account<'info, Dispute>>,
 
-    /// CHECK: Read-only access here, trust it's the right booking if the dispute seed matches.
-    pub booking: Account<'info, Booking>,
+    /// Dispute PDA is seeded from this booking key.
+    #[account(
+        seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
+        seeds::program = stayke_escrow::ID,
+        bump = booking.bump
+    )]
+    pub booking: Box<Account<'info, Booking>>,
 
-    #[account(mut)]
-    pub guest_profile: Account<'info, UserProfile>,
+    #[account(
+        mut,
+        seeds = [USER_PROFILE_SEED.as_bytes(), guest_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = guest_profile.bump,
+        constraint = guest_profile.key() == booking.guest @ DisputeError::UnboundBookingAccount,
+    )]
+    pub guest_profile: Box<Account<'info, UserProfile>>,
 
-    #[account(mut)]
-    pub host_profile: Account<'info, UserProfile>,
+    #[account(
+        mut,
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = host_profile.key() == booking.host @ DisputeError::UnboundBookingAccount,
+    )]
+    pub host_profile: Box<Account<'info, UserProfile>>,
 
-    #[account(mut)]
-    pub listing: Account<'info, Listing>,
+    #[account(
+        mut,
+        seeds = [
+            LISTING_SEED.as_bytes(),
+            host_profile.key().as_ref(),
+            listing.listing_id.to_le_bytes().as_ref(),
+        ],
+        seeds::program = stayke_core::ID,
+        bump = listing.bump,
+        constraint = listing.key() == booking.property @ DisputeError::UnboundBookingAccount,
+    )]
+    pub listing: Box<Account<'info, Listing>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
@@ -56,7 +84,7 @@ pub struct CloseDispute<'info> {
         bump = global_config.bump,
         constraint = global_config.is_initialized,
     )]
-    pub global_config: Account<'info, GlobalConfig>,
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     /// CHECK: Disputes CPI authority PDA — signs privileged core mutators.
     #[account(seeds = [CPI_AUTHORITY_SEED.as_bytes()], bump)]

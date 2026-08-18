@@ -527,3 +527,34 @@ pub fn setup_dispute(
 
     dispute_key
 }
+
+/// Booking whose guest/host/property match real core PDAs (needed after account binding).
+pub struct BoundBooking {
+    pub guest_wallet: Pubkey,
+    pub host_wallet: Pubkey,
+    pub guest_profile: Pubkey,
+    pub host_profile: Pubkey,
+    pub listing: Pubkey,
+    pub booking: Pubkey,
+}
+
+pub fn setup_bound_booking(
+    svm: &mut LiteSVM,
+    status: escrow::state::BookingStatus,
+) -> BoundBooking {
+    let guest_wallet = Pubkey::new_unique();
+    let host_wallet = Pubkey::new_unique();
+    let guest_profile = setup_user_profile(svm, guest_wallet);
+    let host_profile = setup_user_profile(svm, host_wallet);
+    let listing = setup_listing(svm, host_wallet, host_profile);
+    let booking = Pubkey::new_unique();
+    setup_booking(svm, booking, guest_profile, host_profile, listing, status);
+    BoundBooking {
+        guest_wallet,
+        host_wallet,
+        guest_profile,
+        host_profile,
+        listing,
+        booking,
+    }
+}
