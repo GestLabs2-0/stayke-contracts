@@ -23,7 +23,6 @@ pub struct DisputeResolved {
 #[event]
 pub struct UserPenalized {
     pub penalized_user: Pubkey,
-    pub affected_wallet: Pubkey,
     pub penalty_amount: u64,
     pub timestamp: i64,
 }
