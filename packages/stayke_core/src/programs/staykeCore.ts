@@ -54,37 +54,52 @@ import {
   getAddInfractionInstructionAsync,
   getClearActiveBookingInstructionAsync,
   getClearListingBookingInstructionAsync,
+  getIncrementClientCancellationsInstructionAsync,
   getIncrementCompletedStaysInstructionAsync,
+  getIncrementHostCancellationsInstructionAsync,
+  getIncrementHostedStaysInstructionAsync,
   getInitializeConfigInstructionAsync,
   getInitializeListingInstructionAsync,
   getInitializeUserProfileInstructionAsync,
   getInitIdentityInstructionAsync,
   getLinkIdentityInstructionAsync,
+  getSetActiveBookingInstructionAsync,
   getSetListingOccupiedInstructionAsync,
+  getUpdateClientReviewInstructionAsync,
   getUpdateDepositInstructionAsync,
   getUpdateHostReviewInstructionAsync,
   getUpdateListingPriceInstructionAsync,
   getUpdateListingPublishInstructionAsync,
+  getUpdateListingReviewInstructionAsync,
   getUpdateListingStateInstructionAsync,
   parseAddInfractionInstruction,
   parseClearActiveBookingInstruction,
   parseClearListingBookingInstruction,
+  parseIncrementClientCancellationsInstruction,
   parseIncrementCompletedStaysInstruction,
+  parseIncrementHostCancellationsInstruction,
+  parseIncrementHostedStaysInstruction,
   parseInitializeConfigInstruction,
   parseInitializeListingInstruction,
   parseInitializeUserProfileInstruction,
   parseInitIdentityInstruction,
   parseLinkIdentityInstruction,
+  parseSetActiveBookingInstruction,
   parseSetListingOccupiedInstruction,
+  parseUpdateClientReviewInstruction,
   parseUpdateDepositInstruction,
   parseUpdateHostReviewInstruction,
   parseUpdateListingPriceInstruction,
   parseUpdateListingPublishInstruction,
+  parseUpdateListingReviewInstruction,
   parseUpdateListingStateInstruction,
   type AddInfractionAsyncInput,
   type ClearActiveBookingAsyncInput,
   type ClearListingBookingAsyncInput,
+  type IncrementClientCancellationsAsyncInput,
   type IncrementCompletedStaysAsyncInput,
+  type IncrementHostCancellationsAsyncInput,
+  type IncrementHostedStaysAsyncInput,
   type InitializeConfigAsyncInput,
   type InitializeListingAsyncInput,
   type InitializeUserProfileAsyncInput,
@@ -93,23 +108,32 @@ import {
   type ParsedAddInfractionInstruction,
   type ParsedClearActiveBookingInstruction,
   type ParsedClearListingBookingInstruction,
+  type ParsedIncrementClientCancellationsInstruction,
   type ParsedIncrementCompletedStaysInstruction,
+  type ParsedIncrementHostCancellationsInstruction,
+  type ParsedIncrementHostedStaysInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeListingInstruction,
   type ParsedInitializeUserProfileInstruction,
   type ParsedInitIdentityInstruction,
   type ParsedLinkIdentityInstruction,
+  type ParsedSetActiveBookingInstruction,
   type ParsedSetListingOccupiedInstruction,
+  type ParsedUpdateClientReviewInstruction,
   type ParsedUpdateDepositInstruction,
   type ParsedUpdateHostReviewInstruction,
   type ParsedUpdateListingPriceInstruction,
   type ParsedUpdateListingPublishInstruction,
+  type ParsedUpdateListingReviewInstruction,
   type ParsedUpdateListingStateInstruction,
+  type SetActiveBookingAsyncInput,
   type SetListingOccupiedAsyncInput,
+  type UpdateClientReviewAsyncInput,
   type UpdateDepositAsyncInput,
   type UpdateHostReviewAsyncInput,
   type UpdateListingPriceAsyncInput,
   type UpdateListingPublishAsyncInput,
+  type UpdateListingReviewAsyncInput,
   type UpdateListingStateAsyncInput,
 } from "../instructions";
 import {
@@ -200,17 +224,23 @@ export enum StaykeCoreInstruction {
   AddInfraction,
   ClearActiveBooking,
   ClearListingBooking,
+  IncrementClientCancellations,
   IncrementCompletedStays,
+  IncrementHostCancellations,
+  IncrementHostedStays,
   InitIdentity,
   InitializeConfig,
   InitializeListing,
   InitializeUserProfile,
   LinkIdentity,
+  SetActiveBooking,
   SetListingOccupied,
+  UpdateClientReview,
   UpdateDeposit,
   UpdateHostReview,
   UpdateListingPrice,
   UpdateListingPublish,
+  UpdateListingReview,
   UpdateListingState,
 }
 
@@ -255,12 +285,45 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([25, 3, 156, 186, 129, 165, 33, 222]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.IncrementClientCancellations;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([102, 201, 242, 138, 153, 52, 255, 41]),
       ),
       0,
     )
   ) {
     return StaykeCoreInstruction.IncrementCompletedStays;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 15, 236, 31, 46, 20, 164, 51]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.IncrementHostCancellations;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([123, 0, 180, 70, 16, 82, 11, 144]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.IncrementHostedStays;
   }
   if (
     containsBytes(
@@ -321,12 +384,34 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([41, 169, 14, 125, 137, 76, 11, 170]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.SetActiveBooking;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([125, 76, 4, 13, 181, 116, 53, 167]),
       ),
       0,
     )
   ) {
     return StaykeCoreInstruction.SetListingOccupied;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([25, 243, 175, 86, 13, 118, 223, 101]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateClientReview;
   }
   if (
     containsBytes(
@@ -376,6 +461,17 @@ export function identifyStaykeCoreInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([6, 42, 113, 140, 67, 126, 44, 154]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeCoreInstruction.UpdateListingReview;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([54, 223, 116, 48, 168, 240, 133, 49]),
       ),
       0,
@@ -402,8 +498,17 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.ClearListingBooking;
     } & ParsedClearListingBookingInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.IncrementClientCancellations;
+    } & ParsedIncrementClientCancellationsInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.IncrementCompletedStays;
     } & ParsedIncrementCompletedStaysInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.IncrementHostCancellations;
+    } & ParsedIncrementHostCancellationsInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.IncrementHostedStays;
+    } & ParsedIncrementHostedStaysInstruction<TProgram>)
   | ({
       instructionType: StaykeCoreInstruction.InitIdentity;
     } & ParsedInitIdentityInstruction<TProgram>)
@@ -420,8 +525,14 @@ export type ParsedStaykeCoreInstruction<
       instructionType: StaykeCoreInstruction.LinkIdentity;
     } & ParsedLinkIdentityInstruction<TProgram>)
   | ({
+      instructionType: StaykeCoreInstruction.SetActiveBooking;
+    } & ParsedSetActiveBookingInstruction<TProgram>)
+  | ({
       instructionType: StaykeCoreInstruction.SetListingOccupied;
     } & ParsedSetListingOccupiedInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateClientReview;
+    } & ParsedUpdateClientReviewInstruction<TProgram>)
   | ({
       instructionType: StaykeCoreInstruction.UpdateDeposit;
     } & ParsedUpdateDepositInstruction<TProgram>)
@@ -434,6 +545,9 @@ export type ParsedStaykeCoreInstruction<
   | ({
       instructionType: StaykeCoreInstruction.UpdateListingPublish;
     } & ParsedUpdateListingPublishInstruction<TProgram>)
+  | ({
+      instructionType: StaykeCoreInstruction.UpdateListingReview;
+    } & ParsedUpdateListingReviewInstruction<TProgram>)
   | ({
       instructionType: StaykeCoreInstruction.UpdateListingState;
     } & ParsedUpdateListingStateInstruction<TProgram>);
@@ -464,11 +578,32 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseClearListingBookingInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.IncrementClientCancellations: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.IncrementClientCancellations,
+        ...parseIncrementClientCancellationsInstruction(instruction),
+      };
+    }
     case StaykeCoreInstruction.IncrementCompletedStays: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeCoreInstruction.IncrementCompletedStays,
         ...parseIncrementCompletedStaysInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.IncrementHostCancellations: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.IncrementHostCancellations,
+        ...parseIncrementHostCancellationsInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.IncrementHostedStays: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.IncrementHostedStays,
+        ...parseIncrementHostedStaysInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.InitIdentity: {
@@ -506,11 +641,25 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
         ...parseLinkIdentityInstruction(instruction),
       };
     }
+    case StaykeCoreInstruction.SetActiveBooking: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.SetActiveBooking,
+        ...parseSetActiveBookingInstruction(instruction),
+      };
+    }
     case StaykeCoreInstruction.SetListingOccupied: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeCoreInstruction.SetListingOccupied,
         ...parseSetListingOccupiedInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.UpdateClientReview: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateClientReview,
+        ...parseUpdateClientReviewInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.UpdateDeposit: {
@@ -539,6 +688,13 @@ export function parseStaykeCoreInstruction<TProgram extends string>(
       return {
         instructionType: StaykeCoreInstruction.UpdateListingPublish,
         ...parseUpdateListingPublishInstruction(instruction),
+      };
+    }
+    case StaykeCoreInstruction.UpdateListingReview: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeCoreInstruction.UpdateListingReview,
+        ...parseUpdateListingReviewInstruction(instruction),
       };
     }
     case StaykeCoreInstruction.UpdateListingState: {
@@ -591,9 +747,21 @@ export type StaykeCorePluginInstructions = {
     input: ClearListingBookingAsyncInput,
   ) => ReturnType<typeof getClearListingBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
+  incrementClientCancellations: (
+    input: IncrementClientCancellationsAsyncInput,
+  ) => ReturnType<typeof getIncrementClientCancellationsInstructionAsync> &
+    SelfPlanAndSendFunctions;
   incrementCompletedStays: (
     input: IncrementCompletedStaysAsyncInput,
   ) => ReturnType<typeof getIncrementCompletedStaysInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  incrementHostCancellations: (
+    input: IncrementHostCancellationsAsyncInput,
+  ) => ReturnType<typeof getIncrementHostCancellationsInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  incrementHostedStays: (
+    input: IncrementHostedStaysAsyncInput,
+  ) => ReturnType<typeof getIncrementHostedStaysInstructionAsync> &
     SelfPlanAndSendFunctions;
   initIdentity: (
     input: MakeOptional<InitIdentityAsyncInput, "payer">,
@@ -615,9 +783,17 @@ export type StaykeCorePluginInstructions = {
     input: MakeOptional<LinkIdentityAsyncInput, "payer">,
   ) => ReturnType<typeof getLinkIdentityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  setActiveBooking: (
+    input: SetActiveBookingAsyncInput,
+  ) => ReturnType<typeof getSetActiveBookingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   setListingOccupied: (
     input: SetListingOccupiedAsyncInput,
   ) => ReturnType<typeof getSetListingOccupiedInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateClientReview: (
+    input: UpdateClientReviewAsyncInput,
+  ) => ReturnType<typeof getUpdateClientReviewInstructionAsync> &
     SelfPlanAndSendFunctions;
   updateDeposit: (
     input: UpdateDepositAsyncInput,
@@ -634,6 +810,10 @@ export type StaykeCorePluginInstructions = {
   updateListingPublish: (
     input: MakeOptional<UpdateListingPublishAsyncInput, "payer">,
   ) => ReturnType<typeof getUpdateListingPublishInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateListingReview: (
+    input: UpdateListingReviewAsyncInput,
+  ) => ReturnType<typeof getUpdateListingReviewInstructionAsync> &
     SelfPlanAndSendFunctions;
   updateListingState: (
     input: MakeOptional<UpdateListingStateAsyncInput, "payer">,
@@ -688,10 +868,25 @@ export function staykeCoreProgram() {
               client,
               getClearListingBookingInstructionAsync(input),
             ),
+          incrementClientCancellations: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getIncrementClientCancellationsInstructionAsync(input),
+            ),
           incrementCompletedStays: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getIncrementCompletedStaysInstructionAsync(input),
+            ),
+          incrementHostCancellations: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getIncrementHostCancellationsInstructionAsync(input),
+            ),
+          incrementHostedStays: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getIncrementHostedStaysInstructionAsync(input),
             ),
           initIdentity: (input) =>
             addSelfPlanAndSendFunctions(
@@ -730,10 +925,20 @@ export function staykeCoreProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
+          setActiveBooking: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetActiveBookingInstructionAsync(input),
+            ),
           setListingOccupied: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getSetListingOccupiedInstructionAsync(input),
+            ),
+          updateClientReview: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateClientReviewInstructionAsync(input),
             ),
           updateDeposit: (input) =>
             addSelfPlanAndSendFunctions(
@@ -760,6 +965,11 @@ export function staykeCoreProgram() {
                 ...input,
                 payer: input.payer ?? client.payer,
               }),
+            ),
+          updateListingReview: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateListingReviewInstructionAsync(input),
             ),
           updateListingState: (input) =>
             addSelfPlanAndSendFunctions(

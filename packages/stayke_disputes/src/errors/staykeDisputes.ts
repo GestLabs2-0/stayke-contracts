@@ -26,8 +26,8 @@ export const STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF = 0x1773; // 6003
 export const STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND = 0x1774; // 6004
 /** UnauthorizedDisputeInitiator: Only the guest or host can open a dispute */
 export const STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR = 0x1775; // 6005
-/** BookingNotActive: Booking must be in Active status to open a dispute */
-export const STAYKE_DISPUTES_ERROR__BOOKING_NOT_ACTIVE = 0x1776; // 6006
+/** BookingNotDisputable: Booking must be in Active or Completed status to open a dispute */
+export const STAYKE_DISPUTES_ERROR__BOOKING_NOT_DISPUTABLE = 0x1776; // 6006
 /** DisputeNotOpen: Dispute is already resolved or rejected */
 export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN = 0x1777; // 6007
 /** InvalidFeeBps: Invalid configuration */
@@ -40,18 +40,30 @@ export const STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT = 0x177a; // 6010
 export const STAYKE_DISPUTES_ERROR__USER_BANNED = 0x177b; // 6011
 /** UserNotVerified: User is not verified */
 export const STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED = 0x177c; // 6012
+/** UnboundBookingAccount: Profile or listing is not bound to this booking */
+export const STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING_ACCOUNT = 0x177d; // 6013
+/** InvalidReputationProfile: Reputation profile does not belong to the penalized user */
+export const STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE = 0x177e; // 6014
+/** InvalidPayoutTokenAccount: Payout token account is not owned by the booking party */
+export const STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT = 0x177f; // 6015
+/** InvalidAffectedTokenAccount: Token account is not owned by the affected wallet */
+export const STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT = 0x1780; // 6016
 
 export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND
   | typeof STAYKE_DISPUTES_ERROR__AT_LEAST_ONE_ADMIN_REQUIRED
-  | typeof STAYKE_DISPUTES_ERROR__BOOKING_NOT_ACTIVE
+  | typeof STAYKE_DISPUTES_ERROR__BOOKING_NOT_DISPUTABLE
   | typeof STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF
   | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN
+  | typeof STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT
   | typeof STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS
+  | typeof STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT
+  | typeof STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE
   | typeof STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR
+  | typeof STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING_ACCOUNT
   | typeof STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG
   | typeof STAYKE_DISPUTES_ERROR__USER_BANNED
   | typeof STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED;
@@ -63,14 +75,18 @@ if (process.env["NODE_ENV"] !== "production") {
   staykeDisputesErrorMessages = {
     [STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND]: `Admin not found`,
     [STAYKE_DISPUTES_ERROR__AT_LEAST_ONE_ADMIN_REQUIRED]: `At least one admin is required`,
-    [STAYKE_DISPUTES_ERROR__BOOKING_NOT_ACTIVE]: `Booking must be in Active status to open a dispute`,
+    [STAYKE_DISPUTES_ERROR__BOOKING_NOT_DISPUTABLE]: `Booking must be in Active or Completed status to open a dispute`,
     [STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF]: `Cannot remove yourself as admin`,
     [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN]: `Dispute is already resolved or rejected`,
+    [STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT]: `Token account is not owned by the affected wallet`,
     [STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS]: `Invalid configuration`,
+    [STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT]: `Payout token account is not owned by the booking party`,
+    [STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE]: `Reputation profile does not belong to the penalized user`,
     [STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT]: `Token mint does not match GlobalConfig.usdc_mint`,
     [STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED]: `Max admins reached`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR]: `Only the guest or host can open a dispute`,
+    [STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING_ACCOUNT]: `Profile or listing is not bound to this booking`,
     [STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG]: `Treasury config is not linked to the provided global config`,
     [STAYKE_DISPUTES_ERROR__USER_BANNED]: `User is banned`,
     [STAYKE_DISPUTES_ERROR__USER_NOT_VERIFIED]: `User is not verified`,

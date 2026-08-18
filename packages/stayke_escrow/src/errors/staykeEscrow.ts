@@ -40,66 +40,114 @@ export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS = 0x177a; // 6010
 export const STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE = 0x177b; // 6011
 /** BookingNotReviewCompleted: Booking must be in ReviewCompleted status to complete the stay */
 export const STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED = 0x177c; // 6012
-/** TooEarlyToActivate: Too early to activate booking — check-in must be within 24 h */
+/** TooEarlyToActivate: Too early to start booking — check-in time not reached */
 export const STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE = 0x177d; // 6013
+/** ExceededAcceptTime: Exceeded time to accept booking */
+export const STAYKE_ESCROW_ERROR__EXCEEDED_ACCEPT_TIME = 0x177e; // 6014
 /** UnauthorizedBooking: Only the client can perform this action on their booking */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING = 0x177e; // 6014
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING = 0x177f; // 6015
 /** UnauthorizedHost: Only the host can perform this action */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST = 0x177f; // 6015
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST = 0x1780; // 6016
 /** HostCannotBookOwnProperty: Host cannot book their own property */
-export const STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY = 0x1780; // 6016
+export const STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY = 0x1781; // 6017
 /** InvalidHost: Invalid host for this property */
-export const STAYKE_ESCROW_ERROR__INVALID_HOST = 0x1781; // 6017
+export const STAYKE_ESCROW_ERROR__INVALID_HOST = 0x1782; // 6018
 /** InvalidBookingProperty: Invalid booking property */
-export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY = 0x1782; // 6018
+export const STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY = 0x1783; // 6019
 /** InvalidHostBooking: Invalid host for this booking */
-export const STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING = 0x1783; // 6019
+export const STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING = 0x1784; // 6020
 /** UserBanned: User is banned */
-export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x1784; // 6020
+export const STAYKE_ESCROW_ERROR__USER_BANNED = 0x1785; // 6021
 /** UserNotVerified: User is not verified */
-export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1785; // 6021
+export const STAYKE_ESCROW_ERROR__USER_NOT_VERIFIED = 0x1786; // 6022
 /** HostNotVerified: Host not verified */
-export const STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED = 0x1786; // 6022
+export const STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED = 0x1787; // 6023
 /** InsufficientDeposit: User does not have enough deposit to perform this action */
-export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1787; // 6023
+export const STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT = 0x1788; // 6024
 /** UserNotHost: User is not registered as a host */
-export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1788; // 6024
+export const STAYKE_ESCROW_ERROR__USER_NOT_HOST = 0x1789; // 6025
+/** ActiveBookingExists: Client already has an active booking */
+export const STAYKE_ESCROW_ERROR__ACTIVE_BOOKING_EXISTS = 0x178a; // 6026
 /** InvalidScore: Invalid score — must be between 1 and 5 */
-export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x1789; // 6025
+export const STAYKE_ESCROW_ERROR__INVALID_SCORE = 0x178b; // 6027
 /** InvalidTokenMint: The token mint does not match the configured USDC mint */
-export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x178a; // 6026
+export const STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT = 0x178c; // 6028
+/** InsufficientFunds: Insufficient funds to cover the booking */
+export const STAYKE_ESCROW_ERROR__INSUFFICIENT_FUNDS = 0x178d; // 6029
+/** PriceOverflow: Price calculation overflow */
+export const STAYKE_ESCROW_ERROR__PRICE_OVERFLOW = 0x178e; // 6030
 /** InvalidVaultAccount: The treasury/vault account does not match the configured one */
-export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x178b; // 6027
+export const STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT = 0x178f; // 6031
 /** WrongGuestPassed: Wrong guest pubkey passed */
-export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x178c; // 6028
+export const STAYKE_ESCROW_ERROR__WRONG_GUEST_PASSED = 0x1790; // 6032
+/** InvalidPayoutTokenAccount: Payout token account is not owned by the booking party */
+export const STAYKE_ESCROW_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT = 0x1791; // 6033
+/** NotOver24Hours: Pending booking must be over 24h */
+export const STAYKE_ESCROW_ERROR__NOT_OVER24_HOURS = 0x1792; // 6034
 /** UnauthorizedAdmin: Unauthorized admin action */
-export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x178d; // 6029
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN = 0x1793; // 6035
+/** BookingNotAccepted: Booking must be in HostAccepted status to start */
+export const STAYKE_ESCROW_ERROR__BOOKING_NOT_ACCEPTED = 0x1794; // 6036
+/** TooEarlyToComplete: Too early to complete booking — check-out time not reached */
+export const STAYKE_ESCROW_ERROR__TOO_EARLY_TO_COMPLETE = 0x1795; // 6037
+/** BookingNotCompleted: Booking must be in Completed status to release funds */
+export const STAYKE_ESCROW_ERROR__BOOKING_NOT_COMPLETED = 0x1796; // 6038
+/** ReleaseWindowNotElapsed: Release window (24h) has not elapsed */
+export const STAYKE_ESCROW_ERROR__RELEASE_WINDOW_NOT_ELAPSED = 0x1797; // 6039
+/** BookingNotDisputable: Booking must be in Active or Completed status to open a dispute */
+export const STAYKE_ESCROW_ERROR__BOOKING_NOT_DISPUTABLE = 0x1798; // 6040
+/** ReviewAlreadySubmitted: Review has already been submitted for this booking */
+export const STAYKE_ESCROW_ERROR__REVIEW_ALREADY_SUBMITTED = 0x1799; // 6041
+/** CheckInPassed: Booking can only be cancelled before check-in */
+export const STAYKE_ESCROW_ERROR__CHECK_IN_PASSED = 0x179a; // 6042
+/** UnauthorizedCancellation: Only the guest or host of the booking can cancel it */
+export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_CANCELLATION = 0x179b; // 6043
+/** InvalidCancellationWindow: Invalid cancellation window */
+export const STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW = 0x179c; // 6044
+/** InvalidCancellationPercentage: Invalid cancellation percentage */
+export const STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_PERCENTAGE = 0x179d; // 6045
 
 export type StaykeEscrowError =
+  | typeof STAYKE_ESCROW_ERROR__ACTIVE_BOOKING_EXISTS
+  | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_ACCEPTED
   | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE
+  | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_COMPLETED
+  | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_DISPUTABLE
   | typeof STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED
+  | typeof STAYKE_ESCROW_ERROR__CHECK_IN_PASSED
   | typeof STAYKE_ESCROW_ERROR__CROSS_YEAR_BOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__CROSS_YEAR_UNBOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED
   | typeof STAYKE_ESCROW_ERROR__DATES_UNBOOKED
+  | typeof STAYKE_ESCROW_ERROR__EXCEEDED_ACCEPT_TIME
   | typeof STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY
   | typeof STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED
   | typeof STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT
+  | typeof STAYKE_ESCROW_ERROR__INSUFFICIENT_FUNDS
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_DATES
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_DAYS_ACCOUNT
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY
   | typeof STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS
+  | typeof STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_PERCENTAGE
+  | typeof STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW
   | typeof STAYKE_ESCROW_ERROR__INVALID_HOST
   | typeof STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING
   | typeof STAYKE_ESCROW_ERROR__INVALID_MONTH
+  | typeof STAYKE_ESCROW_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT
   | typeof STAYKE_ESCROW_ERROR__INVALID_SCORE
   | typeof STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT
+  | typeof STAYKE_ESCROW_ERROR__NOT_OVER24_HOURS
+  | typeof STAYKE_ESCROW_ERROR__PRICE_OVERFLOW
+  | typeof STAYKE_ESCROW_ERROR__RELEASE_WINDOW_NOT_ELAPSED
+  | typeof STAYKE_ESCROW_ERROR__REVIEW_ALREADY_SUBMITTED
   | typeof STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__SINGLE_YEAR_UNBOOKING_INVALID
   | typeof STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE
+  | typeof STAYKE_ESCROW_ERROR__TOO_EARLY_TO_COMPLETE
   | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING
+  | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_CANCELLATION
   | typeof STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST
   | typeof STAYKE_ESCROW_ERROR__UNINITIALIZED_BOOKING_DAYS
   | typeof STAYKE_ESCROW_ERROR__USER_BANNED
@@ -110,30 +158,46 @@ export type StaykeEscrowError =
 let staykeEscrowErrorMessages: Record<StaykeEscrowError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   staykeEscrowErrorMessages = {
+    [STAYKE_ESCROW_ERROR__ACTIVE_BOOKING_EXISTS]: `Client already has an active booking`,
+    [STAYKE_ESCROW_ERROR__BOOKING_NOT_ACCEPTED]: `Booking must be in HostAccepted status to start`,
     [STAYKE_ESCROW_ERROR__BOOKING_NOT_ACTIVE]: `Booking must be in Active status to complete the stay`,
+    [STAYKE_ESCROW_ERROR__BOOKING_NOT_COMPLETED]: `Booking must be in Completed status to release funds`,
+    [STAYKE_ESCROW_ERROR__BOOKING_NOT_DISPUTABLE]: `Booking must be in Active or Completed status to open a dispute`,
     [STAYKE_ESCROW_ERROR__BOOKING_NOT_REVIEW_COMPLETED]: `Booking must be in ReviewCompleted status to complete the stay`,
+    [STAYKE_ESCROW_ERROR__CHECK_IN_PASSED]: `Booking can only be cancelled before check-in`,
     [STAYKE_ESCROW_ERROR__CROSS_YEAR_BOOKING_INVALID]: `Cross year booking invalid`,
     [STAYKE_ESCROW_ERROR__CROSS_YEAR_UNBOOKING_INVALID]: `Cross year unbooking invalid`,
     [STAYKE_ESCROW_ERROR__DATES_ALREADY_BOOKED]: `Dates already booked for this property`,
     [STAYKE_ESCROW_ERROR__DATES_UNBOOKED]: `Dates are not booked for this property`,
+    [STAYKE_ESCROW_ERROR__EXCEEDED_ACCEPT_TIME]: `Exceeded time to accept booking`,
     [STAYKE_ESCROW_ERROR__HOST_CANNOT_BOOK_OWN_PROPERTY]: `Host cannot book their own property`,
     [STAYKE_ESCROW_ERROR__HOST_NOT_VERIFIED]: `Host not verified`,
     [STAYKE_ESCROW_ERROR__INSUFFICIENT_DEPOSIT]: `User does not have enough deposit to perform this action`,
+    [STAYKE_ESCROW_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds to cover the booking`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_DATES]: `Invalid booking dates: check-in must be before check-out and in the future`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_DAYS_ACCOUNT]: `Invalid BookingDays account for the given dates`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_PROPERTY]: `Invalid booking property`,
     [STAYKE_ESCROW_ERROR__INVALID_BOOKING_STATUS]: `Invalid booking status for this action`,
+    [STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_PERCENTAGE]: `Invalid cancellation percentage`,
+    [STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW]: `Invalid cancellation window`,
     [STAYKE_ESCROW_ERROR__INVALID_HOST]: `Invalid host for this property`,
     [STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING]: `Invalid host for this booking`,
     [STAYKE_ESCROW_ERROR__INVALID_MONTH]: `Invalid month`,
+    [STAYKE_ESCROW_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT]: `Payout token account is not owned by the booking party`,
     [STAYKE_ESCROW_ERROR__INVALID_SCORE]: `Invalid score — must be between 1 and 5`,
     [STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT]: `The token mint does not match the configured USDC mint`,
     [STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT]: `The treasury/vault account does not match the configured one`,
+    [STAYKE_ESCROW_ERROR__NOT_OVER24_HOURS]: `Pending booking must be over 24h`,
+    [STAYKE_ESCROW_ERROR__PRICE_OVERFLOW]: `Price calculation overflow`,
+    [STAYKE_ESCROW_ERROR__RELEASE_WINDOW_NOT_ELAPSED]: `Release window (24h) has not elapsed`,
+    [STAYKE_ESCROW_ERROR__REVIEW_ALREADY_SUBMITTED]: `Review has already been submitted for this booking`,
     [STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID]: `Single year booking invalid`,
     [STAYKE_ESCROW_ERROR__SINGLE_YEAR_UNBOOKING_INVALID]: `Single year unbooking invalid`,
-    [STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE]: `Too early to activate booking — check-in must be within 24 h`,
+    [STAYKE_ESCROW_ERROR__TOO_EARLY_TO_ACTIVATE]: `Too early to start booking — check-in time not reached`,
+    [STAYKE_ESCROW_ERROR__TOO_EARLY_TO_COMPLETE]: `Too early to complete booking — check-out time not reached`,
     [STAYKE_ESCROW_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_ESCROW_ERROR__UNAUTHORIZED_BOOKING]: `Only the client can perform this action on their booking`,
+    [STAYKE_ESCROW_ERROR__UNAUTHORIZED_CANCELLATION]: `Only the guest or host of the booking can cancel it`,
     [STAYKE_ESCROW_ERROR__UNAUTHORIZED_HOST]: `Only the host can perform this action`,
     [STAYKE_ESCROW_ERROR__UNINITIALIZED_BOOKING_DAYS]: `Uninitialized BookingDays account`,
     [STAYKE_ESCROW_ERROR__USER_BANNED]: `User is banned`,

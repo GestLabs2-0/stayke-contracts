@@ -61,6 +61,8 @@ export type ResolveDisputeInstruction<
   TAccountConfig extends string | AccountMeta<string> = string,
   TAccountDispute extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
+  TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountGuestProfile extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
@@ -91,6 +93,12 @@ export type ResolveDisputeInstruction<
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
+      TAccountHostProfile extends string
+        ? ReadonlyAccount<TAccountHostProfile>
+        : TAccountHostProfile,
+      TAccountGuestProfile extends string
+        ? ReadonlyAccount<TAccountGuestProfile>
+        : TAccountGuestProfile,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -167,6 +175,8 @@ export type ResolveDisputeAsyncInput<
   TAccountConfig extends string = string,
   TAccountDispute extends string = string,
   TAccountBooking extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountGuestProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountEscrowTokenAccount extends string = string,
@@ -181,6 +191,8 @@ export type ResolveDisputeAsyncInput<
   config?: Address<TAccountConfig>;
   dispute?: Address<TAccountDispute>;
   booking: Address<TAccountBooking>;
+  hostProfile: Address<TAccountHostProfile>;
+  guestProfile: Address<TAccountGuestProfile>;
   globalConfig?: Address<TAccountGlobalConfig>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
@@ -199,6 +211,8 @@ export async function getResolveDisputeInstructionAsync<
   TAccountConfig extends string,
   TAccountDispute extends string,
   TAccountBooking extends string,
+  TAccountHostProfile extends string,
+  TAccountGuestProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountEscrowTokenAccount extends string,
@@ -215,6 +229,8 @@ export async function getResolveDisputeInstructionAsync<
     TAccountConfig,
     TAccountDispute,
     TAccountBooking,
+    TAccountHostProfile,
+    TAccountGuestProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -233,6 +249,8 @@ export async function getResolveDisputeInstructionAsync<
     TAccountConfig,
     TAccountDispute,
     TAccountBooking,
+    TAccountHostProfile,
+    TAccountGuestProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -254,6 +272,8 @@ export async function getResolveDisputeInstructionAsync<
     config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     escrowTokenAccount: {
@@ -331,6 +351,8 @@ export async function getResolveDisputeInstructionAsync<
       getAccountMeta("config", accounts.config),
       getAccountMeta("dispute", accounts.dispute),
       getAccountMeta("booking", accounts.booking),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
@@ -354,6 +376,8 @@ export async function getResolveDisputeInstructionAsync<
     TAccountConfig,
     TAccountDispute,
     TAccountBooking,
+    TAccountHostProfile,
+    TAccountGuestProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -371,6 +395,8 @@ export type ResolveDisputeInput<
   TAccountConfig extends string = string,
   TAccountDispute extends string = string,
   TAccountBooking extends string = string,
+  TAccountHostProfile extends string = string,
+  TAccountGuestProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountEscrowTokenAccount extends string = string,
@@ -385,6 +411,8 @@ export type ResolveDisputeInput<
   config: Address<TAccountConfig>;
   dispute: Address<TAccountDispute>;
   booking: Address<TAccountBooking>;
+  hostProfile: Address<TAccountHostProfile>;
+  guestProfile: Address<TAccountGuestProfile>;
   globalConfig: Address<TAccountGlobalConfig>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
@@ -403,6 +431,8 @@ export function getResolveDisputeInstruction<
   TAccountConfig extends string,
   TAccountDispute extends string,
   TAccountBooking extends string,
+  TAccountHostProfile extends string,
+  TAccountGuestProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountEscrowTokenAccount extends string,
@@ -419,6 +449,8 @@ export function getResolveDisputeInstruction<
     TAccountConfig,
     TAccountDispute,
     TAccountBooking,
+    TAccountHostProfile,
+    TAccountGuestProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -436,6 +468,8 @@ export function getResolveDisputeInstruction<
   TAccountConfig,
   TAccountDispute,
   TAccountBooking,
+  TAccountHostProfile,
+  TAccountGuestProfile,
   TAccountGlobalConfig,
   TAccountCpiAuthority,
   TAccountEscrowTokenAccount,
@@ -456,6 +490,8 @@ export function getResolveDisputeInstruction<
     config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     escrowTokenAccount: {
@@ -506,6 +542,8 @@ export function getResolveDisputeInstruction<
       getAccountMeta("config", accounts.config),
       getAccountMeta("dispute", accounts.dispute),
       getAccountMeta("booking", accounts.booking),
+      getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
@@ -529,6 +567,8 @@ export function getResolveDisputeInstruction<
     TAccountConfig,
     TAccountDispute,
     TAccountBooking,
+    TAccountHostProfile,
+    TAccountGuestProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -551,15 +591,17 @@ export type ParsedResolveDisputeInstruction<
     config: TAccountMetas[1];
     dispute: TAccountMetas[2];
     booking: TAccountMetas[3];
-    globalConfig: TAccountMetas[4];
-    cpiAuthority: TAccountMetas[5];
-    escrowTokenAccount: TAccountMetas[6];
-    hostTokenAccount: TAccountMetas[7];
-    guestTokenAccount: TAccountMetas[8];
-    platformVaultTokenAccount: TAccountMetas[9];
-    usdcMint: TAccountMetas[10];
-    staykeEscrowProgram: TAccountMetas[11];
-    tokenProgram: TAccountMetas[12];
+    hostProfile: TAccountMetas[4];
+    guestProfile: TAccountMetas[5];
+    globalConfig: TAccountMetas[6];
+    cpiAuthority: TAccountMetas[7];
+    escrowTokenAccount: TAccountMetas[8];
+    hostTokenAccount: TAccountMetas[9];
+    guestTokenAccount: TAccountMetas[10];
+    platformVaultTokenAccount: TAccountMetas[11];
+    usdcMint: TAccountMetas[12];
+    staykeEscrowProgram: TAccountMetas[13];
+    tokenProgram: TAccountMetas[14];
   };
   data: ResolveDisputeInstructionData;
 };
@@ -572,12 +614,12 @@ export function parseResolveDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedResolveDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 15) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 15,
       },
     );
   }
@@ -594,6 +636,8 @@ export function parseResolveDisputeInstruction<
       config: getNextAccount(),
       dispute: getNextAccount(),
       booking: getNextAccount(),
+      hostProfile: getNextAccount(),
+      guestProfile: getNextAccount(),
       globalConfig: getNextAccount(),
       cpiAuthority: getNextAccount(),
       escrowTokenAccount: getNextAccount(),

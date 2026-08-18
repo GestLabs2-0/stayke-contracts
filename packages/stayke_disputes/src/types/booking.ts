@@ -10,8 +10,6 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getI64Decoder,
   getI64Encoder,
   getStructDecoder,
@@ -39,18 +37,22 @@ export type Booking = {
   host: Address;
   /** Property pubkey */
   property: Address;
-  /** Was money already deposited? */
-  isDeposit: boolean;
   /** Check in as unix timestamp */
   checkIn: bigint;
   /** Check out as unix timestamp */
   checkOut: bigint;
   /** Total price by all nights */
   totalPrice: bigint;
+  /** Host review - if review == 0 then review wasn't set. Range from 1 - 5 */
+  hostReview: number;
+  /** Guest review - if review == 0 then review wasn't set. Range from 1 - 5 */
+  guestReview: number;
   /** Booking Status */
   status: BookingStatus;
   /** Bump of the escrow token account PDA — needed to sign CPIs in complete_stay. */
   escrowBump: number;
+  /** Works as a timer for finishing a booking, accepting or cancelling one */
+  updatedAt: bigint;
   bump: number;
 };
 
@@ -61,18 +63,22 @@ export type BookingArgs = {
   host: Address;
   /** Property pubkey */
   property: Address;
-  /** Was money already deposited? */
-  isDeposit: boolean;
   /** Check in as unix timestamp */
   checkIn: number | bigint;
   /** Check out as unix timestamp */
   checkOut: number | bigint;
   /** Total price by all nights */
   totalPrice: number | bigint;
+  /** Host review - if review == 0 then review wasn't set. Range from 1 - 5 */
+  hostReview: number;
+  /** Guest review - if review == 0 then review wasn't set. Range from 1 - 5 */
+  guestReview: number;
   /** Booking Status */
   status: BookingStatusArgs;
   /** Bump of the escrow token account PDA — needed to sign CPIs in complete_stay. */
   escrowBump: number;
+  /** Works as a timer for finishing a booking, accepting or cancelling one */
+  updatedAt: number | bigint;
   bump: number;
 };
 
@@ -81,12 +87,14 @@ export function getBookingEncoder(): FixedSizeEncoder<BookingArgs> {
     ["guest", getAddressEncoder()],
     ["host", getAddressEncoder()],
     ["property", getAddressEncoder()],
-    ["isDeposit", getBooleanEncoder()],
     ["checkIn", getI64Encoder()],
     ["checkOut", getI64Encoder()],
     ["totalPrice", getU64Encoder()],
+    ["hostReview", getU8Encoder()],
+    ["guestReview", getU8Encoder()],
     ["status", getBookingStatusEncoder()],
     ["escrowBump", getU8Encoder()],
+    ["updatedAt", getI64Encoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -96,12 +104,14 @@ export function getBookingDecoder(): FixedSizeDecoder<Booking> {
     ["guest", getAddressDecoder()],
     ["host", getAddressDecoder()],
     ["property", getAddressDecoder()],
-    ["isDeposit", getBooleanDecoder()],
     ["checkIn", getI64Decoder()],
     ["checkOut", getI64Decoder()],
     ["totalPrice", getU64Decoder()],
+    ["hostReview", getU8Decoder()],
+    ["guestReview", getU8Decoder()],
     ["status", getBookingStatusDecoder()],
     ["escrowBump", getU8Decoder()],
+    ["updatedAt", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

@@ -38,10 +38,10 @@ export type ReputationProfile = {
   hostCancellations: number;
   /** Number of cancellations as client */
   clientCancellations: number;
-  /** Number of cancellations as host within 24 hours of the stay */
-  hostCancellationsWithin48h: number;
-  /** Number of cancellations as host within 24 hours of the stay */
-  clientCancellationsWithin48h: number;
+  /** Number of reviews skipped as host */
+  hostReviewsSkipped: number;
+  /** Number of reviews skipped as guest */
+  guestReviewsSkipped: number;
   /** Infraction counter */
   lowInfractions: number;
   /** Infraction counter */
@@ -65,10 +65,10 @@ export type ReputationProfileArgs = {
   hostCancellations: number;
   /** Number of cancellations as client */
   clientCancellations: number;
-  /** Number of cancellations as host within 24 hours of the stay */
-  hostCancellationsWithin48h: number;
-  /** Number of cancellations as host within 24 hours of the stay */
-  clientCancellationsWithin48h: number;
+  /** Number of reviews skipped as host */
+  hostReviewsSkipped: number;
+  /** Number of reviews skipped as guest */
+  guestReviewsSkipped: number;
   /** Infraction counter */
   lowInfractions: number;
   /** Infraction counter */
@@ -87,8 +87,8 @@ export function getReputationProfileEncoder(): FixedSizeEncoder<ReputationProfil
     ["totalScoreClient", getU64Encoder()],
     ["hostCancellations", getU32Encoder()],
     ["clientCancellations", getU32Encoder()],
-    ["hostCancellationsWithin48h", getU32Encoder()],
-    ["clientCancellationsWithin48h", getU32Encoder()],
+    ["hostReviewsSkipped", getU32Encoder()],
+    ["guestReviewsSkipped", getU32Encoder()],
     ["lowInfractions", getU8Encoder()],
     ["mediumInfractions", getU8Encoder()],
     ["highInfractions", getU8Encoder()],
@@ -105,8 +105,8 @@ export function getReputationProfileDecoder(): FixedSizeDecoder<ReputationProfil
     ["totalScoreClient", getU64Decoder()],
     ["hostCancellations", getU32Decoder()],
     ["clientCancellations", getU32Decoder()],
-    ["hostCancellationsWithin48h", getU32Decoder()],
-    ["clientCancellationsWithin48h", getU32Decoder()],
+    ["hostReviewsSkipped", getU32Decoder()],
+    ["guestReviewsSkipped", getU32Decoder()],
     ["lowInfractions", getU8Decoder()],
     ["mediumInfractions", getU8Decoder()],
     ["highInfractions", getU8Decoder()],

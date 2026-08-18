@@ -10,11 +10,14 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -28,38 +31,37 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
-import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
+import { findCpiAuthorityPda } from "../pdas";
+import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
-export const CLOSE_DISPUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  60, 18, 92, 170, 100, 195, 146, 196,
+export const GUEST_REVIEW_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  164, 98, 206, 247, 144, 138, 231, 225,
 ]);
 
-export function getCloseDisputeDiscriminatorBytes(): ReadonlyUint8Array {
+export function getGuestReviewDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CLOSE_DISPUTE_DISCRIMINATOR,
+    GUEST_REVIEW_DISCRIMINATOR,
   );
 }
 
-export type CloseDisputeInstruction<
-  TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
-  TAccountAdmin extends string | AccountMeta<string> = string,
-  TAccountConfig extends string | AccountMeta<string> = string,
-  TAccountDispute extends string | AccountMeta<string> = string,
-  TAccountBooking extends string | AccountMeta<string> = string,
+export type GuestReviewInstruction<
+  TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
+  TAccountGuest extends string | AccountMeta<string> = string,
   TAccountGuestProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
+  TAccountHostReputation extends string | AccountMeta<string> = string,
   TAccountListing extends string | AccountMeta<string> = string,
+  TAccountBooking extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
@@ -69,28 +71,25 @@ export type CloseDisputeInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAdmin extends string
-        ? WritableSignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
-        : TAccountAdmin,
-      TAccountConfig extends string
-        ? ReadonlyAccount<TAccountConfig>
-        : TAccountConfig,
-      TAccountDispute extends string
-        ? WritableAccount<TAccountDispute>
-        : TAccountDispute,
-      TAccountBooking extends string
-        ? ReadonlyAccount<TAccountBooking>
-        : TAccountBooking,
+      TAccountGuest extends string
+        ? ReadonlySignerAccount<TAccountGuest> &
+            AccountSignerMeta<TAccountGuest>
+        : TAccountGuest,
       TAccountGuestProfile extends string
-        ? WritableAccount<TAccountGuestProfile>
+        ? ReadonlyAccount<TAccountGuestProfile>
         : TAccountGuestProfile,
       TAccountHostProfile extends string
-        ? WritableAccount<TAccountHostProfile>
+        ? ReadonlyAccount<TAccountHostProfile>
         : TAccountHostProfile,
+      TAccountHostReputation extends string
+        ? WritableAccount<TAccountHostReputation>
+        : TAccountHostReputation,
       TAccountListing extends string
         ? WritableAccount<TAccountListing>
         : TAccountListing,
+      TAccountBooking extends string
+        ? WritableAccount<TAccountBooking>
+        : TAccountBooking,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -104,94 +103,105 @@ export type CloseDisputeInstruction<
     ]
   >;
 
-export type CloseDisputeInstructionData = { discriminator: ReadonlyUint8Array };
+export type GuestReviewInstructionData = {
+  discriminator: ReadonlyUint8Array;
+  score: number;
+};
 
-export type CloseDisputeInstructionDataArgs = {};
+export type GuestReviewInstructionDataArgs = { score: number };
 
-export function getCloseDisputeInstructionDataEncoder(): FixedSizeEncoder<CloseDisputeInstructionDataArgs> {
+export function getGuestReviewInstructionDataEncoder(): FixedSizeEncoder<GuestReviewInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: CLOSE_DISPUTE_DISCRIMINATOR }),
+    getStructEncoder([
+      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["score", getU8Encoder()],
+    ]),
+    (value) => ({ ...value, discriminator: GUEST_REVIEW_DISCRIMINATOR }),
   );
 }
 
-export function getCloseDisputeInstructionDataDecoder(): FixedSizeDecoder<CloseDisputeInstructionData> {
+export function getGuestReviewInstructionDataDecoder(): FixedSizeDecoder<GuestReviewInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["score", getU8Decoder()],
   ]);
 }
 
-export function getCloseDisputeInstructionDataCodec(): FixedSizeCodec<
-  CloseDisputeInstructionDataArgs,
-  CloseDisputeInstructionData
+export function getGuestReviewInstructionDataCodec(): FixedSizeCodec<
+  GuestReviewInstructionDataArgs,
+  GuestReviewInstructionData
 > {
   return combineCodec(
-    getCloseDisputeInstructionDataEncoder(),
-    getCloseDisputeInstructionDataDecoder(),
+    getGuestReviewInstructionDataEncoder(),
+    getGuestReviewInstructionDataDecoder(),
   );
 }
 
-export type CloseDisputeAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountConfig extends string = string,
-  TAccountDispute extends string = string,
-  TAccountBooking extends string = string,
+export type GuestReviewAsyncInput<
+  TAccountGuest extends string = string,
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
+  TAccountHostReputation extends string = string,
   TAccountListing extends string = string,
+  TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  config?: Address<TAccountConfig>;
-  dispute?: Address<TAccountDispute>;
-  /** Dispute PDA is seeded from this booking key. */
-  booking: Address<TAccountBooking>;
-  guestProfile: Address<TAccountGuestProfile>;
+  guest: TransactionSigner<TAccountGuest>;
+  /** The guest's UserProfile — validates the reviewer is the booking's guest. */
+  guestProfile?: Address<TAccountGuestProfile>;
+  /**
+   * The host's UserProfile — used to derive and validate the host's
+   * ReputationProfile for the review CPI.
+   */
   hostProfile: Address<TAccountHostProfile>;
+  hostReputation: Address<TAccountHostReputation>;
+  /**
+   * The listing being reviewed — mutable to accumulate `total_reviews` and
+   * `rating` via the stayke-core CPI.
+   */
   listing: Address<TAccountListing>;
+  booking: Address<TAccountBooking>;
   globalConfig?: Address<TAccountGlobalConfig>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  score: GuestReviewInstructionDataArgs["score"];
 };
 
-export async function getCloseDisputeInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountConfig extends string,
-  TAccountDispute extends string,
-  TAccountBooking extends string,
+export async function getGuestReviewInstructionAsync<
+  TAccountGuest extends string,
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
+  TAccountHostReputation extends string,
   TAccountListing extends string,
+  TAccountBooking extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
-  TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: CloseDisputeAsyncInput<
-    TAccountAdmin,
-    TAccountConfig,
-    TAccountDispute,
-    TAccountBooking,
+  input: GuestReviewAsyncInput<
+    TAccountGuest,
     TAccountGuestProfile,
     TAccountHostProfile,
+    TAccountHostReputation,
     TAccountListing,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  CloseDisputeInstruction<
+  GuestReviewInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
-    TAccountDispute,
-    TAccountBooking,
+    TAccountGuest,
     TAccountGuestProfile,
     TAccountHostProfile,
+    TAccountHostReputation,
     TAccountListing,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountStaykeCoreProgram
@@ -199,17 +209,16 @@ export async function getCloseDisputeInstructionAsync<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? STAYKE_DISPUTES_PROGRAM_ADDRESS;
+    config?.programAddress ?? STAYKE_ESCROW_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: true },
-    config: { value: input.config ?? null, isWritable: false },
-    dispute: { value: input.dispute ?? null, isWritable: true },
-    booking: { value: input.booking ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
+    guest: { value: input.guest ?? null, isWritable: false },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
@@ -222,16 +231,27 @@ export async function getCloseDisputeInstructionAsync<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
-  if (!accounts.config.value) {
-    accounts.config.value = await findConfigPda();
-  }
-  if (!accounts.dispute.value) {
-    accounts.dispute.value = await findDisputePda({
-      booking: getAddressFromResolvedInstructionAccount(
-        "booking",
-        accounts.booking.value,
-      ),
+  if (!accounts.guestProfile.value) {
+    accounts.guestProfile.value = await getProgramDerivedAddress({
+      programAddress:
+        "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            117, 115, 101, 114, 95, 112, 114, 111, 102, 105, 108, 101,
+          ]),
+        ),
+        getAddressEncoder().encode(
+          getAddressFromResolvedInstructionAccount(
+            "guest",
+            accounts.guest.value,
+          ),
+        ),
+      ],
     });
   }
   if (!accounts.globalConfig.value) {
@@ -258,111 +278,114 @@ export async function getCloseDisputeInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("admin", accounts.admin),
-      getAccountMeta("config", accounts.config),
-      getAccountMeta("dispute", accounts.dispute),
-      getAccountMeta("booking", accounts.booking),
+      getAccountMeta("guest", accounts.guest),
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
-    data: getCloseDisputeInstructionDataEncoder().encode({}),
+    data: getGuestReviewInstructionDataEncoder().encode(
+      args as GuestReviewInstructionDataArgs,
+    ),
     programAddress,
-  } as CloseDisputeInstruction<
+  } as GuestReviewInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
-    TAccountDispute,
-    TAccountBooking,
+    TAccountGuest,
     TAccountGuestProfile,
     TAccountHostProfile,
+    TAccountHostReputation,
     TAccountListing,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
 
-export type CloseDisputeInput<
-  TAccountAdmin extends string = string,
-  TAccountConfig extends string = string,
-  TAccountDispute extends string = string,
-  TAccountBooking extends string = string,
+export type GuestReviewInput<
+  TAccountGuest extends string = string,
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
+  TAccountHostReputation extends string = string,
   TAccountListing extends string = string,
+  TAccountBooking extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  config: Address<TAccountConfig>;
-  dispute: Address<TAccountDispute>;
-  /** Dispute PDA is seeded from this booking key. */
-  booking: Address<TAccountBooking>;
+  guest: TransactionSigner<TAccountGuest>;
+  /** The guest's UserProfile — validates the reviewer is the booking's guest. */
   guestProfile: Address<TAccountGuestProfile>;
+  /**
+   * The host's UserProfile — used to derive and validate the host's
+   * ReputationProfile for the review CPI.
+   */
   hostProfile: Address<TAccountHostProfile>;
+  hostReputation: Address<TAccountHostReputation>;
+  /**
+   * The listing being reviewed — mutable to accumulate `total_reviews` and
+   * `rating` via the stayke-core CPI.
+   */
   listing: Address<TAccountListing>;
+  booking: Address<TAccountBooking>;
   globalConfig: Address<TAccountGlobalConfig>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  score: GuestReviewInstructionDataArgs["score"];
 };
 
-export function getCloseDisputeInstruction<
-  TAccountAdmin extends string,
-  TAccountConfig extends string,
-  TAccountDispute extends string,
-  TAccountBooking extends string,
+export function getGuestReviewInstruction<
+  TAccountGuest extends string,
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
+  TAccountHostReputation extends string,
   TAccountListing extends string,
+  TAccountBooking extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
-  TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
-  input: CloseDisputeInput<
-    TAccountAdmin,
-    TAccountConfig,
-    TAccountDispute,
-    TAccountBooking,
+  input: GuestReviewInput<
+    TAccountGuest,
     TAccountGuestProfile,
     TAccountHostProfile,
+    TAccountHostReputation,
     TAccountListing,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): CloseDisputeInstruction<
+): GuestReviewInstruction<
   TProgramAddress,
-  TAccountAdmin,
-  TAccountConfig,
-  TAccountDispute,
-  TAccountBooking,
+  TAccountGuest,
   TAccountGuestProfile,
   TAccountHostProfile,
+  TAccountHostReputation,
   TAccountListing,
+  TAccountBooking,
   TAccountGlobalConfig,
   TAccountCpiAuthority,
   TAccountStaykeCoreProgram
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? STAYKE_DISPUTES_PROGRAM_ADDRESS;
+    config?.programAddress ?? STAYKE_ESCROW_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: true },
-    config: { value: input.config ?? null, isWritable: false },
-    dispute: { value: input.dispute ?? null, isWritable: true },
-    booking: { value: input.booking ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
+    guest: { value: input.guest ?? null, isWritable: false },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
+    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
     listing: { value: input.listing ?? null, isWritable: true },
+    booking: { value: input.booking ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
@@ -375,6 +398,9 @@ export function getCloseDisputeInstruction<
     ResolvedInstructionAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
   if (!accounts.staykeCoreProgram.value) {
     accounts.staykeCoreProgram.value =
@@ -384,69 +410,76 @@ export function getCloseDisputeInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("admin", accounts.admin),
-      getAccountMeta("config", accounts.config),
-      getAccountMeta("dispute", accounts.dispute),
-      getAccountMeta("booking", accounts.booking),
+      getAccountMeta("guest", accounts.guest),
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
+      getAccountMeta("hostReputation", accounts.hostReputation),
       getAccountMeta("listing", accounts.listing),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
     ],
-    data: getCloseDisputeInstructionDataEncoder().encode({}),
+    data: getGuestReviewInstructionDataEncoder().encode(
+      args as GuestReviewInstructionDataArgs,
+    ),
     programAddress,
-  } as CloseDisputeInstruction<
+  } as GuestReviewInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
-    TAccountDispute,
-    TAccountBooking,
+    TAccountGuest,
     TAccountGuestProfile,
     TAccountHostProfile,
+    TAccountHostReputation,
     TAccountListing,
+    TAccountBooking,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountStaykeCoreProgram
   >);
 }
 
-export type ParsedCloseDisputeInstruction<
-  TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
+export type ParsedGuestReviewInstruction<
+  TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    admin: TAccountMetas[0];
-    config: TAccountMetas[1];
-    dispute: TAccountMetas[2];
-    /** Dispute PDA is seeded from this booking key. */
-    booking: TAccountMetas[3];
-    guestProfile: TAccountMetas[4];
-    hostProfile: TAccountMetas[5];
-    listing: TAccountMetas[6];
-    globalConfig: TAccountMetas[7];
-    cpiAuthority: TAccountMetas[8];
-    staykeCoreProgram: TAccountMetas[9];
+    guest: TAccountMetas[0];
+    /** The guest's UserProfile — validates the reviewer is the booking's guest. */
+    guestProfile: TAccountMetas[1];
+    /**
+     * The host's UserProfile — used to derive and validate the host's
+     * ReputationProfile for the review CPI.
+     */
+    hostProfile: TAccountMetas[2];
+    hostReputation: TAccountMetas[3];
+    /**
+     * The listing being reviewed — mutable to accumulate `total_reviews` and
+     * `rating` via the stayke-core CPI.
+     */
+    listing: TAccountMetas[4];
+    booking: TAccountMetas[5];
+    globalConfig: TAccountMetas[6];
+    cpiAuthority: TAccountMetas[7];
+    staykeCoreProgram: TAccountMetas[8];
   };
-  data: CloseDisputeInstructionData;
+  data: GuestReviewInstructionData;
 };
 
-export function parseCloseDisputeInstruction<
+export function parseGuestReviewInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedCloseDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+): ParsedGuestReviewInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -459,17 +492,16 @@ export function parseCloseDisputeInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      admin: getNextAccount(),
-      config: getNextAccount(),
-      dispute: getNextAccount(),
-      booking: getNextAccount(),
+      guest: getNextAccount(),
       guestProfile: getNextAccount(),
       hostProfile: getNextAccount(),
+      hostReputation: getNextAccount(),
       listing: getNextAccount(),
+      booking: getNextAccount(),
       globalConfig: getNextAccount(),
       cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
     },
-    data: getCloseDisputeInstructionDataDecoder().decode(instruction.data),
+    data: getGuestReviewInstructionDataDecoder().decode(instruction.data),
   };
 }

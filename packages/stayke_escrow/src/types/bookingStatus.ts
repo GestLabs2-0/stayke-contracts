@@ -18,10 +18,9 @@ import {
 export enum BookingStatus {
   Pending,
   HostAccepted,
-  ClientAccepted,
   Active,
-  ReviewCompleted,
   Completed,
+  Released,
   Cancelled,
   Disputed,
   DisputeResolved,

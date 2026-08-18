@@ -13,8 +13,6 @@ import {
   getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getI64Decoder,
-  getI64Encoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
@@ -42,6 +40,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findEscrowTokenAccountPda } from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const HOST_REJECT_BOOKING_CROSS_YEAR_DISCRIMINATOR: ReadonlyUint8Array =
@@ -62,6 +61,12 @@ export type HostRejectBookingCrossYearInstruction<
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountBookingDays extends string | AccountMeta<string> = string,
   TAccountBookingDaysNext extends string | AccountMeta<string> = string,
+  TAccountGlobalConfig extends string | AccountMeta<string> = string,
+  TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
+  TAccountGuestTokenAccount extends string | AccountMeta<string> = string,
+  TAccountMint extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -78,7 +83,7 @@ export type HostRejectBookingCrossYearInstruction<
         ? ReadonlyAccount<TAccountHostProfile>
         : TAccountHostProfile,
       TAccountGuest extends string
-        ? WritableAccount<TAccountGuest>
+        ? ReadonlyAccount<TAccountGuest>
         : TAccountGuest,
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
@@ -89,25 +94,34 @@ export type HostRejectBookingCrossYearInstruction<
       TAccountBookingDaysNext extends string
         ? WritableAccount<TAccountBookingDaysNext>
         : TAccountBookingDaysNext,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
+      TAccountEscrowTokenAccount extends string
+        ? WritableAccount<TAccountEscrowTokenAccount>
+        : TAccountEscrowTokenAccount,
+      TAccountGuestTokenAccount extends string
+        ? WritableAccount<TAccountGuestTokenAccount>
+        : TAccountGuestTokenAccount,
+      TAccountMint extends string
+        ? ReadonlyAccount<TAccountMint>
+        : TAccountMint,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
 
 export type HostRejectBookingCrossYearInstructionData = {
   discriminator: ReadonlyUint8Array;
-  checkIn: bigint;
 };
 
-export type HostRejectBookingCrossYearInstructionDataArgs = {
-  checkIn: number | bigint;
-};
+export type HostRejectBookingCrossYearInstructionDataArgs = {};
 
 export function getHostRejectBookingCrossYearInstructionDataEncoder(): FixedSizeEncoder<HostRejectBookingCrossYearInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["checkIn", getI64Encoder()],
-    ]),
+    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
     (value) => ({
       ...value,
       discriminator: HOST_REJECT_BOOKING_CROSS_YEAR_DISCRIMINATOR,
@@ -118,7 +132,6 @@ export function getHostRejectBookingCrossYearInstructionDataEncoder(): FixedSize
 export function getHostRejectBookingCrossYearInstructionDataDecoder(): FixedSizeDecoder<HostRejectBookingCrossYearInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["checkIn", getI64Decoder()],
   ]);
 }
 
@@ -140,6 +153,11 @@ export type HostRejectBookingCrossYearAsyncInput<
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
   TAccountBookingDaysNext extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountEscrowTokenAccount extends string = string,
+  TAccountGuestTokenAccount extends string = string,
+  TAccountMint extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   host: TransactionSigner<TAccountHost>;
@@ -148,7 +166,11 @@ export type HostRejectBookingCrossYearAsyncInput<
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
   bookingDaysNext: Address<TAccountBookingDaysNext>;
-  checkIn: HostRejectBookingCrossYearInstructionDataArgs["checkIn"];
+  globalConfig?: Address<TAccountGlobalConfig>;
+  escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
+  guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  mint: Address<TAccountMint>;
+  tokenProgram?: Address<TAccountTokenProgram>;
 };
 
 export async function getHostRejectBookingCrossYearInstructionAsync<
@@ -159,6 +181,11 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
   TAccountBooking extends string,
   TAccountBookingDays extends string,
   TAccountBookingDaysNext extends string,
+  TAccountGlobalConfig extends string,
+  TAccountEscrowTokenAccount extends string,
+  TAccountGuestTokenAccount extends string,
+  TAccountMint extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: HostRejectBookingCrossYearAsyncInput<
@@ -168,7 +195,12 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
     TAccountGuest,
     TAccountBooking,
     TAccountBookingDays,
-    TAccountBookingDaysNext
+    TAccountBookingDaysNext,
+    TAccountGlobalConfig,
+    TAccountEscrowTokenAccount,
+    TAccountGuestTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -180,7 +212,12 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
     TAccountGuest,
     TAccountBooking,
     TAccountBookingDays,
-    TAccountBookingDaysNext
+    TAccountBookingDaysNext,
+    TAccountGlobalConfig,
+    TAccountEscrowTokenAccount,
+    TAccountGuestTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >
 > {
   // Program address.
@@ -192,24 +229,32 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
     payer: { value: input.payer ?? null, isWritable: true },
     host: { value: input.host ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guest: { value: input.guest ?? null, isWritable: true },
+    guest: { value: input.guest ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
     bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    escrowTokenAccount: {
+      value: input.escrowTokenAccount ?? null,
+      isWritable: true,
+    },
+    guestTokenAccount: {
+      value: input.guestTokenAccount ?? null,
+      isWritable: true,
+    },
+    mint: { value: input.mint ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  // Original args.
-  const args = { ...input };
-
   // Resolve default values.
   if (!accounts.hostProfile.value) {
     accounts.hostProfile.value = await getProgramDerivedAddress({
       programAddress:
-        "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP" as Address<"8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP">,
+        "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">,
       seeds: [
         getBytesEncoder().encode(
           new Uint8Array([
@@ -222,6 +267,31 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
       ],
     });
   }
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress:
+        "9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT" as Address<"9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.escrowTokenAccount.value) {
+    accounts.escrowTokenAccount.value = await findEscrowTokenAccountPda({
+      booking: getAddressFromResolvedInstructionAccount(
+        "booking",
+        accounts.booking.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -233,10 +303,13 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
       getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("mint", accounts.mint),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode(
-      args as HostRejectBookingCrossYearInstructionDataArgs,
-    ),
+    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode({}),
     programAddress,
   } as HostRejectBookingCrossYearInstruction<
     TProgramAddress,
@@ -246,7 +319,12 @@ export async function getHostRejectBookingCrossYearInstructionAsync<
     TAccountGuest,
     TAccountBooking,
     TAccountBookingDays,
-    TAccountBookingDaysNext
+    TAccountBookingDaysNext,
+    TAccountGlobalConfig,
+    TAccountEscrowTokenAccount,
+    TAccountGuestTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >);
 }
 
@@ -258,6 +336,11 @@ export type HostRejectBookingCrossYearInput<
   TAccountBooking extends string = string,
   TAccountBookingDays extends string = string,
   TAccountBookingDaysNext extends string = string,
+  TAccountGlobalConfig extends string = string,
+  TAccountEscrowTokenAccount extends string = string,
+  TAccountGuestTokenAccount extends string = string,
+  TAccountMint extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   host: TransactionSigner<TAccountHost>;
@@ -266,7 +349,11 @@ export type HostRejectBookingCrossYearInput<
   booking: Address<TAccountBooking>;
   bookingDays: Address<TAccountBookingDays>;
   bookingDaysNext: Address<TAccountBookingDaysNext>;
-  checkIn: HostRejectBookingCrossYearInstructionDataArgs["checkIn"];
+  globalConfig: Address<TAccountGlobalConfig>;
+  escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
+  guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  mint: Address<TAccountMint>;
+  tokenProgram?: Address<TAccountTokenProgram>;
 };
 
 export function getHostRejectBookingCrossYearInstruction<
@@ -277,6 +364,11 @@ export function getHostRejectBookingCrossYearInstruction<
   TAccountBooking extends string,
   TAccountBookingDays extends string,
   TAccountBookingDaysNext extends string,
+  TAccountGlobalConfig extends string,
+  TAccountEscrowTokenAccount extends string,
+  TAccountGuestTokenAccount extends string,
+  TAccountMint extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: HostRejectBookingCrossYearInput<
@@ -286,7 +378,12 @@ export function getHostRejectBookingCrossYearInstruction<
     TAccountGuest,
     TAccountBooking,
     TAccountBookingDays,
-    TAccountBookingDaysNext
+    TAccountBookingDaysNext,
+    TAccountGlobalConfig,
+    TAccountEscrowTokenAccount,
+    TAccountGuestTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): HostRejectBookingCrossYearInstruction<
@@ -297,7 +394,12 @@ export function getHostRejectBookingCrossYearInstruction<
   TAccountGuest,
   TAccountBooking,
   TAccountBookingDays,
-  TAccountBookingDaysNext
+  TAccountBookingDaysNext,
+  TAccountGlobalConfig,
+  TAccountEscrowTokenAccount,
+  TAccountGuestTokenAccount,
+  TAccountMint,
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress =
@@ -308,18 +410,32 @@ export function getHostRejectBookingCrossYearInstruction<
     payer: { value: input.payer ?? null, isWritable: true },
     host: { value: input.host ?? null, isWritable: false },
     hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guest: { value: input.guest ?? null, isWritable: true },
+    guest: { value: input.guest ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
     bookingDaysNext: { value: input.bookingDaysNext ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    escrowTokenAccount: {
+      value: input.escrowTokenAccount ?? null,
+      isWritable: true,
+    },
+    guestTokenAccount: {
+      value: input.guestTokenAccount ?? null,
+      isWritable: true,
+    },
+    mint: { value: input.mint ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  // Original args.
-  const args = { ...input };
+  // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -331,10 +447,13 @@ export function getHostRejectBookingCrossYearInstruction<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("bookingDays", accounts.bookingDays),
       getAccountMeta("bookingDaysNext", accounts.bookingDaysNext),
+      getAccountMeta("globalConfig", accounts.globalConfig),
+      getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("mint", accounts.mint),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
-    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode(
-      args as HostRejectBookingCrossYearInstructionDataArgs,
-    ),
+    data: getHostRejectBookingCrossYearInstructionDataEncoder().encode({}),
     programAddress,
   } as HostRejectBookingCrossYearInstruction<
     TProgramAddress,
@@ -344,7 +463,12 @@ export function getHostRejectBookingCrossYearInstruction<
     TAccountGuest,
     TAccountBooking,
     TAccountBookingDays,
-    TAccountBookingDaysNext
+    TAccountBookingDaysNext,
+    TAccountGlobalConfig,
+    TAccountEscrowTokenAccount,
+    TAccountGuestTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >);
 }
 
@@ -361,6 +485,11 @@ export type ParsedHostRejectBookingCrossYearInstruction<
     booking: TAccountMetas[4];
     bookingDays: TAccountMetas[5];
     bookingDaysNext: TAccountMetas[6];
+    globalConfig: TAccountMetas[7];
+    escrowTokenAccount: TAccountMetas[8];
+    guestTokenAccount: TAccountMetas[9];
+    mint: TAccountMetas[10];
+    tokenProgram: TAccountMetas[11];
   };
   data: HostRejectBookingCrossYearInstructionData;
 };
@@ -373,12 +502,12 @@ export function parseHostRejectBookingCrossYearInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedHostRejectBookingCrossYearInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 7,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -398,6 +527,11 @@ export function parseHostRejectBookingCrossYearInstruction<
       booking: getNextAccount(),
       bookingDays: getNextAccount(),
       bookingDaysNext: getNextAccount(),
+      globalConfig: getNextAccount(),
+      escrowTokenAccount: getNextAccount(),
+      guestTokenAccount: getNextAccount(),
+      mint: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
     data: getHostRejectBookingCrossYearInstructionDataDecoder().decode(
       instruction.data,

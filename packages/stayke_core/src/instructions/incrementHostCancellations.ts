@@ -15,8 +15,6 @@ import {
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
-  getU8Decoder,
-  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -41,19 +39,18 @@ import {
 } from "@solana/program-client-core";
 import { STAYKE_CORE_PROGRAM_ADDRESS } from "../programs";
 
-export const UPDATE_HOST_REVIEW_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([103, 62, 206, 90, 68, 110, 101, 85]);
+export const INCREMENT_HOST_CANCELLATIONS_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([144, 15, 236, 31, 46, 20, 164, 51]);
 
-export function getUpdateHostReviewDiscriminatorBytes(): ReadonlyUint8Array {
+export function getIncrementHostCancellationsDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    UPDATE_HOST_REVIEW_DISCRIMINATOR,
+    INCREMENT_HOST_CANCELLATIONS_DISCRIMINATOR,
   );
 }
 
-export type UpdateHostReviewInstruction<
+export type IncrementHostCancellationsInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
-  TAccountHostProfile extends string | AccountMeta<string> = string,
-  TAccountHostReputation extends string | AccountMeta<string> = string,
+  TAccountReputationProfile extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -61,12 +58,9 @@ export type UpdateHostReviewInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountHostProfile extends string
-        ? ReadonlyAccount<TAccountHostProfile>
-        : TAccountHostProfile,
-      TAccountHostReputation extends string
-        ? WritableAccount<TAccountHostReputation>
-        : TAccountHostReputation,
+      TAccountReputationProfile extends string
+        ? WritableAccount<TAccountReputationProfile>
+        : TAccountReputationProfile,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -78,72 +72,64 @@ export type UpdateHostReviewInstruction<
     ]
   >;
 
-export type UpdateHostReviewInstructionData = {
+export type IncrementHostCancellationsInstructionData = {
   discriminator: ReadonlyUint8Array;
-  score: number;
 };
 
-export type UpdateHostReviewInstructionDataArgs = { score: number };
+export type IncrementHostCancellationsInstructionDataArgs = {};
 
-export function getUpdateHostReviewInstructionDataEncoder(): FixedSizeEncoder<UpdateHostReviewInstructionDataArgs> {
+export function getIncrementHostCancellationsInstructionDataEncoder(): FixedSizeEncoder<IncrementHostCancellationsInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["score", getU8Encoder()],
-    ]),
-    (value) => ({ ...value, discriminator: UPDATE_HOST_REVIEW_DISCRIMINATOR }),
+    getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
+    (value) => ({
+      ...value,
+      discriminator: INCREMENT_HOST_CANCELLATIONS_DISCRIMINATOR,
+    }),
   );
 }
 
-export function getUpdateHostReviewInstructionDataDecoder(): FixedSizeDecoder<UpdateHostReviewInstructionData> {
+export function getIncrementHostCancellationsInstructionDataDecoder(): FixedSizeDecoder<IncrementHostCancellationsInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["score", getU8Decoder()],
   ]);
 }
 
-export function getUpdateHostReviewInstructionDataCodec(): FixedSizeCodec<
-  UpdateHostReviewInstructionDataArgs,
-  UpdateHostReviewInstructionData
+export function getIncrementHostCancellationsInstructionDataCodec(): FixedSizeCodec<
+  IncrementHostCancellationsInstructionDataArgs,
+  IncrementHostCancellationsInstructionData
 > {
   return combineCodec(
-    getUpdateHostReviewInstructionDataEncoder(),
-    getUpdateHostReviewInstructionDataDecoder(),
+    getIncrementHostCancellationsInstructionDataEncoder(),
+    getIncrementHostCancellationsInstructionDataDecoder(),
   );
 }
 
-export type UpdateHostReviewAsyncInput<
-  TAccountHostProfile extends string = string,
-  TAccountHostReputation extends string = string,
+export type IncrementHostCancellationsAsyncInput<
+  TAccountReputationProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
 > = {
-  hostProfile: Address<TAccountHostProfile>;
-  hostReputation: Address<TAccountHostReputation>;
+  reputationProfile: Address<TAccountReputationProfile>;
   globalConfig?: Address<TAccountGlobalConfig>;
   cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
-  score: UpdateHostReviewInstructionDataArgs["score"];
 };
 
-export async function getUpdateHostReviewInstructionAsync<
-  TAccountHostProfile extends string,
-  TAccountHostReputation extends string,
+export async function getIncrementHostCancellationsInstructionAsync<
+  TAccountReputationProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: UpdateHostReviewAsyncInput<
-    TAccountHostProfile,
-    TAccountHostReputation,
+  input: IncrementHostCancellationsAsyncInput<
+    TAccountReputationProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  UpdateHostReviewInstruction<
+  IncrementHostCancellationsInstruction<
     TProgramAddress,
-    TAccountHostProfile,
-    TAccountHostReputation,
+    TAccountReputationProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority
   >
@@ -153,8 +139,10 @@ export async function getUpdateHostReviewInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
+    reputationProfile: {
+      value: input.reputationProfile ?? null,
+      isWritable: true,
+    },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
   };
@@ -162,9 +150,6 @@ export async function getUpdateHostReviewInstructionAsync<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.globalConfig.value) {
@@ -184,55 +169,45 @@ export async function getUpdateHostReviewInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("hostReputation", accounts.hostReputation),
+      getAccountMeta("reputationProfile", accounts.reputationProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
     ],
-    data: getUpdateHostReviewInstructionDataEncoder().encode(
-      args as UpdateHostReviewInstructionDataArgs,
-    ),
+    data: getIncrementHostCancellationsInstructionDataEncoder().encode({}),
     programAddress,
-  } as UpdateHostReviewInstruction<
+  } as IncrementHostCancellationsInstruction<
     TProgramAddress,
-    TAccountHostProfile,
-    TAccountHostReputation,
+    TAccountReputationProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority
   >);
 }
 
-export type UpdateHostReviewInput<
-  TAccountHostProfile extends string = string,
-  TAccountHostReputation extends string = string,
+export type IncrementHostCancellationsInput<
+  TAccountReputationProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
 > = {
-  hostProfile: Address<TAccountHostProfile>;
-  hostReputation: Address<TAccountHostReputation>;
+  reputationProfile: Address<TAccountReputationProfile>;
   globalConfig: Address<TAccountGlobalConfig>;
   cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
-  score: UpdateHostReviewInstructionDataArgs["score"];
 };
 
-export function getUpdateHostReviewInstruction<
-  TAccountHostProfile extends string,
-  TAccountHostReputation extends string,
+export function getIncrementHostCancellationsInstruction<
+  TAccountReputationProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TProgramAddress extends Address = typeof STAYKE_CORE_PROGRAM_ADDRESS,
 >(
-  input: UpdateHostReviewInput<
-    TAccountHostProfile,
-    TAccountHostReputation,
+  input: IncrementHostCancellationsInput<
+    TAccountReputationProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority
   >,
   config?: { programAddress?: TProgramAddress },
-): UpdateHostReviewInstruction<
+): IncrementHostCancellationsInstruction<
   TProgramAddress,
-  TAccountHostProfile,
-  TAccountHostReputation,
+  TAccountReputationProfile,
   TAccountGlobalConfig,
   TAccountCpiAuthority
 > {
@@ -241,8 +216,10 @@ export function getUpdateHostReviewInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    hostReputation: { value: input.hostReputation ?? null, isWritable: true },
+    reputationProfile: {
+      value: input.reputationProfile ?? null,
+      isWritable: true,
+    },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
   };
@@ -251,58 +228,50 @@ export function getUpdateHostReviewInstruction<
     ResolvedInstructionAccount
   >;
 
-  // Original args.
-  const args = { ...input };
-
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("hostReputation", accounts.hostReputation),
+      getAccountMeta("reputationProfile", accounts.reputationProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
     ],
-    data: getUpdateHostReviewInstructionDataEncoder().encode(
-      args as UpdateHostReviewInstructionDataArgs,
-    ),
+    data: getIncrementHostCancellationsInstructionDataEncoder().encode({}),
     programAddress,
-  } as UpdateHostReviewInstruction<
+  } as IncrementHostCancellationsInstruction<
     TProgramAddress,
-    TAccountHostProfile,
-    TAccountHostReputation,
+    TAccountReputationProfile,
     TAccountGlobalConfig,
     TAccountCpiAuthority
   >);
 }
 
-export type ParsedUpdateHostReviewInstruction<
+export type ParsedIncrementHostCancellationsInstruction<
   TProgram extends string = typeof STAYKE_CORE_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    hostProfile: TAccountMetas[0];
-    hostReputation: TAccountMetas[1];
-    globalConfig: TAccountMetas[2];
-    cpiAuthority: TAccountMetas[3];
+    reputationProfile: TAccountMetas[0];
+    globalConfig: TAccountMetas[1];
+    cpiAuthority: TAccountMetas[2];
   };
-  data: UpdateHostReviewInstructionData;
+  data: IncrementHostCancellationsInstructionData;
 };
 
-export function parseUpdateHostReviewInstruction<
+export function parseIncrementHostCancellationsInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedUpdateHostReviewInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+): ParsedIncrementHostCancellationsInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -315,11 +284,12 @@ export function parseUpdateHostReviewInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      hostProfile: getNextAccount(),
-      hostReputation: getNextAccount(),
+      reputationProfile: getNextAccount(),
       globalConfig: getNextAccount(),
       cpiAuthority: getNextAccount(),
     },
-    data: getUpdateHostReviewInstructionDataDecoder().decode(instruction.data),
+    data: getIncrementHostCancellationsInstructionDataDecoder().decode(
+      instruction.data,
+    ),
   };
 }

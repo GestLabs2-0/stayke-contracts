@@ -43,7 +43,11 @@ import {
   getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findBookingDaysPda, findBookingPda } from "../pdas";
+import {
+  findBookingDaysPda,
+  findBookingPda,
+  findEscrowTokenAccountPda,
+} from "../pdas";
 import { STAYKE_ESCROW_PROGRAM_ADDRESS } from "../programs";
 
 export const CREATE_BOOKING_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -68,6 +72,11 @@ export type CreateBookingInstruction<
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountBookingDays extends string | AccountMeta<string> = string,
+  TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
+  TAccountClientTokenAccount extends string | AccountMeta<string> = string,
+  TAccountMint extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -102,6 +111,18 @@ export type CreateBookingInstruction<
       TAccountBookingDays extends string
         ? WritableAccount<TAccountBookingDays>
         : TAccountBookingDays,
+      TAccountEscrowTokenAccount extends string
+        ? WritableAccount<TAccountEscrowTokenAccount>
+        : TAccountEscrowTokenAccount,
+      TAccountClientTokenAccount extends string
+        ? WritableAccount<TAccountClientTokenAccount>
+        : TAccountClientTokenAccount,
+      TAccountMint extends string
+        ? ReadonlyAccount<TAccountMint>
+        : TAccountMint,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -156,6 +177,10 @@ export type CreateBookingAsyncInput<
   TAccountGlobalConfig extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountEscrowTokenAccount extends string = string,
+  TAccountClientTokenAccount extends string = string,
+  TAccountMint extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
@@ -168,6 +193,12 @@ export type CreateBookingAsyncInput<
   globalConfig?: Address<TAccountGlobalConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
   bookingDays?: Address<TAccountBookingDays>;
+  /** Per-booking escrow token account (Token2022), owned by the booking PDA. */
+  escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
+  /** The guest's USDC token account funding the escrow. */
+  clientTokenAccount: Address<TAccountClientTokenAccount>;
+  mint: Address<TAccountMint>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   checkIn: CreateBookingInstructionDataArgs["checkIn"];
   checkOut: CreateBookingInstructionDataArgs["checkOut"];
 };
@@ -182,6 +213,10 @@ export async function getCreateBookingInstructionAsync<
   TAccountGlobalConfig extends string,
   TAccountSystemProgram extends string,
   TAccountBookingDays extends string,
+  TAccountEscrowTokenAccount extends string,
+  TAccountClientTokenAccount extends string,
+  TAccountMint extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CreateBookingAsyncInput<
@@ -193,7 +228,11 @@ export async function getCreateBookingInstructionAsync<
     TAccountProperty,
     TAccountGlobalConfig,
     TAccountSystemProgram,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountEscrowTokenAccount,
+    TAccountClientTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -207,7 +246,11 @@ export async function getCreateBookingInstructionAsync<
     TAccountProperty,
     TAccountGlobalConfig,
     TAccountSystemProgram,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountEscrowTokenAccount,
+    TAccountClientTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >
 > {
   // Program address.
@@ -225,6 +268,16 @@ export async function getCreateBookingInstructionAsync<
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    escrowTokenAccount: {
+      value: input.escrowTokenAccount ?? null,
+      isWritable: true,
+    },
+    clientTokenAccount: {
+      value: input.clientTokenAccount ?? null,
+      isWritable: true,
+    },
+    mint: { value: input.mint ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -293,6 +346,18 @@ export async function getCreateBookingInstructionAsync<
       checkIn: getNonNullResolvedInstructionInput("checkIn", args.checkIn),
     });
   }
+  if (!accounts.escrowTokenAccount.value) {
+    accounts.escrowTokenAccount.value = await findEscrowTokenAccountPda({
+      booking: getAddressFromResolvedInstructionAccount(
+        "booking",
+        accounts.booking.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -306,6 +371,10 @@ export async function getCreateBookingInstructionAsync<
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("clientTokenAccount", accounts.clientTokenAccount),
+      getAccountMeta("mint", accounts.mint),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getCreateBookingInstructionDataEncoder().encode(
       args as CreateBookingInstructionDataArgs,
@@ -321,7 +390,11 @@ export async function getCreateBookingInstructionAsync<
     TAccountProperty,
     TAccountGlobalConfig,
     TAccountSystemProgram,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountEscrowTokenAccount,
+    TAccountClientTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >);
 }
 
@@ -335,6 +408,10 @@ export type CreateBookingInput<
   TAccountGlobalConfig extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountBookingDays extends string = string,
+  TAccountEscrowTokenAccount extends string = string,
+  TAccountClientTokenAccount extends string = string,
+  TAccountMint extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   client: TransactionSigner<TAccountClient>;
@@ -347,6 +424,12 @@ export type CreateBookingInput<
   globalConfig: Address<TAccountGlobalConfig>;
   systemProgram?: Address<TAccountSystemProgram>;
   bookingDays: Address<TAccountBookingDays>;
+  /** Per-booking escrow token account (Token2022), owned by the booking PDA. */
+  escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
+  /** The guest's USDC token account funding the escrow. */
+  clientTokenAccount: Address<TAccountClientTokenAccount>;
+  mint: Address<TAccountMint>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   checkIn: CreateBookingInstructionDataArgs["checkIn"];
   checkOut: CreateBookingInstructionDataArgs["checkOut"];
 };
@@ -361,6 +444,10 @@ export function getCreateBookingInstruction<
   TAccountGlobalConfig extends string,
   TAccountSystemProgram extends string,
   TAccountBookingDays extends string,
+  TAccountEscrowTokenAccount extends string,
+  TAccountClientTokenAccount extends string,
+  TAccountMint extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
 >(
   input: CreateBookingInput<
@@ -372,7 +459,11 @@ export function getCreateBookingInstruction<
     TAccountProperty,
     TAccountGlobalConfig,
     TAccountSystemProgram,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountEscrowTokenAccount,
+    TAccountClientTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): CreateBookingInstruction<
@@ -385,7 +476,11 @@ export function getCreateBookingInstruction<
   TAccountProperty,
   TAccountGlobalConfig,
   TAccountSystemProgram,
-  TAccountBookingDays
+  TAccountBookingDays,
+  TAccountEscrowTokenAccount,
+  TAccountClientTokenAccount,
+  TAccountMint,
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress =
@@ -402,6 +497,16 @@ export function getCreateBookingInstruction<
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
     bookingDays: { value: input.bookingDays ?? null, isWritable: true },
+    escrowTokenAccount: {
+      value: input.escrowTokenAccount ?? null,
+      isWritable: true,
+    },
+    clientTokenAccount: {
+      value: input.clientTokenAccount ?? null,
+      isWritable: true,
+    },
+    mint: { value: input.mint ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -416,6 +521,10 @@ export function getCreateBookingInstruction<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -429,6 +538,10 @@ export function getCreateBookingInstruction<
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("bookingDays", accounts.bookingDays),
+      getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
+      getAccountMeta("clientTokenAccount", accounts.clientTokenAccount),
+      getAccountMeta("mint", accounts.mint),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getCreateBookingInstructionDataEncoder().encode(
       args as CreateBookingInstructionDataArgs,
@@ -444,7 +557,11 @@ export function getCreateBookingInstruction<
     TAccountProperty,
     TAccountGlobalConfig,
     TAccountSystemProgram,
-    TAccountBookingDays
+    TAccountBookingDays,
+    TAccountEscrowTokenAccount,
+    TAccountClientTokenAccount,
+    TAccountMint,
+    TAccountTokenProgram
   >);
 }
 
@@ -465,6 +582,12 @@ export type ParsedCreateBookingInstruction<
     globalConfig: TAccountMetas[6];
     systemProgram: TAccountMetas[7];
     bookingDays: TAccountMetas[8];
+    /** Per-booking escrow token account (Token2022), owned by the booking PDA. */
+    escrowTokenAccount: TAccountMetas[9];
+    /** The guest's USDC token account funding the escrow. */
+    clientTokenAccount: TAccountMetas[10];
+    mint: TAccountMetas[11];
+    tokenProgram: TAccountMetas[12];
   };
   data: CreateBookingInstructionData;
 };
@@ -477,12 +600,12 @@ export function parseCreateBookingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateBookingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 13) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 13,
       },
     );
   }
@@ -504,6 +627,10 @@ export function parseCreateBookingInstruction<
       globalConfig: getNextAccount(),
       systemProgram: getNextAccount(),
       bookingDays: getNextAccount(),
+      escrowTokenAccount: getNextAccount(),
+      clientTokenAccount: getNextAccount(),
+      mint: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
     data: getCreateBookingInstructionDataDecoder().decode(instruction.data),
   };
