@@ -10,7 +10,7 @@ use stayke_core::{
 use crate::{
     constants::BOOKING_SEED,
     error::EscrowError,
-    events::BookingStatusUpdated,
+    // events::BookingStatusUpdated,
     state::{Booking, BookingStatus},
 };
 
@@ -92,13 +92,13 @@ pub fn handler_review_completed(ctx: Context<CloseBooking>, score: u8) -> Result
         score,
     )?;
 
-    let booking = &mut ctx.accounts.booking;
-    booking.status = BookingStatus::ReviewCompleted;
+    // let booking = &mut ctx.accounts.booking;
+    // booking.status = BookingStatus::ReviewCompleted;
 
-    emit!(BookingStatusUpdated {
-        status: BookingStatus::ReviewCompleted,
-        booking: booking.key(),
-    });
+    // emit!(BookingStatusUpdated {
+    //     status: BookingStatus::ReviewCompleted,
+    //     booking: booking.key(),
+    // });
 
     Ok(())
 }

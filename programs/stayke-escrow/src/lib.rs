@@ -38,23 +38,40 @@ pub mod stayke_escrow {
         handler_create_booking(ctx, check_in, check_out)
     }
 
+    pub fn create_booking_cross_year(
+        ctx: Context<CreateBookingCrossYear>,
+        check_in: i64,
+        check_out: i64,
+    ) -> Result<()> {
+        handler_create_booking_cross_year(ctx, check_in, check_out)
+    }
+
     pub fn host_accept_booking(ctx: Context<HostAcceptBooking>) -> Result<()> {
         handler_host_accept_booking(ctx)
     }
 
-    pub fn host_reject_booking(ctx: Context<HostRejectBooking>, check_in: i64) -> Result<()> {
-        handler_host_reject_booking(ctx, check_in)
+    pub fn booking_starts(ctx: Context<BookingStarts>) -> Result<()> {
+        handler_booking_starts(ctx)
     }
 
-    pub fn host_reject_booking_cross_year(
-        ctx: Context<HostRejectBookingCrossYear>,
-        check_in: i64,
-    ) -> Result<()> {
-        handler_host_reject_booking_cross_year(ctx, check_in)
+    pub fn booking_completes(ctx: Context<BookingCompletes>) -> Result<()> {
+        handler_booking_completes(ctx)
     }
 
-    pub fn client_accept_reserve(ctx: Context<ClientAcceptReserve>) -> Result<()> {
-        handler_client_accept_reserve(ctx)
+    pub fn host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()> {
+        handler_host_reject_booking(ctx)
+    }
+
+    pub fn expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
+        handler_expire_booking(ctx)
+    }
+
+    pub fn expire_booking_crossday(ctx: Context<ExpireBookingCrossDays>) -> Result<()> {
+        handler_expire_booking_crossday(ctx)
+    }
+
+    pub fn host_reject_booking_cross_year(ctx: Context<HostRejectBookingCrossYear>) -> Result<()> {
+        handler_host_reject_booking_cross_year(ctx)
     }
 
     pub fn client_reject_reserve(ctx: Context<ClientRejectReserve>, check_in: i64) -> Result<()> {
@@ -68,12 +85,38 @@ pub mod stayke_escrow {
         handler_client_reject_reserve_cross_year(ctx, check_in)
     }
 
+    pub fn guest_cancel_booking(ctx: Context<GuestCancelBooking>) -> Result<()> {
+        handler_guest_cancel_booking(ctx)
+    }
+
+    pub fn guest_cancel_booking_cross_year(
+        ctx: Context<GuestCancelBookingCrossYear>,
+    ) -> Result<()> {
+        handler_guest_cancel_booking_cross_year(ctx)
+    }
+
+    pub fn host_cancel_booking(ctx: Context<HostCancelBooking>) -> Result<()> {
+        handler_host_cancel_booking(ctx)
+    }
+
+    pub fn host_cancel_booking_cross_year(ctx: Context<HostCancelBookingCrossYear>) -> Result<()> {
+        handler_host_cancel_booking_cross_year(ctx)
+    }
+
     pub fn review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
         handler_review_completed(ctx, score)
     }
 
-    pub fn complete_stay(ctx: Context<CompleteStay>) -> Result<()> {
-        handler_complete_stay(ctx)
+    pub fn release_funds(ctx: Context<ReleaseFunds>) -> Result<()> {
+        handler_release_funds(ctx)
+    }
+
+    pub fn host_review(ctx: Context<HostReview>, score: u8) -> Result<()> {
+        handler_host_review(ctx, score)
+    }
+
+    pub fn guest_review(ctx: Context<GuestReview>, score: u8) -> Result<()> {
+        handler_guest_review(ctx, score)
     }
 
     // ---------------------------------------------------------------------------

@@ -1,12 +1,14 @@
 #![allow(clippy::diverging_sub_expression)]
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use events::*;
 pub use instructions::{cpi::*, *};
 pub use state::*;
 
@@ -50,6 +52,10 @@ pub mod stayke_core {
         handler_clear_active_booking(ctx)
     }
 
+    pub fn set_active_booking(ctx: Context<UpdateUserProfile>, booking: Pubkey) -> Result<()> {
+        handler_set_active_booking(ctx, booking)
+    }
+
     pub fn add_infraction(
         ctx: Context<UpdateReputationProfile>,
         severity: PenaltySeverity,
@@ -69,8 +75,32 @@ pub mod stayke_core {
         handler_update_host_review(ctx, score)
     }
 
+    pub fn update_client_review(ctx: Context<UpdateClientReview>, score: u8) -> Result<()> {
+        handler_update_client_review(ctx, score)
+    }
+
+    pub fn update_listing_review(
+        ctx: Context<UpdateListingReview>,
+        score: u8,
+        reviewer: Pubkey,
+    ) -> Result<()> {
+        handler_update_listing_review(ctx, score, reviewer)
+    }
+
     pub fn increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
         handler_increment_completed_stays(ctx)
+    }
+
+    pub fn increment_hosted_stays(ctx: Context<UpdateUserProfile>) -> Result<()> {
+        handler_increment_hosted_stays(ctx)
+    }
+
+    pub fn increment_client_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+        handler_increment_client_cancellations(ctx)
+    }
+
+    pub fn increment_host_cancellations(ctx: Context<UpdateReputationProfile>) -> Result<()> {
+        handler_increment_host_cancellations(ctx)
     }
 
     // --------------------------------------------------------------------------

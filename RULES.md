@@ -7,7 +7,7 @@
 ## Architecture context
 
 This is an Anchor-based Solana project composed of multiple programs communicating via CPI.
-- Programs: `stayke-core`, `stayke-bookings`, `stayke-treasury`, `stayke-disputes`
+- Programs: `stayke-core`, `stayke-escrow`, `stayke-treasury`, `stayke-disputes`, `stayke-config`
 - Authority source: `GlobalConfig` PDA — all cross-program authority flows through it
 - Payment token: USDC (SPL Token)
 - Key patterns: CPI with signer seeds, PDA-derived authorities, account constraint validation

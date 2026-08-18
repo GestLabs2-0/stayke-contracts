@@ -139,7 +139,7 @@ pub fn reserve_days_cross_years(
         booking_days.occupied_days = [0u32; 12];
     }
     if booking_days_next.year == 0 {
-        booking_days_next.year = check_in.year;
+        booking_days_next.year = check_out.year;
         booking_days_next.occupied_days = [0u32; 12];
     }
 

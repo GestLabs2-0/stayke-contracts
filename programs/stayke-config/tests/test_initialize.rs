@@ -75,6 +75,10 @@ fn test_initialize_config_persists_program_ids() {
         &[stayke_config::constants::PLATFORM_VAULT_CONFIG_SEED.as_bytes()],
         &program_id,
     );
+    let core = Pubkey::new_unique();
+    let escrow = Pubkey::new_unique();
+    let disputes = Pubkey::new_unique();
+    let treasury = Pubkey::new_unique();
 
     let instruction = Instruction::new_with_bytes(
         program_id,
@@ -83,10 +87,10 @@ fn test_initialize_config_persists_program_ids() {
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
             allowed_programs: stayke_config::AllowedPrograms {
-                core: Pubkey::new_unique(),
-                escrow: Pubkey::new_unique(),
-                disputes: Pubkey::new_unique(),
-                treasury: Pubkey::new_unique(),
+                core,
+                escrow,
+                disputes,
+                treasury,
             },
         }
         .data(),
@@ -119,30 +123,10 @@ fn test_initialize_config_persists_program_ids() {
     assert_ne!(config.escrow_program, Pubkey::default());
     assert_ne!(config.disputes_program, Pubkey::default());
     assert_ne!(config.treasury_program, Pubkey::default());
-    assert_eq!(
-        config.core_program,
-        "8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.escrow_program,
-        "FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.disputes_program,
-        "7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
-    assert_eq!(
-        config.treasury_program,
-        "59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"
-            .parse::<Pubkey>()
-            .unwrap()
-    );
+    assert_eq!(config.core_program, core);
+    assert_eq!(config.escrow_program, escrow,);
+    assert_eq!(config.disputes_program, disputes);
+    assert_eq!(config.treasury_program, treasury);
 }
 
 #[test]

@@ -1,45 +1,25 @@
+/// Expire booking holds instructions to end the booking without expecting the host or the guest to
+/// finalize it
 use anchor_lang::prelude::*;
 
-use anchor_spl::token_interface::{
-    self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
-use stayke_config::{self, GlobalConfig, GLOBAL_CONFIG_SEED};
-use stayke_core::{constants::USER_PROFILE_SEED, UserProfile};
+use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
+use stayke_core::USER_PROFILE_SEED;
+use stayke_core::{self, UserProfile};
 
+use crate::events::BookingExpired;
 use crate::{
     constants::{BOOKING_DAYS_SEED, BOOKING_SEED, ESCROW_PDA_SEED},
-    error::EscrowError,
-    events::BookingStatusUpdated,
-    state::{Booking, BookingDays, BookingStatus},
     utils::{derive_date, release_days_cross_years, release_days_single_year, TimestampExt},
+    Booking, BookingDays, BookingStatus, EscrowError,
 };
 
-// TODO: change reputation if host rejects inside a 48 hours frame
-
-// ---------------------------------------------------------------------------
-// Host: reject pending booking (releases days, closes booking account)
-// ---------------------------------------------------------------------------
-
 #[derive(Accounts)]
-pub struct HostRejectBooking<'info> {
-    // Payer is only a referenced for transaction paid using the relayer
+pub struct ExpireBooking<'info> {
+    #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(
-        constraint = host_profile.authority == host.key() @ EscrowError::UnauthorizedHost
-    )]
-    pub host: Signer<'info>,
-
-    #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
-        seeds::program = stayke_core::ID,
-        bump = host_profile.bump,
-        constraint = !host_profile.banned @ EscrowError::UserBanned,
-        constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
-    )]
-    pub host_profile: Box<Account<'info, UserProfile>>,
-
-    // TODO: check if lamports for closing booking goes to payer
+    // We don't require to check if user is banned or not, if someone pays and its booking is cancelled, then money is returned
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), guest.authority.as_ref()],
         bump = guest.bump,
@@ -50,28 +30,13 @@ pub struct HostRejectBooking<'info> {
 
     #[account(
         mut,
-        // TODO: check if money should go to host
+        // Maybe I should return this money to client
         close = payer,
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
-        constraint = booking.host == host_profile.key() @ EscrowError::InvalidBookingProperty,
         constraint = booking.status == BookingStatus::Pending @ EscrowError::InvalidBookingStatus,
     )]
     pub booking: Box<Account<'info, Booking>>,
-
-    #[account(
-        mut,
-        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking.check_in.year().to_le_bytes().as_ref()],
-        bump = booking_days.bump,
-    )]
-    pub booking_days: Account<'info, BookingDays>,
-
-    #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
-        bump = global_config.bump,
-        seeds::program = stayke_config::ID
-    )]
-    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         mut,
@@ -85,11 +50,25 @@ pub struct HostRejectBooking<'info> {
 
     #[account(
         mut,
-        token::authority = guest.authority,
         token::mint = mint,
+        token::authority = guest.authority,
         token::token_program = token_program
     )]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking.check_in.year().to_le_bytes().as_ref()],
+        bump = booking_days.bump
+    )]
+    pub booking_days: Account<'info, BookingDays>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         constraint = global_config.usdc_mint == mint.key() @ EscrowError::InvalidTokenMint
@@ -99,12 +78,15 @@ pub struct HostRejectBooking<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler_host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()> {
+pub fn handler_expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
-    booking.status = BookingStatus::Cancelled;
-
+    require!(
+        booking.updated_at + (24 * 60 * 60) < Clock::get()?.unix_timestamp,
+        EscrowError::NotOver24Hours
+    );
     let start_date = derive_date(booking.check_in);
     let end_date = derive_date(booking.check_out);
+
     let booking_days = &mut ctx.accounts.booking_days;
     release_days_single_year(booking_days, &start_date, &end_date)?;
 
@@ -139,39 +121,21 @@ pub fn handler_host_reject_booking(ctx: Context<HostRejectBooking>) -> Result<()
         mint.decimals,
     )?;
 
-    token_interface::close_account(CpiContext::new_with_signer(
-        ctx.accounts.token_program.key(),
-        CloseAccount {
-            account: ctx.accounts.escrow_token_account.to_account_info(),
-            destination: ctx.accounts.payer.to_account_info(),
-            authority: booking.to_account_info(),
-        },
-        booking_seeds,
-    ))?;
-
-    emit!(BookingStatusUpdated {
-        status: BookingStatus::Cancelled,
-        booking: booking.key()
+    emit!(BookingExpired {
+        booking: booking.key(),
+        guest: booking.guest,
+        host: booking.host
     });
+
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct HostRejectBookingCrossYear<'info> {
+pub struct ExpireBookingCrossDays<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub host: Signer<'info>,
 
-    #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host.key().as_ref()],
-        seeds::program = stayke_core::ID,
-        bump = host_profile.bump,
-        constraint = host.key() == host_profile.authority @ EscrowError::UnauthorizedHost,
-        constraint = !host_profile.banned @ EscrowError::UserBanned,
-        constraint = host_profile.identity.is_some() @ EscrowError::UserNotVerified,
-    )]
-    pub host_profile: Box<Account<'info, UserProfile>>,
-
+    // We don't require to check if user is banned or not, if someone pays and its booking is cancelled, then money is returned
     #[account(
         seeds = [USER_PROFILE_SEED.as_bytes(), guest.authority.as_ref()],
         bump = guest.bump,
@@ -182,35 +146,13 @@ pub struct HostRejectBookingCrossYear<'info> {
 
     #[account(
         mut,
-        // TODO: check if money should go to host
+        // Maybe I should return this money to client or add a check for this close.
         close = payer,
         seeds = [BOOKING_SEED.as_bytes(), booking.property.as_ref(), booking.guest.as_ref(), booking.check_in.to_le_bytes().as_ref()],
         bump = booking.bump,
-        constraint = booking.host == host_profile.key() @ EscrowError::InvalidBookingProperty,
         constraint = booking.status == BookingStatus::Pending @ EscrowError::InvalidBookingStatus,
     )]
     pub booking: Box<Account<'info, Booking>>,
-
-    #[account(
-        mut,
-        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking.check_in.year().to_le_bytes().as_ref()],
-        bump = booking_days.bump,
-    )]
-    pub booking_days: Account<'info, BookingDays>,
-
-    #[account(
-        mut,
-        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), (booking.check_in.year() + 1).to_le_bytes().as_ref()],
-        bump = booking_days_next.bump,
-    )]
-    pub booking_days_next: Account<'info, BookingDays>,
-
-    #[account(
-        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
-        bump = global_config.bump,
-        seeds::program = stayke_config::ID
-    )]
-    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         mut,
@@ -224,11 +166,32 @@ pub struct HostRejectBookingCrossYear<'info> {
 
     #[account(
         mut,
-        token::authority = guest.authority,
         token::mint = mint,
+        token::authority = guest.authority,
         token::token_program = token_program
     )]
     pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking.check_in.year().to_le_bytes().as_ref()],
+        bump = booking_days.bump
+    )]
+    pub booking_days: Account<'info, BookingDays>,
+
+    #[account(
+        mut,
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), (booking.check_in.year() + 1).to_le_bytes().as_ref()],
+        bump = booking_days_next.bump
+    )]
+    pub booking_days_next: Account<'info, BookingDays>,
+
+    #[account(
+        seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
+        bump = global_config.bump,
+        seeds::program = stayke_config::ID
+    )]
+    pub global_config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         constraint = global_config.usdc_mint == mint.key() @ EscrowError::InvalidTokenMint
@@ -238,12 +201,12 @@ pub struct HostRejectBookingCrossYear<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler_host_reject_booking_cross_year(
-    ctx: Context<HostRejectBookingCrossYear>,
-) -> Result<()> {
+pub fn handler_expire_booking_crossday(ctx: Context<ExpireBookingCrossDays>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
-    booking.status = BookingStatus::Cancelled;
-
+    require!(
+        booking.updated_at + (24 * 60 * 60) < Clock::get()?.unix_timestamp,
+        EscrowError::NotOver24Hours
+    );
     let start_date = derive_date(booking.check_in);
     let end_date = derive_date(booking.check_out);
 
@@ -281,9 +244,11 @@ pub fn handler_host_reject_booking_cross_year(
         booking.total_price,
         mint.decimals,
     )?;
-    emit!(BookingStatusUpdated {
-        status: BookingStatus::Cancelled,
-        booking: booking.key()
+
+    emit!(BookingExpired {
+        booking: booking.key(),
+        guest: booking.guest,
+        host: booking.host
     });
 
     Ok(())
