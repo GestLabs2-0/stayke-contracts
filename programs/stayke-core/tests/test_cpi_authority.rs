@@ -16,10 +16,6 @@ use {
     stayke_core::{Listing, UserProfile, LISTING_SEED, USER_PROFILE_SEED},
 };
 
-fn program_pubkey(s: &str) -> Pubkey {
-    s.parse().unwrap()
-}
-
 fn sample_global_config(bump: u8) -> GlobalConfig {
     GlobalConfig {
         authority: Pubkey::new_unique(),
@@ -29,10 +25,10 @@ fn sample_global_config(bump: u8) -> GlobalConfig {
         is_initialized: true,
         platform_vault: Pubkey::new_unique(),
         platform_vault_bump: 255,
-        core_program: program_pubkey("8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP"),
-        escrow_program: program_pubkey("FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ"),
-        disputes_program: program_pubkey("7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB"),
-        treasury_program: program_pubkey("59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu"),
+        core_program: stayke_config::CORE_PROGRAM_ID,
+        escrow_program: stayke_config::ESCROW_PROGRAM_ID,
+        disputes_program: stayke_config::DISPUTES_PROGRAM_ID,
+        treasury_program: stayke_config::TREASURY_PROGRAM_ID,
         free_ops: 4,
         bump,
     }
@@ -247,4 +243,87 @@ fn wallet_clear_listing_booking_unauthorized_leaves_occupied_true() {
         after.is_occupied,
         "occupied must remain true after unauthorized call"
     );
+}
+
+#[test]
+fn wallet_increment_completed_stays_unauthorized_leaves_counter_unchanged() {
+    let core_id = stayke_core::id();
+    let config_id = stayke_config::id();
+    let payer = Keypair::new();
+    let mut svm = LiteSVM::new();
+    let bytes = include_bytes!("../../../target/deploy/stayke_core.so");
+    assert!(
+        bytes.len() > 10_000,
+        "stayke_core.so looks stub-sized ({})",
+        bytes.len()
+    );
+    svm.add_program(core_id, bytes).unwrap();
+    svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
+
+    let (global_config_pda, gc_bump) =
+        Pubkey::find_program_address(&[GLOBAL_CONFIG_SEED.as_bytes()], &config_id);
+    let gc = sample_global_config(gc_bump);
+    svm.set_account(
+        global_config_pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: serialize_account(&gc),
+            owner: config_id,
+            executable: false,
+            rent_epoch: 0,
+        },
+    )
+    .unwrap();
+
+    let (profile_pda, profile_bump) = Pubkey::find_program_address(
+        &[USER_PROFILE_SEED.as_bytes(), payer.pubkey().as_ref()],
+        &core_id,
+    );
+    let profile = UserProfile {
+        authority: payer.pubkey(),
+        identity: Some(Pubkey::new_unique()),
+        active_booking: None,
+        deposited: 0,
+        lending: 0,
+        staked: 0,
+        banned: false,
+        listings: 0,
+        bump: profile_bump,
+        completed_stays: 7,
+        hosted_stays: 0,
+    };
+    svm.set_account(
+        profile_pda,
+        Account {
+            lamports: 1_000_000_000,
+            data: serialize_account(&profile),
+            owner: core_id,
+            executable: false,
+            rent_epoch: 0,
+        },
+    )
+    .unwrap();
+
+    let ix = Instruction::new_with_bytes(
+        core_id,
+        &stayke_core::instruction::IncrementCompletedStays {}.data(),
+        stayke_core::accounts::UpdateUserProfile {
+            user_profile: profile_pda,
+            global_config: global_config_pda,
+            cpi_authority: payer.pubkey(),
+        }
+        .to_account_metas(None),
+    );
+
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[ix], Some(&payer.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
+    assert!(
+        svm.send_transaction(tx).is_err(),
+        "wallet direct increment_completed_stays must fail"
+    );
+
+    let acc = svm.get_account(&profile_pda).unwrap();
+    let after = UserProfile::try_deserialize(&mut acc.data.as_slice()).unwrap();
+    assert_eq!(after.completed_stays, 7);
 }

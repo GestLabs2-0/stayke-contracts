@@ -22,6 +22,15 @@ const MINT_LEN: usize = 82;
 const FREE_OPS: u8 = 4;
 const TOKEN_ACCOUNT_LEN: usize = 165;
 
+fn caller_allowed_programs() -> stayke_config::AllowedPrograms {
+    stayke_config::AllowedPrograms {
+        core: Pubkey::new_unique(),
+        escrow: Pubkey::new_unique(),
+        disputes: Pubkey::new_unique(),
+        treasury: Pubkey::new_unique(),
+    }
+}
+
 // TODO: refactor tests to use code standards and avoid rebuilding from scratch
 
 /// Pack a classic SPL Token Mint account (no spl-token crate — avoids entrypoint clash).
@@ -122,12 +131,7 @@ fn test_withdraw_fees_success() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
-            allowed_programs: stayke_config::AllowedPrograms {
-                core: Pubkey::new_unique(),
-                escrow: Pubkey::new_unique(),
-                disputes: Pubkey::new_unique(),
-                treasury: Pubkey::new_unique(),
-            },
+            allowed_programs: caller_allowed_programs(),
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -276,12 +280,7 @@ fn test_withdraw_fees_zero_amount_fails() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
-            allowed_programs: stayke_config::AllowedPrograms {
-                core: Pubkey::new_unique(),
-                escrow: Pubkey::new_unique(),
-                disputes: Pubkey::new_unique(),
-                treasury: Pubkey::new_unique(),
-            },
+            allowed_programs: caller_allowed_programs(),
         }
         .data(),
         stayke_config::accounts::InitializeConfig {
@@ -387,12 +386,7 @@ fn test_withdraw_fees_unauthorized_fails() {
             minimum_deposit: MINIMUM_DEPOSIT,
             fee_bps: FEE_BPS,
             free_ops: FREE_OPS,
-            allowed_programs: stayke_config::AllowedPrograms {
-                core: Pubkey::new_unique(),
-                escrow: Pubkey::new_unique(),
-                disputes: Pubkey::new_unique(),
-                treasury: Pubkey::new_unique(),
-            },
+            allowed_programs: caller_allowed_programs(),
         }
         .data(),
         stayke_config::accounts::InitializeConfig {

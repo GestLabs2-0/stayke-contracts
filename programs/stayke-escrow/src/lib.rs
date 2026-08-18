@@ -62,27 +62,16 @@ pub mod stayke_escrow {
         handler_host_reject_booking(ctx)
     }
 
-    pub fn expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
-        handler_expire_booking(ctx)
-    }
-
-    pub fn expire_booking_crossday(ctx: Context<ExpireBookingCrossDays>) -> Result<()> {
-        handler_expire_booking_crossday(ctx)
-    }
-
     pub fn host_reject_booking_cross_year(ctx: Context<HostRejectBookingCrossYear>) -> Result<()> {
         handler_host_reject_booking_cross_year(ctx)
     }
 
-    pub fn client_reject_reserve(ctx: Context<ClientRejectReserve>, check_in: i64) -> Result<()> {
-        handler_client_reject_reserve(ctx, check_in)
+    pub fn expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
+        handler_expire_booking(ctx)
     }
 
-    pub fn client_reject_reserve_cross_year(
-        ctx: Context<ClientRejectReserveCrossYear>,
-        check_in: i64,
-    ) -> Result<()> {
-        handler_client_reject_reserve_cross_year(ctx, check_in)
+    pub fn expire_booking_cross_year(ctx: Context<ExpireBookingCrossYear>) -> Result<()> {
+        handler_expire_booking_cross_year(ctx)
     }
 
     pub fn guest_cancel_booking(ctx: Context<GuestCancelBooking>) -> Result<()> {

@@ -12,6 +12,7 @@ pub use instructions::*;
 pub use state::*;
 use stayke_core::state::PenaltySeverity;
 
+// Must match Anchor.toml [programs.devnet].
 declare_id!("8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ");
 
 #[program]

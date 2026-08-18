@@ -119,14 +119,11 @@ fn test_initialize_config_persists_program_ids() {
         .expect("deserialize GlobalConfig");
 
     assert!(config.is_initialized);
-    assert_ne!(config.core_program, Pubkey::default());
-    assert_ne!(config.escrow_program, Pubkey::default());
-    assert_ne!(config.disputes_program, Pubkey::default());
-    assert_ne!(config.treasury_program, Pubkey::default());
-    assert_eq!(config.core_program, core);
-    assert_eq!(config.escrow_program, escrow,);
-    assert_eq!(config.disputes_program, disputes);
-    assert_eq!(config.treasury_program, treasury);
+    assert_eq!(config.free_ops, FREE_OPS);
+    assert_eq!(config.core_program, stayke_config::CORE_PROGRAM_ID);
+    assert_eq!(config.escrow_program, stayke_config::ESCROW_PROGRAM_ID);
+    assert_eq!(config.disputes_program, stayke_config::DISPUTES_PROGRAM_ID);
+    assert_eq!(config.treasury_program, stayke_config::TREASURY_PROGRAM_ID);
 }
 
 #[test]

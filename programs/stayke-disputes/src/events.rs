@@ -24,5 +24,6 @@ pub struct DisputeResolved {
 pub struct UserPenalized {
     pub penalized_user: Pubkey,
     pub penalty_amount: u64,
+    pub affected_wallet: Pubkey,
     pub timestamp: i64,
 }

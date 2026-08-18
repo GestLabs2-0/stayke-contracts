@@ -12,6 +12,7 @@ pub use cpi_authority::*;
 pub use instructions::*;
 pub use state::*;
 
+// Must match Anchor.toml [programs.devnet].
 declare_id!("9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT");
 
 #[program]

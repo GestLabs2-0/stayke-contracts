@@ -131,7 +131,7 @@ pub fn handler_expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
 }
 
 #[derive(Accounts)]
-pub struct ExpireBookingCrossDays<'info> {
+pub struct ExpireBookingCrossYear<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -201,7 +201,7 @@ pub struct ExpireBookingCrossDays<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler_expire_booking_crossday(ctx: Context<ExpireBookingCrossDays>) -> Result<()> {
+pub fn handler_expire_booking_cross_year(ctx: Context<ExpireBookingCrossYear>) -> Result<()> {
     let booking = &mut ctx.accounts.booking;
     require!(
         booking.updated_at + (24 * 60 * 60) < Clock::get()?.unix_timestamp,

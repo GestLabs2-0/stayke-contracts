@@ -67,7 +67,7 @@ fn expire_booking_accounts(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn expire_booking_crossday_accounts(
+fn expire_booking_crossyear_accounts(
     payer: Pubkey,
     guest_profile: Pubkey,
     booking: Pubkey,
@@ -77,7 +77,7 @@ fn expire_booking_crossday_accounts(
     booking_days_next: Pubkey,
     usdc_mint: Pubkey,
 ) -> Vec<anchor_lang::solana_program::instruction::AccountMeta> {
-    stayke_escrow::accounts::ExpireBookingCrossDays {
+    stayke_escrow::accounts::ExpireBookingCrossYear {
         payer,
         guest: guest_profile,
         booking,
@@ -640,8 +640,8 @@ fn expire_booking_cross_year_releases_days_transfers_funds_and_closes_account() 
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
-        expire_booking_crossday_accounts(
+        &stayke_escrow::instruction::ExpireBookingCrossYear {}.data(),
+        expire_booking_crossyear_accounts(
             payer.pubkey(),
             guest_profile,
             booking,
@@ -738,8 +738,8 @@ fn expire_booking_cross_year_insufficient_funds_fails() {
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
-        expire_booking_crossday_accounts(
+        &stayke_escrow::instruction::ExpireBookingCrossYear {}.data(),
+        expire_booking_crossyear_accounts(
             payer.pubkey(),
             guest_profile,
             booking,
@@ -817,8 +817,8 @@ fn expire_booking_cross_year_not_over_24_hours_fails() {
 
     let instruction = Instruction::new_with_bytes(
         stayke_escrow::id(),
-        &stayke_escrow::instruction::ExpireBookingCrossday {}.data(),
-        expire_booking_crossday_accounts(
+        &stayke_escrow::instruction::ExpireBookingCrossYear {}.data(),
+        expire_booking_crossyear_accounts(
             payer.pubkey(),
             guest_profile,
             booking,

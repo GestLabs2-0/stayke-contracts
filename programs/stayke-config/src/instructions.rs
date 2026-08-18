@@ -41,7 +41,7 @@ pub fn handler_initialize_config(
     minimum_deposit: u64,
     fee_bps: u64,
     free_ops: u8,
-    allowed_programs: AllowedPrograms,
+    _allowed_programs: AllowedPrograms,
 ) -> Result<()> {
     require!(fee_bps < 10_000, StaykeConfigError::InvalidFeeBps);
 
@@ -54,10 +54,11 @@ pub fn handler_initialize_config(
     global_config.platform_vault = ctx.accounts.platform_vault.key();
     global_config.platform_vault_bump = ctx.bumps.platform_vault_pda;
 
-    global_config.core_program = allowed_programs.core;
-    global_config.escrow_program = allowed_programs.escrow;
-    global_config.disputes_program = allowed_programs.disputes;
-    global_config.treasury_program = allowed_programs.treasury;
+    // Ignore caller-supplied IDs: the first initializer must not own the CPI allowlist.
+    global_config.core_program = crate::CORE_PROGRAM_ID;
+    global_config.escrow_program = crate::ESCROW_PROGRAM_ID;
+    global_config.disputes_program = crate::DISPUTES_PROGRAM_ID;
+    global_config.treasury_program = crate::TREASURY_PROGRAM_ID;
     global_config.is_initialized = true;
     global_config.free_ops = free_ops;
     Ok(())

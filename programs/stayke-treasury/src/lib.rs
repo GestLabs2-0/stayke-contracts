@@ -11,6 +11,7 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
+// Must match Anchor.toml [programs.devnet].
 declare_id!("HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY");
 
 #[program]
