@@ -17,7 +17,8 @@ use {
     stayke_escrow::state::BookingStatus,
 };
 
-/// Compute the UserProfile PDA for a given authority pubkey.
+const CHECK_IN: i64 = 1_735_689_600;
+
 fn user_profile_pda(authority: Pubkey) -> Pubkey {
     Pubkey::find_program_address(
         &[
@@ -88,23 +89,23 @@ fn open_dispute_guest_success() {
 
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
     let mut clock = svm.get_sysvar::<Clock>();
-    clock.unix_timestamp = 1735689600;
+    clock.unix_timestamp = CHECK_IN;
     svm.set_sysvar::<Clock>(&clock);
 
     let (res, disp) = send_and_read_dispute(&mut svm, &payer, &guest, booking_key);
@@ -118,7 +119,7 @@ fn open_dispute_guest_success() {
     assert_eq!(disp.booking, booking_key);
     assert_eq!(disp.opened_by, DisputeParty::Guest);
     assert_eq!(disp.state, DisputeState::OpenP2P);
-    assert_eq!(disp.opened_at, 1735689600);
+    assert_eq!(disp.opened_at, CHECK_IN);
     assert_eq!(disp.guest_evidence, None);
     assert_eq!(disp.host_evidence, None);
     assert_eq!(disp.outcome, None);
@@ -138,18 +139,18 @@ fn open_dispute_host_success() {
 
     svm.airdrop(&host.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, host.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
@@ -177,18 +178,18 @@ fn open_dispute_booking_not_active_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Pending,
     );
 
@@ -214,18 +215,18 @@ fn open_dispute_stranger_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&stranger.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, stranger.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
@@ -250,18 +251,18 @@ fn open_dispute_banned_user_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_banned_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
@@ -284,18 +285,18 @@ fn open_dispute_unverified_user_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_unverified_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 

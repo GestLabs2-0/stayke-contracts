@@ -3,7 +3,11 @@ use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_core::{state::UserProfile, USER_PROFILE_SEED};
 
 use stayke_escrow::{
-    constants::BOOKING_SEED, cpi::{accounts::UpdateBookingStatusCpi, cpi_update_booking_status}, program::StaykeEscrow, state::Booking, BookingStatus
+    constants::BOOKING_SEED,
+    cpi::{accounts::UpdateBookingStatusCpi, cpi_update_booking_status},
+    program::StaykeEscrow,
+    state::Booking,
+    BookingStatus,
 };
 
 use crate::{
@@ -69,7 +73,6 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>) -> Result<()> {
             || ctx.accounts.booking.host == initiator_profile_key,
         DisputeError::UnauthorizedDisputeInitiator
     );
-
 
     let opened_by = if ctx.accounts.booking.guest == initiator_profile_key {
         DisputeParty::Guest

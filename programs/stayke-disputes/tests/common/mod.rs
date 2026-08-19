@@ -198,14 +198,38 @@ pub fn setup_unverified_user_profile(svm: &mut LiteSVM, authority: Pubkey) -> Pu
 // Booking (stayke_escrow)
 // ---------------------------------------------------------------------------
 
+/// Derive the Booking PDA from the seeds used by stayke-escrow.
+pub fn booking_pda(property: Pubkey, guest: Pubkey, check_in: i64) -> Pubkey {
+    Pubkey::find_program_address(
+        &[
+            escrow::constants::BOOKING_SEED.as_bytes(),
+            property.as_ref(),
+            guest.as_ref(),
+            check_in.to_le_bytes().as_ref(),
+        ],
+        &escrow::id(),
+    )
+    .0
+}
+
 pub fn setup_booking(
     svm: &mut LiteSVM,
-    booking_key: Pubkey,
     guest: Pubkey,
     host: Pubkey,
     property: Pubkey,
+    check_in: i64,
     status: escrow::state::BookingStatus,
 ) -> Pubkey {
+    let (booking_key, bump) = Pubkey::find_program_address(
+        &[
+            escrow::constants::BOOKING_SEED.as_bytes(),
+            property.as_ref(),
+            guest.as_ref(),
+            check_in.to_le_bytes().as_ref(),
+        ],
+        &escrow::id(),
+    );
+
     let booking = escrow::state::Booking {
         guest,
         host,
@@ -213,12 +237,12 @@ pub fn setup_booking(
         host_review: 0,
         updated_at: 0,
         property,
-        check_in: 0,
+        check_in,
         check_out: 0,
         total_price: 0,
         status,
-        escrow_bump: 255,
-        bump: 255,
+        escrow_bump: bump,
+        bump,
     };
 
     svm.set_account(
@@ -550,8 +574,9 @@ pub fn setup_bound_booking(
     let guest_profile = setup_user_profile(svm, guest_wallet);
     let host_profile = setup_user_profile(svm, host_wallet);
     let listing = setup_listing(svm, host_wallet, host_profile);
-    let booking = Pubkey::new_unique();
-    setup_booking(svm, booking, guest_profile, host_profile, listing, status);
+    let check_in: i64 = 1_735_689_600;
+    let booking = booking_pda(listing, guest_profile, check_in);
+    setup_booking(svm, guest_profile, host_profile, listing, check_in, status);
     BoundBooking {
         guest_wallet,
         host_wallet,

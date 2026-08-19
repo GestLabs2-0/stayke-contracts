@@ -10,6 +10,14 @@ pub struct DisputeOpened {
     pub opened_at: i64,
 }
 
+#[event]
+pub struct DisputeEscalated {
+    pub dispute: Pubkey,
+    pub booking: Pubkey,
+    pub opened_at: i64,
+    pub escalated_at: i64,
+}
+
 // ---------------------------------------------------------------------------
 // DEPRECATED — STK-168 refactor: P2P dispute flow with admin escalation.
 // These events belong to the admin-mediated dispute flow being replaced.

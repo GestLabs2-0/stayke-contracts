@@ -43,4 +43,9 @@ pub enum DisputeError {
     InvalidPayoutTokenAccount,
     #[msg("Token account is not owned by the affected wallet")]
     InvalidAffectedTokenAccount,
+
+    #[msg("Dispute is not in OpenP2P state and cannot be escalated")]
+    DisputeNotOpenP2P,
+    #[msg("Dispute cannot be escalated before the 24-hour P2P window elapses")]
+    EscalationWindowNotElapsed,
 }

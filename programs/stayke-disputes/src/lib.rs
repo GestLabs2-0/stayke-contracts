@@ -29,4 +29,8 @@ pub mod stayke_disputes {
     pub fn open_dispute(ctx: Context<OpenDispute>) -> Result<()> {
         handler_open_dispute(ctx)
     }
+
+    pub fn escalate_dispute(ctx: Context<EscalateDispute>) -> Result<()> {
+        handler_escalate_dispute(ctx)
+    }
 }
