@@ -30,10 +30,8 @@ Motor del booking: calendario, vault USDC por reserva y liquidación (feliz o v�
 | `release_funds` | Distribuye escrow → host + `fee_bps` a platform; CPIs core (`increment_completed_stays`, `clear_active_booking`, `increment_hosted_stays`) |
 | `host_review` | Host califica guest (1–5); escribe `host_review` + reputación guest |
 | `guest_review` | Guest califica host (1–5); escribe `guest_review` + reputación host |
-| `review_completed` | **Legacy** — solo escribe reputación host, sin transición de estado |
 | `guest_cancel_booking` / `guest_cancel_booking_cross_year` | Guest cancela; split de refund según ventana (ver constantes) |
 | `host_cancel_booking` / `host_cancel_booking_cross_year` | Host cancela; full refund + posible slash de depósito |
-| `cancel_booking` | **Deprecado** — usar `guest_cancel_booking` / `host_cancel_booking` |
 | `client_reject_reserve` / `client_reject_reserve_cross_year` | Guest rechaza reserva → `Cancelled`, libera días |
 | `expire_booking` / `expire_booking_crossday` | Expira `Pending` tras 24 h → refund al guest |
 | `cpi_update_booking_status` | CPI Disputes → congela booking (`Disputed`) o lo cierra (`DisputeResolved`/`DisputeRejected`) |

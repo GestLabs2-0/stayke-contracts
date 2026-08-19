@@ -13,31 +13,33 @@ configurado en `GlobalConfig.minimum_deposit`.
 |----------|-----|
 | `stayke-config` | Almacena `free_ops` (umbral) y `minimum_deposit` (monto) en `GlobalConfig` |
 | `stayke-core` | Mantiene contadores `completed_stays` y `hosted_stays` en `UserProfile` |
-| `stayke-escrow` | Aplica la validación condicional en `create_booking`, `host_accept_booking` y `client_accept_reserve`; incrementa `completed_stays` vía CPI en `complete_stay` |
+| `stayke-escrow` | Aplica la validación condicional en `create_booking` y `host_accept_booking`; incrementa contadores vía CPI en `release_funds` |
 
 ## Flujo de coordinación
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     STAYKE-CONFIG                            │
-│  GlobalConfig { free_ops, minimum_deposit }                  │
-│  (PDA ["global_config"])                                    │
-└────────────┬──────────────────────────────┬─────────────────┘
-             │ read                         │ read
-             ▼                              ▼
-┌────────────────────────┐    ┌────────────────────────────────┐
-│     STAYKE-CORE         │    │        STAYKE-ESCROW            │
-│ UserProfile {           │    │                                 │
-│   completed_stays,      │◄───│ complete_stay ──CPI──►          │
-│   hosted_stays,         │    │   increment_completed_stays     │
-│   deposited             │    │                                 │
-│ }                       │    │ create_booking /                │
-│                         │    │ host_accept_booking /            │
-│                         │    │ client_accept_reserve            │
-│                         │    │   validación condicional:        │
-│                         │    │   (completed+hosted) < free_ops  │
-│                         │    │   || deposited >= minimum_deposit│
-└────────────────────────┘    └────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                       STAYKE-CONFIG                              │
+│  GlobalConfig { free_ops, minimum_deposit }                      │
+│  (PDA ["global_config"])                                         │
+└────────────┬──────────────────────────────────┬─────────────────┘
+             │ read                             │ read
+             ▼                                  ▼
+┌────────────────────────┐    ┌────────────────────────────────────┐
+│     STAYKE-CORE         │    │        STAYKE-ESCROW                │
+│ UserProfile {           │    │                                     │
+│   completed_stays,      │◄───│ release_funds ──CPI──►              │
+│   hosted_stays,         │    │   increment_completed_stays         │
+│   deposited             │    │   clear_active_booking              │
+│ }                       │    │   increment_hosted_stays            │
+│                         │    │                                     │
+│                         │    │ create_booking /                    │
+│                         │    │ create_booking_cross_year /         │
+│                         │    │ host_accept_booking                 │
+│                         │    │   validación condicional:            │
+│                         │    │   (completed+hosted) < free_ops      │
+│                         │    │   || deposited >= minimum_deposit    │
+└────────────────────────┘    └────────────────────────────────────┘
 ```
 
 ## Lógica de validación condicional
@@ -61,36 +63,71 @@ constraint = (client_profile.completed_stays + client_profile.hosted_stays)
     @ EscrowError::InsufficientDeposit,
 ```
 
-Misma lógica para el host en `create_booking`, `host_accept_booking` y `client_accept_reserve`.
+### Instrucciones con free tier gate
 
-## CPI: incremento de `completed_stays`
+| Instrucción | Valida guest | Valida host | Notas |
+|-------------|:-----------:|:-----------:|-------|
+| `create_booking` | ✅ | ✅ | Ambos perfiles se verifican en la creación |
+| `create_booking_cross_year` | ✅ | ✅ | Misma lógica, variant cross-year |
+| `host_accept_booking` | — | ✅ | Re-check al aceptar por si cambió el estado |
 
-Cuando un stay se completa (`complete_stay` en escrow), el programa llama vía CPI a
-`stayke-core::increment_completed_stays`:
+> **Importante:** `booking_starts`, `booking_completes`, `release_funds`, `expire_booking`,
+> `guest_cancel_booking`, `host_cancel_booking`, y las reviews **NO** tienen free tier gate
+> — son transiciones de lifecycle que operan sobre bookings ya creados.
 
-1. **Escrow** distribuye los fondos (host + fee) y cierra la cuenta de escrow.
-2. **CPI** con signer seeds (`["cpi_authority"]`) llama a core.
-3. **Core** verifica que el caller es Escrow (`assert_cpi_authority` con `AllowedCaller::Escrow`).
-4. **Core** incrementa `user_profile.completed_stays` con `saturating_add(1)`.
+## CPI: incremento de contadores
+
+Cuando un stay se completa, la secuencia de settlement es:
+
+1. `booking_completes` — anyone, transitions `Active` → `Completed`. No mueve fondos.
+2. `release_funds` — anyone, 24 h después de `booking_completes`. Distribuye fondos y ejecuta CPIs.
+
+En `release_funds`, después de distribuir el host_amount y la fee:
 
 ```rust
-// complete_stay.rs — después de distribuir fondos
+// release_funds.rs — después de transfer_checked
 let signer_seeds: &[&[&[u8]]] = &[&[CPI_AUTHORITY_SEED.as_bytes(), &[bump]]];
+
+// CPI 1: increment guest's completed_stays
 stayke_core::cpi::increment_completed_stays(
     CpiContext::new_with_signer(
         ctx.accounts.stayke_core_program.key(),
-        stayke_core::cpi::accounts::UpdateUserProfile { ... },
+        UpdateUserProfile { user_profile, global_config, cpi_authority },
+        signer_seeds,
+    ),
+)?;
+
+// CPI 2: clear guest's active_booking slot
+stayke_core::cpi::clear_active_booking(
+    CpiContext::new_with_signer(/* ... */, signer_seeds),
+)?;
+
+// CPI 3: increment host's hosted_stays
+stayke_core::cpi::increment_hosted_stays(
+    CpiContext::new_with_signer(
+        ctx.accounts.stayke_core_program.key(),
+        UpdateUserProfile { user_profile: host, global_config, cpi_authority },
         signer_seeds,
     ),
 )?;
 ```
 
+Los tres CPIs usan signer seeds `["cpi_authority"]` y son validados por
+`assert_cpi_authority` en stayke-core contra la allowlist de `GlobalConfig`.
+
 ## Contadores existentes
 
 | Campo | Dónde se incrementa | Quién lo hace |
 |-------|-------------------|---------------|
-| `hosted_stays` | `update_host_review` (core, CPI-gated) | Escrow vía `close_booking` |
-| `completed_stays` | `increment_completed_stays` (core, CPI-gated) | Escrow vía `complete_stay` |
+| `completed_stays` | `increment_completed_stays` (core, CPI-gated) | Escrow vía `release_funds` |
+| `hosted_stays` | `increment_hosted_stays` (core, CPI-gated) | Escrow vía `release_funds` |
+
+Además, las cancelaciones incrementan contadores de reputación:
+
+| Campo | Dónde se incrementa | Quién lo hace |
+|-------|-------------------|---------------|
+| `client_cancellations` | `increment_client_cancellations` (core) | Escrow vía `guest_cancel_booking` |
+| `host_cancellations` | `increment_host_cancellations` (core) | Escrow vía `host_cancel_booking` |
 
 ## Configuración inicial
 
@@ -109,7 +146,9 @@ pub fn initialize_config(
 
 ## Checklist de seguridad
 
-- [x] `increment_completed_stays` solo puede ser llamado por Escrow (CPI authority gated)
+- [x] `increment_completed_stays` y `increment_hosted_stays` solo pueden ser llamados por Escrow (CPI authority gated)
 - [x] `completed_stays` y `hosted_stays` se incrementan con `saturating_add` (no overflow)
 - [x] La comparación `free_ops as u32` es segura porque `free_ops` es `u8` (0–255)
 - [x] El constraint se evalúa en deserialización (Anchor), sin runtime bypass posible
+- [x] `clear_active_booking` acepta CPI de Escrow o Disputes (allowlist dual)
+- [x] Cancelaciones incrementan contadores de reputación vía CPI (no contadores de free tier)

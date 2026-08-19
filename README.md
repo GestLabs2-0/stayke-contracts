@@ -14,11 +14,11 @@ single responsibility, so changes and audits stay scoped:
 
 | Program | ID | Responsibility |
 | --- | --- | --- |
-| [`stayke-config`](#stayke-config) | `2GM2yLmDtz2Hyb8T5VBftERmiyJ5whKUmv6V4hBjNXMW` | Shared protocol configuration |
-| [`stayke-core`](#stayke-core) | `8yHjmyUgA9x4pzftX1cwJt8SnG8iV1zxLjEP77HKc9YP` | Users, listings and reputation |
-| [`stayke-escrow`](#stayke-escrow) | `FRXoLmSWKjMBmHz2Wfn2BPV3mcjkWZ2ESMRWUiwjb2iQ` | Booking lifecycle and fund escrow |
-| [`stayke-disputes`](#stayke-disputes) | `7SQdT9RxCjsEbap9vCmyVdAURwC7XRJkZtPNSJBcDxRB` | Dispute resolution and penalties |
-| [`stayke-treasury`](#stayke-treasury) | `59buEPHFBK4h8LyLE2KtnV1kpaQTyjb82NWt5F9jSuHu` | Guarantee deposits and platform vault |
+| [`stayke-config`](#stayke-config) | `9ESE5Ztpr8zWbLyXCyiB5QqcjxHghotT8zqJxD2S3zaT` | Shared protocol configuration |
+| [`stayke-core`](#stayke-core) | `2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm` | Users, listings and reputation |
+| [`stayke-escrow`](#stayke-escrow) | `68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a` | Booking lifecycle and fund escrow |
+| [`stayke-disputes`](#stayke-disputes) | `8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ` | Dispute resolution and penalties |
+| [`stayke-treasury`](#stayke-treasury) | `HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY` | Guarantee deposits and platform vault |
 
 ## Requirements
 
@@ -150,8 +150,9 @@ these values here avoids hardcoding them across contracts.
   (`authority`, `minimum_deposit`, `fee_bps`, `usdc_mint`, `platform_vault`, bumps).
 
 > **Design note:** the intent is for every CPI call between Stayke contracts to validate
-> the signer against this global config, instead of hardcoding program addresses. This is
-> not fully wired up yet — only `stayke-treasury` currently references `global_config`.
+> the signer against this global config, instead of hardcoding program addresses. Both
+> `stayke-escrow` and `stayke-treasury` currently reference `global_config` for fee
+> calculation, mint validation, and vault checks.
 
 ### `stayke-core`
 
@@ -172,18 +173,113 @@ reputation/penalty system shared across the protocol.
 The **core transactional** program. Owns the full booking lifecycle and escrows the funds
 (USDC) between guest and host until the stay completes.
 
-- `initialize_escrow` — admin; initializes escrow config.
-- `create_booking(check_in, check_out)` — guest opens a booking; checks calendar availability
-  via `BookingDays` (per-month occupancy stored as a `u32` bitmask).
-- `host_accept_booking` / `host_reject_booking` — host responds to a pending booking.
-- `client_accept_reserve` / `client_reject_reserve` — guest confirms/rejects the reservation.
-- `review_completed(score)` — guest rates the stay (0 = none, 1–5 stars).
-- `complete_stay` — releases escrowed funds to the host.
-- `cpi_update_booking_status` / `cpi_resolve_dispute_transfer` — CPI endpoints used by
-  `stayke-disputes` to flip booking status and move funds when a dispute resolves.
+#### Booking status state machine
 
-State: `Booking` (guest, host, property, deposit, dates, total price, review, status, bumps)
-and `BookingDays` (occupied calendar days).
+```
+Pending ──► HostAccepted ──► Active ──► Completed ──► Released
+   │              │              │           │
+   ▼              ▼              ▼           ▼
+Cancelled      Cancelled     Disputed    DisputeResolved
+                                │        DisputeRejected
+                                ▼
+                            DisputeResolved
+                            DisputeRejected
+```
+
+#### Instructions
+
+**Admin**
+
+- `initialize_escrow` — admin; creates the `EscrowConfig` account.
+
+**Booking creation**
+
+- `create_booking(check_in, check_out)` — guest opens a booking and escrows USDC; reserves
+  calendar days via `BookingDays` (per-month occupancy stored as a `u32` bitmask).
+- `create_booking_cross_year(check_in, check_out)` — same as above for stays that span
+  two calendar years (reserves days across two `BookingDays` accounts).
+
+**Host response**
+
+- `host_accept_booking` — host accepts a pending booking (`Pending` → `HostAccepted`).
+- `host_reject_booking` / `host_reject_booking_cross_year` — host rejects a pending booking;
+  the guest receives a full refund, the booking is cancelled and the reserved days are
+  released.
+
+**Lifecycle transitions (permissionless)**
+
+- `booking_starts` — anyone can call once the check-in timestamp is reached; transitions
+  `HostAccepted` → `Active` and locks the guest's active booking slot via CPI to
+  `stayke-core`. No funds are moved.
+- `booking_completes` — anyone can call once the check-out timestamp is reached; transitions
+  `Active` → `Completed`. Records `updated_at` as the start of the 24 h dispute window and
+  the review period. No funds are moved.
+
+**Fund settlement**
+
+- `release_funds` — permissionless; settles a completed stay once the 24 h dispute window
+  elapses. Deducts the platform fee (`fee_bps` from `GlobalConfig`), sends the host share,
+  and closes the escrow token account (rent returned to the caller). Increments the guest's
+  `completed_stays` and the host's `hosted_stays` via CPI to `stayke-core`.
+
+**Cancellations**
+
+- `guest_cancel_booking` / `guest_cancel_booking_cross_year` — guest cancels before
+  check-in. Outside the 72 h cancellation window the guest receives a full refund. Inside
+  the window the refund is split: 60 % to the guest, 75 % of the remainder to the host,
+  and the rest to the platform vault (amounts derived as the remainder so the three shares
+  always sum exactly to `total_price`). The guest's `client_cancellations` counter is
+  incremented via CPI.
+- `host_cancel_booking` / `host_cancel_booking_cross_year` — host cancels before check-in.
+  The guest always receives a full refund. Inside the 72 h cancellation window the host's
+  guarantee deposit is slashed by 10 % (capped at the available deposit) and paid to the
+  guest via CPI to `stayke-treasury`; outside the window there is no slash. The host's
+  `host_cancellations` counter is incremented via CPI.
+
+**Expiration**
+
+- `expire_booking` / `expire_booking_cross_year` — permissionless; expires a `Pending`
+  booking that has not been acted on for over 24 h. Returns the full escrowed amount to
+  the guest and releases the reserved days.
+
+**Reviews**
+
+- `host_review(score)` — host rates the guest (1–5) after the booking reaches `Completed`,
+  `Released`, `DisputeResolved`, or `DisputeRejected` status. Updates the guest's
+  `ReputationProfile` via CPI.
+- `guest_review(score)` — guest rates the host and the listing (1–5) after the same
+  terminal statuses. Updates the host's `ReputationProfile` and the listing's
+  `total_reviews` / `rating` via CPI.
+
+
+**CPI endpoints for `stayke-disputes`**
+
+- `cpi_update_booking_status(status)` — allows `stayke-disputes` to flip the booking
+  status.
+- `cpi_resolve_dispute_transfer(host_share_bps, rejected)` — allows `stayke-disputes`
+  to split escrowed funds between host and platform when a dispute resolves.
+
+#### State
+
+| Account | Fields |
+| --- | --- |
+| `Booking` | `guest`, `host`, `property`, `check_in`, `check_out`, `total_price`, `host_review`, `guest_review`, `status` (`BookingStatus`), `escrow_bump`, `updated_at`, `bump` |
+| `BookingDays` | `occupied_days: [u32; 12]`, `year`, `bump` |
+| `EscrowConfig` | `authority`, `is_initialized`, `bump` |
+
+#### BookingStatus enum
+
+`Pending`, `HostAccepted`, `Active`, `Completed`, `Released`, `Cancelled`, `Disputed`,
+`DisputeResolved`, `DisputeRejected`.
+
+#### Cancellation policy (MVP constants)
+
+| Constant | Value | Description |
+| --- | --- | --- |
+| `CANCELLATION_WINDOW_HOURS` | `72` | Hours before check-in inside which the split policy applies |
+| `CANCELLATION_REFUND_PERCENTAGE` | `60` | % of `total_price` refunded to the guest inside the window |
+| `CANCELLATION_HOST_SHARE_PERCENTAGE` | `75` | % of the post-refund remainder paid to the host inside the window |
+| `HOST_CANCELLATION_PENALTY_PERCENTAGE` | `10` | % of the host's deposit slashed on late host cancellation |
 
 ### `stayke-disputes`
 
@@ -215,18 +311,3 @@ and executes penalty transfers.
 > as **placeholders** in the source and are not enabled yet.
 
 ---
-
-## Design notes (from the author)
-
-The original README held open design questions. They are preserved here for context:
-
-- **Global config**: every contract should share the same data instead of duplicating
-  config. The cleanest approach is a dedicated global contract (this became `stayke-config`)
-  with config accounts in each contract referencing it, so CPI signer checks are consistent
-  and program addresses are not hardcoded.
-- **Banned user with an active booking**: if a user is banned while a booking is still
-  active, should the funds be returned to the client, or should Stayke take a share?
-
-**Security TODO:** modifications from other contracts must not be allowed unless they are
-secured beforehand. The recommended path is to route everything through the global config
-contract (`stayke-config`) and have each contract hold a reference to it.
