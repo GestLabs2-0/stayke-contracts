@@ -1,3 +1,9 @@
+// ---------------------------------------------------------------------------
+// DEPRECATED — STK-168 refactor: P2P dispute flow with admin escalation.
+// The admin-mediated resolve_dispute flow is being replaced. This module is
+// commented out to keep the crate compiling during the refactor.
+// ---------------------------------------------------------------------------
+/*
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use stayke_config::{error::StaykeConfigError, GlobalConfig, GLOBAL_CONFIG_SEED};
@@ -141,3 +147,4 @@ pub fn handler_resolve_dispute(
 
     Ok(())
 }
+*/

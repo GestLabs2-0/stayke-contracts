@@ -480,6 +480,8 @@ pub fn make_mint(svm: &mut LiteSVM, key: Pubkey) {
 // Dispute account
 // ---------------------------------------------------------------------------
 
+// DEPRECATED — STK-168 refactor: setup for the old admin-mediated Dispute model.
+/*
 pub fn setup_dispute(
     svm: &mut LiteSVM,
     booking: Pubkey,
@@ -527,6 +529,7 @@ pub fn setup_dispute(
 
     dispute_key
 }
+*/
 
 /// Booking whose guest/host/property match real core PDAs (needed after account binding).
 pub struct BoundBooking {

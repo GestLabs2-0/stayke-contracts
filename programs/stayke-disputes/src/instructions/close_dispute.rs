@@ -1,3 +1,9 @@
+// ---------------------------------------------------------------------------
+// DEPRECATED — STK-168 refactor: P2P dispute flow with admin escalation.
+// The admin-mediated close_dispute flow is being replaced. This module is
+// commented out to keep the crate compiling during the refactor.
+// ---------------------------------------------------------------------------
+/*
 use anchor_lang::prelude::*;
 use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
 use stayke_core::{
@@ -134,3 +140,4 @@ pub fn handler_close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
 
     Ok(())
 }
+*/

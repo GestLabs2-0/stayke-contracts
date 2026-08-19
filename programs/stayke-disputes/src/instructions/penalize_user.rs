@@ -1,3 +1,9 @@
+// ---------------------------------------------------------------------------
+// DEPRECATED — STK-168 refactor: P2P dispute flow with admin escalation.
+// The penalty flow is being reworked alongside the dispute refactor. This
+// module is commented out to keep the crate compiling during the refactor.
+// ---------------------------------------------------------------------------
+/*
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use stayke_config::{GlobalConfig, CPI_AUTHORITY_SEED, GLOBAL_CONFIG_SEED};
@@ -172,3 +178,4 @@ pub fn handler_penalize_user(ctx: Context<PenalizeUser>, severity: PenaltySeveri
 
     Ok(())
 }
+*/
