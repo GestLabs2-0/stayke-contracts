@@ -51,7 +51,7 @@ import {
   getCpiUpdateBookingStatusInstructionAsync,
   getCreateBookingCrossYearInstructionAsync,
   getCreateBookingInstructionAsync,
-  getExpireBookingCrossyearInstructionAsync,
+  getExpireBookingCrossYearInstructionAsync,
   getExpireBookingInstructionAsync,
   getGuestCancelBookingCrossYearInstructionAsync,
   getGuestCancelBookingInstructionAsync,
@@ -64,14 +64,13 @@ import {
   getHostReviewInstructionAsync,
   getInitializeEscrowInstructionAsync,
   getReleaseFundsInstructionAsync,
-  getReviewCompletedInstructionAsync,
   parseBookingCompletesInstruction,
   parseBookingStartsInstruction,
   parseCpiResolveDisputeTransferInstruction,
   parseCpiUpdateBookingStatusInstruction,
   parseCreateBookingCrossYearInstruction,
   parseCreateBookingInstruction,
-  parseExpireBookingCrossyearInstruction,
+  parseExpireBookingCrossYearInstruction,
   parseExpireBookingInstruction,
   parseGuestCancelBookingCrossYearInstruction,
   parseGuestCancelBookingInstruction,
@@ -84,7 +83,6 @@ import {
   parseHostReviewInstruction,
   parseInitializeEscrowInstruction,
   parseReleaseFundsInstruction,
-  parseReviewCompletedInstruction,
   type BookingCompletesInput,
   type BookingStartsAsyncInput,
   type CpiResolveDisputeTransferAsyncInput,
@@ -92,7 +90,7 @@ import {
   type CreateBookingAsyncInput,
   type CreateBookingCrossYearAsyncInput,
   type ExpireBookingAsyncInput,
-  type ExpireBookingCrossyearAsyncInput,
+  type ExpireBookingCrossYearAsyncInput,
   type GuestCancelBookingAsyncInput,
   type GuestCancelBookingCrossYearAsyncInput,
   type GuestReviewAsyncInput,
@@ -109,7 +107,7 @@ import {
   type ParsedCpiUpdateBookingStatusInstruction,
   type ParsedCreateBookingCrossYearInstruction,
   type ParsedCreateBookingInstruction,
-  type ParsedExpireBookingCrossyearInstruction,
+  type ParsedExpireBookingCrossYearInstruction,
   type ParsedExpireBookingInstruction,
   type ParsedGuestCancelBookingCrossYearInstruction,
   type ParsedGuestCancelBookingInstruction,
@@ -122,9 +120,7 @@ import {
   type ParsedHostReviewInstruction,
   type ParsedInitializeEscrowInstruction,
   type ParsedReleaseFundsInstruction,
-  type ParsedReviewCompletedInstruction,
   type ReleaseFundsAsyncInput,
-  type ReviewCompletedAsyncInput,
 } from "../instructions";
 import {
   findBookingDaysPda,
@@ -194,7 +190,7 @@ export enum StaykeEscrowInstruction {
   CreateBooking,
   CreateBookingCrossYear,
   ExpireBooking,
-  ExpireBookingCrossyear,
+  ExpireBookingCrossYear,
   GuestCancelBooking,
   GuestCancelBookingCrossYear,
   GuestReview,
@@ -206,7 +202,6 @@ export enum StaykeEscrowInstruction {
   HostReview,
   InitializeEscrow,
   ReleaseFunds,
-  ReviewCompleted,
 }
 
 export function identifyStaykeEscrowInstruction(
@@ -294,12 +289,12 @@ export function identifyStaykeEscrowInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([109, 17, 49, 65, 104, 63, 254, 215]),
+        new Uint8Array([227, 39, 197, 233, 121, 157, 162, 5]),
       ),
       0,
     )
   ) {
-    return StaykeEscrowInstruction.ExpireBookingCrossyear;
+    return StaykeEscrowInstruction.ExpireBookingCrossYear;
   }
   if (
     containsBytes(
@@ -422,17 +417,6 @@ export function identifyStaykeEscrowInstruction(
   ) {
     return StaykeEscrowInstruction.ReleaseFunds;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([196, 242, 133, 147, 126, 125, 244, 151]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeEscrowInstruction.ReviewCompleted;
-  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "staykeEscrow" },
@@ -464,8 +448,8 @@ export type ParsedStaykeEscrowInstruction<
       instructionType: StaykeEscrowInstruction.ExpireBooking;
     } & ParsedExpireBookingInstruction<TProgram>)
   | ({
-      instructionType: StaykeEscrowInstruction.ExpireBookingCrossyear;
-    } & ParsedExpireBookingCrossyearInstruction<TProgram>)
+      instructionType: StaykeEscrowInstruction.ExpireBookingCrossYear;
+    } & ParsedExpireBookingCrossYearInstruction<TProgram>)
   | ({
       instructionType: StaykeEscrowInstruction.GuestCancelBooking;
     } & ParsedGuestCancelBookingInstruction<TProgram>)
@@ -498,10 +482,7 @@ export type ParsedStaykeEscrowInstruction<
     } & ParsedInitializeEscrowInstruction<TProgram>)
   | ({
       instructionType: StaykeEscrowInstruction.ReleaseFunds;
-    } & ParsedReleaseFundsInstruction<TProgram>)
-  | ({
-      instructionType: StaykeEscrowInstruction.ReviewCompleted;
-    } & ParsedReviewCompletedInstruction<TProgram>);
+    } & ParsedReleaseFundsInstruction<TProgram>);
 
 export function parseStaykeEscrowInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -557,11 +538,11 @@ export function parseStaykeEscrowInstruction<TProgram extends string>(
         ...parseExpireBookingInstruction(instruction),
       };
     }
-    case StaykeEscrowInstruction.ExpireBookingCrossyear: {
+    case StaykeEscrowInstruction.ExpireBookingCrossYear: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: StaykeEscrowInstruction.ExpireBookingCrossyear,
-        ...parseExpireBookingCrossyearInstruction(instruction),
+        instructionType: StaykeEscrowInstruction.ExpireBookingCrossYear,
+        ...parseExpireBookingCrossYearInstruction(instruction),
       };
     }
     case StaykeEscrowInstruction.GuestCancelBooking: {
@@ -641,13 +622,6 @@ export function parseStaykeEscrowInstruction<TProgram extends string>(
         ...parseReleaseFundsInstruction(instruction),
       };
     }
-    case StaykeEscrowInstruction.ReviewCompleted: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeEscrowInstruction.ReviewCompleted,
-        ...parseReviewCompletedInstruction(instruction),
-      };
-    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -703,9 +677,9 @@ export type StaykeEscrowPluginInstructions = {
     input: MakeOptional<ExpireBookingAsyncInput, "payer">,
   ) => ReturnType<typeof getExpireBookingInstructionAsync> &
     SelfPlanAndSendFunctions;
-  expireBookingCrossyear: (
-    input: MakeOptional<ExpireBookingCrossyearAsyncInput, "payer">,
-  ) => ReturnType<typeof getExpireBookingCrossyearInstructionAsync> &
+  expireBookingCrossYear: (
+    input: MakeOptional<ExpireBookingCrossYearAsyncInput, "payer">,
+  ) => ReturnType<typeof getExpireBookingCrossYearInstructionAsync> &
     SelfPlanAndSendFunctions;
   guestCancelBooking: (
     input: GuestCancelBookingAsyncInput,
@@ -750,10 +724,6 @@ export type StaykeEscrowPluginInstructions = {
   releaseFunds: (
     input: MakeOptional<ReleaseFundsAsyncInput, "payer">,
   ) => ReturnType<typeof getReleaseFundsInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  reviewCompleted: (
-    input: MakeOptional<ReviewCompletedAsyncInput, "payer">,
-  ) => ReturnType<typeof getReviewCompletedInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
 
@@ -834,10 +804,10 @@ export function staykeEscrowProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
-          expireBookingCrossyear: (input) =>
+          expireBookingCrossYear: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getExpireBookingCrossyearInstructionAsync({
+              getExpireBookingCrossYearInstructionAsync({
                 ...input,
                 payer: input.payer ?? client.payer,
               }),
@@ -905,14 +875,6 @@ export function staykeEscrowProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getReleaseFundsInstructionAsync({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
-            ),
-          reviewCompleted: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getReviewCompletedInstructionAsync({
                 ...input,
                 payer: input.payer ?? client.payer,
               }),

@@ -92,10 +92,6 @@ pub mod stayke_escrow {
         handler_host_cancel_booking_cross_year(ctx)
     }
 
-    pub fn review_completed(ctx: Context<CloseBooking>, score: u8) -> Result<()> {
-        handler_review_completed(ctx, score)
-    }
-
     pub fn release_funds(ctx: Context<ReleaseFunds>) -> Result<()> {
         handler_release_funds(ctx)
     }

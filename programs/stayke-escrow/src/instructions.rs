@@ -1,6 +1,5 @@
 pub mod booking_completes;
 pub mod booking_starts;
-pub mod close_booking;
 pub mod cpi;
 pub mod create_booking;
 pub mod expire_booking;
@@ -15,7 +14,6 @@ pub mod release_funds;
 
 pub use booking_completes::*;
 pub use booking_starts::*;
-pub use close_booking::*;
 pub use cpi::*;
 pub use create_booking::*;
 pub use expire_booking::*;
