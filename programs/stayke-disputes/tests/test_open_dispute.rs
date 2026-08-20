@@ -123,6 +123,7 @@ fn open_dispute_guest_success() {
     assert_eq!(disp.guest_evidence, None);
     assert_eq!(disp.host_evidence, None);
     assert_eq!(disp.outcome, None);
+    assert_eq!(disp.original_booking_status, BookingStatus::Active);
 
     let booking: stayke_escrow::state::Booking =
         AnchorDeserialize::deserialize(&mut &svm.get_account(&booking_key).unwrap().data[8..])
@@ -168,6 +169,7 @@ fn open_dispute_host_success() {
     assert_eq!(disp.guest_evidence, None);
     assert_eq!(disp.host_evidence, None);
     assert_eq!(disp.outcome, None);
+    assert_eq!(disp.original_booking_status, BookingStatus::Active);
 }
 
 #[test]

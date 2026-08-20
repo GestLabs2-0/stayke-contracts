@@ -33,4 +33,8 @@ pub mod stayke_disputes {
     pub fn escalate_dispute(ctx: Context<EscalateDispute>) -> Result<()> {
         handler_escalate_dispute(ctx)
     }
+
+    pub fn solve_dispute_before_admin(ctx: Context<SolveDisputeBeforeAdmin>) -> Result<()> {
+        handler_solve_dispute_before_admin(ctx)
+    }
 }

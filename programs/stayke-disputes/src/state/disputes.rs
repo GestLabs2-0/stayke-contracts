@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use stayke_escrow::BookingStatus;
 
 #[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum InfractionSeverity {
@@ -41,5 +42,6 @@ pub struct DisputeAccount {
     pub guest_evidence: Option<[u8; 32]>,
     pub host_evidence: Option<[u8; 32]>,
     pub outcome: Option<DisputeOutcome>,
+    pub original_booking_status: BookingStatus,
     pub bump: u8,
 }

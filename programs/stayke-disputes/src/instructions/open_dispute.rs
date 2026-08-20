@@ -89,6 +89,7 @@ pub fn handler_open_dispute(ctx: Context<OpenDispute>) -> Result<()> {
     dispute.guest_evidence = None;
     dispute.host_evidence = None;
     dispute.outcome = None;
+    dispute.original_booking_status = ctx.accounts.booking.status.clone();
     dispute.bump = ctx.bumps.dispute;
 
     let bump = ctx.bumps.cpi_authority;

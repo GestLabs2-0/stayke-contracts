@@ -48,4 +48,9 @@ pub enum DisputeError {
     DisputeNotOpenP2P,
     #[msg("Dispute cannot be escalated before the 24-hour P2P window elapses")]
     EscalationWindowNotElapsed,
+
+    #[msg("Only the user who opened the dispute can withdraw it")]
+    UnauthorizedDisputeSolver,
+    #[msg("The P2P resolution window has elapsed; dispute must be resolved by admin")]
+    P2PWindowElapsed,
 }
