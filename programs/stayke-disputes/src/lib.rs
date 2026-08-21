@@ -37,4 +37,8 @@ pub mod stayke_disputes {
     pub fn solve_dispute_before_admin(ctx: Context<SolveDisputeBeforeAdmin>) -> Result<()> {
         handler_solve_dispute_before_admin(ctx)
     }
+
+    pub fn link_evidente(ctx: Context<LinkEvidence>, evidence: [u8; 32]) -> Result<()> {
+        handler_link_evidence(ctx, evidence)
+    }
 }

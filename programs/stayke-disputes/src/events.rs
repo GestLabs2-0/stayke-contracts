@@ -3,6 +3,13 @@ use anchor_lang::prelude::*;
 use crate::state::DisputeParty;
 
 #[event]
+pub struct EvidenceLinked {
+    pub evidence: [u8; 32],
+    pub dispute: Pubkey,
+    pub is_guest: bool,
+}
+
+#[event]
 pub struct DisputeOpened {
     pub dispute: Pubkey,
     pub booking: Pubkey,

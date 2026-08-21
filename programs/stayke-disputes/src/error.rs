@@ -53,4 +53,11 @@ pub enum DisputeError {
     UnauthorizedDisputeSolver,
     #[msg("The P2P resolution window has elapsed; dispute must be resolved by admin")]
     P2PWindowElapsed,
+
+    #[msg("Only link evidence when dispute is escalated")]
+    DisputeNotEscalated,
+    #[msg("Evidence already linked")]
+    EvidenceLinked,
+    #[msg("Unauthorized user")]
+    UnauthorizedUser
 }
