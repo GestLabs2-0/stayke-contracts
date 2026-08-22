@@ -54,10 +54,18 @@ pub enum DisputeError {
     #[msg("The P2P resolution window has elapsed; dispute must be resolved by admin")]
     P2PWindowElapsed,
 
-    #[msg("Only link evidence when dispute is escalated")]
+    #[msg("Can perform action only in escalated dispute")]
     DisputeNotEscalated,
     #[msg("Evidence already linked")]
     EvidenceLinked,
     #[msg("Unauthorized user")]
-    UnauthorizedUser
+    UnauthorizedUser,
+
+    #[msg("Dispute is not bound to this booking")]
+    UnboundBooking,
+
+    #[msg("Dispute must be resolved by admin or by P2P before closing")]
+    DisputeNotResolved,
+    #[msg("The provided wallet is not the party that opened the dispute")]
+    InvalidOpenerWallet,
 }

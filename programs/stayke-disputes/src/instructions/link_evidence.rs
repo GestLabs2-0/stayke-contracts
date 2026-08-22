@@ -50,14 +50,14 @@ pub fn handler_link_evidence(ctx: Context<LinkEvidence>, evidence: [u8; 32]) -> 
             user_profile_key == booking.guest,
             DisputeError::UnauthorizedUser
         );
-        dispute.guest_evidence = Some(evidence.clone());
+        dispute.guest_evidence = Some(evidence);
         true
     } else {
         require!(
             user_profile_key == booking.host,
             DisputeError::UnauthorizedUser
         );
-        dispute.host_evidence = Some(evidence.clone());
+        dispute.host_evidence = Some(evidence);
         false
     };
 

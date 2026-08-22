@@ -194,7 +194,8 @@ fn solve_by_host_before_window_succeeds() {
     let instruction = open_dispute_ix(payer.pubkey(), host.pubkey(), booking_key);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
+    let tx =
+        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
     svm.send_transaction(tx).unwrap();
 
     let res = send_solve(&mut svm, &payer, &host, booking_key);
@@ -246,8 +247,8 @@ fn solve_by_non_opener_fails() {
         let instruction = open_dispute_ix(payer.pubkey(), guest.pubkey(), booking_key);
         let blockhash = svm.latest_blockhash();
         let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-        let tx =
-            VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest]).unwrap();
+        let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest])
+            .unwrap();
         svm.send_transaction(tx).unwrap();
 
         booking_key

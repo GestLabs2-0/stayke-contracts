@@ -34,11 +34,19 @@ pub struct DisputeSolved {
 }
 
 #[event]
-pub struct DisputeResolvedByP2P {
+pub struct DisputeResolvedByAdmin {
     pub dispute: Pubkey,
     pub booking: Pubkey,
-    pub resolved_by: DisputeParty,
+    pub resolved_by: Pubkey,
     pub resolved_at: i64,
+}
+
+#[event]
+pub struct DisputeClosed {
+    pub dispute: Pubkey,
+    pub booking: Pubkey,
+    pub closed_by: DisputeParty,
+    pub closed_at: i64,
 }
 
 // ---------------------------------------------------------------------------

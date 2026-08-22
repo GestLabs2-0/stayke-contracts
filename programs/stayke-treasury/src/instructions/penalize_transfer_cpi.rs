@@ -22,7 +22,7 @@ pub struct PenalizeTransferCpi<'info> {
         seeds = [TREASURY_CONFIG_SEED.as_bytes()],
         bump = config.bump,
     )]
-    pub config: Account<'info, TreasuryConfig>,
+    pub config: Box<Account<'info, TreasuryConfig>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
@@ -35,7 +35,7 @@ pub struct PenalizeTransferCpi<'info> {
         mut,
         constraint = treasury_vault.key() == config.treasury_vault @ TreasuryError::InvalidTreasuryVault,
     )]
-    pub treasury_vault: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: Treasury PDA — signs the CPI transfer out of the vault.
     #[account(seeds = [TREASURY_SEED.as_bytes()], bump = config.treasury_bump)]
@@ -43,10 +43,10 @@ pub struct PenalizeTransferCpi<'info> {
 
     /// Destination: the destination token account owned by the affected party.
     #[account(mut)]
-    pub destination_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub destination_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(constraint = usdc_mint.key() == global_config.usdc_mint @ StaykeConfigError::InvalidTokenMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     pub token_program: Interface<'info, TokenInterface>,
 }

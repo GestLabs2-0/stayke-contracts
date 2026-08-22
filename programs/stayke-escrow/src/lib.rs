@@ -117,9 +117,8 @@ pub mod stayke_escrow {
 
     pub fn cpi_resolve_dispute_transfer(
         ctx: Context<ResolveDisputeTransferCpi>,
-        host_share_bps: u16,
-        rejected: bool,
+        slash_bps: u16,
     ) -> Result<()> {
-        handler_cpi_resolve_dispute_transfer(ctx, host_share_bps, rejected)
+        handler_cpi_resolve_dispute_transfer(ctx, slash_bps)
     }
 }

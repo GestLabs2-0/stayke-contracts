@@ -43,9 +43,26 @@ pub struct BookingStarts<'info> {
         seeds = [USER_PROFILE_SEED.as_bytes(), guest.authority.as_ref()],
         bump = guest.bump,
         seeds::program = stayke_core::ID,
-        constraint = booking.guest == guest.key() @ EscrowError::WrongGuestPassed
+        constraint = !guest.banned @ EscrowError::UserBanned,
+        constraint = guest.identity.is_some() @ EscrowError::HostNotVerified,
+        constraint = booking.guest == guest.key() @ EscrowError::WrongGuestPassed,
+        constraint = (guest.completed_stays + guest.hosted_stays) < global_config.free_ops as u32
+            || guest.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
     )]
     pub guest: Account<'info, UserProfile>,
+
+    #[account(
+        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds::program = stayke_core::ID,
+        bump = host_profile.bump,
+        constraint = !host_profile.banned @ EscrowError::UserBanned,
+        constraint = host_profile.identity.is_some() @ EscrowError::HostNotVerified,
+        // Same treasury-guarantee gate, applied up-front so a host is never
+        // asked to accept a booking it could not honour anyway.
+        constraint = (host_profile.completed_stays + host_profile.hosted_stays) < global_config.free_ops as u32
+            || host_profile.deposited >= global_config.minimum_deposit @ EscrowError::InsufficientDeposit,
+    )]
+    pub host_profile: Box<Account<'info, UserProfile>>,
 
     /// CHECK: Escrow CPI authority PDA — signs privileged core mutators.
     #[account(seeds=[CPI_AUTHORITY_SEED.as_bytes()], bump)]

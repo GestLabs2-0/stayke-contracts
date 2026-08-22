@@ -1,13 +1,14 @@
 use anchor_lang::prelude::*;
+use stayke_core::PenaltySeverity;
 use stayke_escrow::BookingStatus;
 
-#[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
-pub enum InfractionSeverity {
-    Low,
-    Medium,
-    High,
-    Max,
-}
+// #[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+// pub enum InfractionSeverity {
+//     Low,
+//     Medium,
+//     High,
+//     Max,
+// }
 
 #[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum DisputeParty {
@@ -26,10 +27,10 @@ pub enum DisputeState {
 
 #[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum DisputeOutcome {
-    GuestFavored { severity: InfractionSeverity },
-    HostFavored { severity: InfractionSeverity },
+    GuestFavored { severity: PenaltySeverity },
+    HostFavored { severity: PenaltySeverity },
     NoFaultFound,
-    MaliciousClaim { severity: InfractionSeverity },
+    MaliciousClaim { severity: PenaltySeverity },
 }
 
 #[account]

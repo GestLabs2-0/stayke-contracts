@@ -41,4 +41,12 @@ pub mod stayke_disputes {
     pub fn link_evidente(ctx: Context<LinkEvidence>, evidence: [u8; 32]) -> Result<()> {
         handler_link_evidence(ctx, evidence)
     }
+
+    pub fn resolve_dispute(ctx: Context<ResolveDispute>, outcome: DisputeOutcome) -> Result<()> {
+        handler_resolve_dispute(ctx, outcome)
+    }
+
+    pub fn close_dispute(ctx: Context<CloseDispute>) -> Result<()> {
+        handler_close_dispute(ctx)
+    }
 }

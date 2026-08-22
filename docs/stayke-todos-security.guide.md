@@ -62,7 +62,27 @@ Inventario de TODOs de seguridad/autorización y lógica pendiente alineado al c
 | `penalize_user` → `cpi_penalize_transfer` | **Implementado** (no listar como “falta cablear”) |
 | Flujo de disputas P2P / límites admin | **Gap abierto** — ver sección «Próxima iteración» arriba |
 | Host ban mid-settlement (escrow) | TODO de caso borde |
+| Disponibilidad `BookingDays` por cliente (escrow) | **Gap de política/confianza** — ver sección «Próxima iteración» abajo |
 | Lending / staking (treasury) | Stubs; no en `#[program]`; SoT [ADR-010](https://github.com/GestLabs2-0/docs/blob/main/architecture/adrs/ADR-010-yield-deferred-stage-2.md) |
+
+### Próxima iteración: disponibilidad por cliente (`BookingDays` por guest)
+
+**Observación (gap de confianza, sin impacto en fondos):** el bitmap `BookingDays` se deriva por **propiedad**
+(`[BOOKING_DAYS_SEED, property, year]`), no por cliente. El único gate del guest en `create_booking` es
+`client_profile.active_booking.is_none()`, y `active_booking` solo se fija en `booking_starts` (cuando la reserva
+pasa a `Active`), no al crear en `Pending`. Consecuencia: un cliente puede mantener varias reservas `Pending`
+solapadas en el tiempo en **propiedades distintas**, o reservar y no presentarse.
+
+- **No es un bug de fondos:** no hay pérdida económica ni invariante del escrow roto; no autoriza doble reserva de
+  un mismo inmueble (eso ya lo impide el bitmap por propiedad).
+- **Es una decisión de producto/confianza:** el objetivo del protocolo es promover confianza; un `Pending`
+  solapado o un no-show la reduce. Implementar `BookingDays` por guest (mismo esquema bitmap, keyed por
+  `client_profile`) permitiría exigir que el cliente no reserve días ya ocupados por él mismo.
+- **Cosas a revisar antes de implementar:** (1) permitir o no «hold options» (reservas `Pending` paralelas es
+  comportamiento legítimo de exploración; exigir exclusividad rompería ese caso de uso); (2) `active_booking`
+  debería fijarse ya en `create_booking` si se quiere exclusividad desde `Pending`, con su correspondiente
+  liberación en cancel/reject/expire; (3) costo de renta de una cuenta adicional por guest/año.
+- **Pendiente:** actualizar el protocolo para manejar los `bookingDays` de los clientes (decisión no tomada aún).
 
 ### Hechos corregidos vs docs antiguas
 
@@ -73,6 +93,7 @@ Inventario de TODOs de seguridad/autorización y lógica pendiente alineado al c
 ## Gaps
 
 - **Disputas admin-céntricas (principal):** `resolve_dispute`, `penalize_user` y `close_dispute` dependen de un único admin; sin quórum, sin rangos, sin aceptación P2P, sin ventana de disputa ni caducidad. → plan en «Próxima iteración».
+- **Disponibilidad por cliente (confianza, sin impacto en fondos):** el bitmap `BookingDays` es solo por propiedad; el cliente puede mantener reservas `Pending` solapadas en distintas propiedades. Decisión de producto/política pendiente → sección «Próxima iteración».
 - Política SoT de bond opcional vs gates `minimum_deposit` → ver callouts en escrow/architecture-flow (fuera del alcance de “cerrar” en este archivo).
 
 ## Checklist

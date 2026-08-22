@@ -74,6 +74,7 @@ fn booking_starts_ix(
             payer: payer.pubkey(),
             booking,
             guest: env.guest_profile,
+            host_profile: env.host_profile,
             cpi_authority: env.cpi_authority,
             global_config: env.global_config,
             stayke_core: stayke_core::id(),
