@@ -34,47 +34,50 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/program-client-core";
 import {
-  getDisputeCodec,
+  getDisputeAccountCodec,
   getDisputeConfigCodec,
-  type Dispute,
-  type DisputeArgs,
+  type DisputeAccount,
+  type DisputeAccountArgs,
   type DisputeConfig,
   type DisputeConfigArgs,
 } from "../accounts";
 import {
   getCloseDisputeInstructionAsync,
+  getEscalateDisputeInstruction,
   getInitializeConfigInstructionAsync,
+  getLinkEvidenteInstructionAsync,
   getOpenDisputeInstructionAsync,
-  getPenalizeUserInstructionAsync,
   getResolveDisputeInstructionAsync,
+  getSolveDisputeBeforeAdminInstructionAsync,
   parseCloseDisputeInstruction,
+  parseEscalateDisputeInstruction,
   parseInitializeConfigInstruction,
+  parseLinkEvidenteInstruction,
   parseOpenDisputeInstruction,
-  parsePenalizeUserInstruction,
   parseResolveDisputeInstruction,
+  parseSolveDisputeBeforeAdminInstruction,
   type CloseDisputeAsyncInput,
+  type EscalateDisputeInput,
   type InitializeConfigAsyncInput,
+  type LinkEvidenteAsyncInput,
   type OpenDisputeAsyncInput,
   type ParsedCloseDisputeInstruction,
+  type ParsedEscalateDisputeInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedLinkEvidenteInstruction,
   type ParsedOpenDisputeInstruction,
-  type ParsedPenalizeUserInstruction,
   type ParsedResolveDisputeInstruction,
-  type PenalizeUserAsyncInput,
+  type ParsedSolveDisputeBeforeAdminInstruction,
   type ResolveDisputeAsyncInput,
+  type SolveDisputeBeforeAdminAsyncInput,
 } from "../instructions";
-import {
-  findConfigPda,
-  findCpiAuthorityPda,
-  findDisputePda,
-  findTreasuryConfigPda,
-} from "../pdas";
+import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
 
 export const STAYKE_DISPUTES_PROGRAM_ADDRESS =
   "8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ" as Address<"8vgDvWkdqhpGBPAczpmZ3DJahVgNN36soRnyw6MbfMCJ">;
 
 export enum StaykeDisputesAccount {
-  Dispute,
+  DisputeAccount,
   DisputeConfig,
 }
 
@@ -86,12 +89,12 @@ export function identifyStaykeDisputesAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([36, 49, 241, 67, 40, 36, 241, 74]),
+        new Uint8Array([237, 70, 91, 63, 81, 74, 45, 43]),
       ),
       0,
     )
   ) {
-    return StaykeDisputesAccount.Dispute;
+    return StaykeDisputesAccount.DisputeAccount;
   }
   if (
     containsBytes(
@@ -112,10 +115,12 @@ export function identifyStaykeDisputesAccount(
 
 export enum StaykeDisputesInstruction {
   CloseDispute,
+  EscalateDispute,
   InitializeConfig,
+  LinkEvidente,
   OpenDispute,
-  PenalizeUser,
   ResolveDispute,
+  SolveDisputeBeforeAdmin,
 }
 
 export function identifyStaykeDisputesInstruction(
@@ -137,12 +142,34 @@ export function identifyStaykeDisputesInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([129, 70, 111, 75, 130, 29, 225, 35]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeDisputesInstruction.EscalateDispute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([208, 127, 21, 1, 194, 190, 196, 70]),
       ),
       0,
     )
   ) {
     return StaykeDisputesInstruction.InitializeConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([130, 247, 163, 67, 46, 217, 20, 174]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeDisputesInstruction.LinkEvidente;
   }
   if (
     containsBytes(
@@ -159,23 +186,23 @@ export function identifyStaykeDisputesInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([4, 118, 74, 208, 212, 28, 119, 50]),
-      ),
-      0,
-    )
-  ) {
-    return StaykeDisputesInstruction.PenalizeUser;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([231, 6, 202, 6, 96, 103, 12, 230]),
       ),
       0,
     )
   ) {
     return StaykeDisputesInstruction.ResolveDispute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([124, 197, 205, 186, 77, 119, 161, 62]),
+      ),
+      0,
+    )
+  ) {
+    return StaykeDisputesInstruction.SolveDisputeBeforeAdmin;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
@@ -190,17 +217,23 @@ export type ParsedStaykeDisputesInstruction<
       instructionType: StaykeDisputesInstruction.CloseDispute;
     } & ParsedCloseDisputeInstruction<TProgram>)
   | ({
+      instructionType: StaykeDisputesInstruction.EscalateDispute;
+    } & ParsedEscalateDisputeInstruction<TProgram>)
+  | ({
       instructionType: StaykeDisputesInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
+  | ({
+      instructionType: StaykeDisputesInstruction.LinkEvidente;
+    } & ParsedLinkEvidenteInstruction<TProgram>)
   | ({
       instructionType: StaykeDisputesInstruction.OpenDispute;
     } & ParsedOpenDisputeInstruction<TProgram>)
   | ({
-      instructionType: StaykeDisputesInstruction.PenalizeUser;
-    } & ParsedPenalizeUserInstruction<TProgram>)
-  | ({
       instructionType: StaykeDisputesInstruction.ResolveDispute;
-    } & ParsedResolveDisputeInstruction<TProgram>);
+    } & ParsedResolveDisputeInstruction<TProgram>)
+  | ({
+      instructionType: StaykeDisputesInstruction.SolveDisputeBeforeAdmin;
+    } & ParsedSolveDisputeBeforeAdminInstruction<TProgram>);
 
 export function parseStaykeDisputesInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -214,11 +247,25 @@ export function parseStaykeDisputesInstruction<TProgram extends string>(
         ...parseCloseDisputeInstruction(instruction),
       };
     }
+    case StaykeDisputesInstruction.EscalateDispute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeDisputesInstruction.EscalateDispute,
+        ...parseEscalateDisputeInstruction(instruction),
+      };
+    }
     case StaykeDisputesInstruction.InitializeConfig: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeDisputesInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case StaykeDisputesInstruction.LinkEvidente: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeDisputesInstruction.LinkEvidente,
+        ...parseLinkEvidenteInstruction(instruction),
       };
     }
     case StaykeDisputesInstruction.OpenDispute: {
@@ -228,18 +275,18 @@ export function parseStaykeDisputesInstruction<TProgram extends string>(
         ...parseOpenDisputeInstruction(instruction),
       };
     }
-    case StaykeDisputesInstruction.PenalizeUser: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: StaykeDisputesInstruction.PenalizeUser,
-        ...parsePenalizeUserInstruction(instruction),
-      };
-    }
     case StaykeDisputesInstruction.ResolveDispute: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: StaykeDisputesInstruction.ResolveDispute,
         ...parseResolveDisputeInstruction(instruction),
+      };
+    }
+    case StaykeDisputesInstruction.SolveDisputeBeforeAdmin: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: StaykeDisputesInstruction.SolveDisputeBeforeAdmin,
+        ...parseSolveDisputeBeforeAdminInstruction(instruction),
       };
     }
     default:
@@ -260,8 +307,8 @@ export type StaykeDisputesPlugin = {
 };
 
 export type StaykeDisputesPluginAccounts = {
-  dispute: ReturnType<typeof getDisputeCodec> &
-    SelfFetchFunctions<DisputeArgs, Dispute>;
+  disputeAccount: ReturnType<typeof getDisputeAccountCodec> &
+    SelfFetchFunctions<DisputeAccountArgs, DisputeAccount>;
   disputeConfig: ReturnType<typeof getDisputeConfigCodec> &
     SelfFetchFunctions<DisputeConfigArgs, DisputeConfig>;
 };
@@ -271,29 +318,36 @@ export type StaykeDisputesPluginInstructions = {
     input: CloseDisputeAsyncInput,
   ) => ReturnType<typeof getCloseDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
+  escalateDispute: (
+    input: EscalateDisputeInput,
+  ) => ReturnType<typeof getEscalateDisputeInstruction> &
+    SelfPlanAndSendFunctions;
   initializeConfig: (
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  linkEvidente: (
+    input: LinkEvidenteAsyncInput,
+  ) => ReturnType<typeof getLinkEvidenteInstructionAsync> &
     SelfPlanAndSendFunctions;
   openDispute: (
     input: MakeOptional<OpenDisputeAsyncInput, "payer">,
   ) => ReturnType<typeof getOpenDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
-  penalizeUser: (
-    input: PenalizeUserAsyncInput,
-  ) => ReturnType<typeof getPenalizeUserInstructionAsync> &
-    SelfPlanAndSendFunctions;
   resolveDispute: (
     input: ResolveDisputeAsyncInput,
   ) => ReturnType<typeof getResolveDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
+  solveDisputeBeforeAdmin: (
+    input: SolveDisputeBeforeAdminAsyncInput,
+  ) => ReturnType<typeof getSolveDisputeBeforeAdminInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type StaykeDisputesPluginPdas = {
-  config: typeof findConfigPda;
   dispute: typeof findDisputePda;
   cpiAuthority: typeof findCpiAuthorityPda;
-  treasuryConfig: typeof findTreasuryConfigPda;
+  config: typeof findConfigPda;
 };
 
 export type StaykeDisputesPluginRequirements = ClientWithRpc<
@@ -310,7 +364,10 @@ export function staykeDisputesProgram() {
     return extendClient(client, {
       staykeDisputes: <StaykeDisputesPlugin>{
         accounts: {
-          dispute: addSelfFetchFunctions(client, getDisputeCodec()),
+          disputeAccount: addSelfFetchFunctions(
+            client,
+            getDisputeAccountCodec(),
+          ),
           disputeConfig: addSelfFetchFunctions(client, getDisputeConfigCodec()),
         },
         instructions: {
@@ -319,10 +376,20 @@ export function staykeDisputesProgram() {
               client,
               getCloseDisputeInstructionAsync(input),
             ),
+          escalateDispute: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getEscalateDisputeInstruction(input),
+            ),
           initializeConfig: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeConfigInstructionAsync(input),
+            ),
+          linkEvidente: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLinkEvidenteInstructionAsync(input),
             ),
           openDispute: (input) =>
             addSelfPlanAndSendFunctions(
@@ -332,22 +399,21 @@ export function staykeDisputesProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
-          penalizeUser: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPenalizeUserInstructionAsync(input),
-            ),
           resolveDispute: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getResolveDisputeInstructionAsync(input),
             ),
+          solveDisputeBeforeAdmin: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSolveDisputeBeforeAdminInstructionAsync(input),
+            ),
         },
         pdas: {
-          config: findConfigPda,
           dispute: findDisputePda,
           cpiAuthority: findCpiAuthorityPda,
-          treasuryConfig: findTreasuryConfigPda,
+          config: findConfigPda,
         },
       },
     });

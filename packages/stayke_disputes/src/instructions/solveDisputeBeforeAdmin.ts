@@ -29,7 +29,6 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -40,54 +39,46 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findCpiAuthorityPda, findDisputePda } from "../pdas";
+import { findCpiAuthorityPda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 
-export const OPEN_DISPUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  137, 25, 99, 119, 23, 223, 161, 42,
-]);
+export const SOLVE_DISPUTE_BEFORE_ADMIN_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([124, 197, 205, 186, 77, 119, 161, 62]);
 
-export function getOpenDisputeDiscriminatorBytes(): ReadonlyUint8Array {
+export function getSolveDisputeBeforeAdminDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    OPEN_DISPUTE_DISCRIMINATOR,
+    SOLVE_DISPUTE_BEFORE_ADMIN_DISCRIMINATOR,
   );
 }
 
-export type OpenDisputeInstruction<
+export type SolveDisputeBeforeAdminInstruction<
   TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
-  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountInitiator extends string | AccountMeta<string> = string,
   TAccountInitiatorProfile extends string | AccountMeta<string> = string,
-  TAccountBooking extends string | AccountMeta<string> = string,
   TAccountDispute extends string | AccountMeta<string> = string,
+  TAccountBooking extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountStaykeEscrowProgram extends string | AccountMeta<string> =
     "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountPayer extends string
-        ? WritableSignerAccount<TAccountPayer> &
-            AccountSignerMeta<TAccountPayer>
-        : TAccountPayer,
       TAccountInitiator extends string
-        ? ReadonlySignerAccount<TAccountInitiator> &
+        ? WritableSignerAccount<TAccountInitiator> &
             AccountSignerMeta<TAccountInitiator>
         : TAccountInitiator,
       TAccountInitiatorProfile extends string
         ? ReadonlyAccount<TAccountInitiatorProfile>
         : TAccountInitiatorProfile,
-      TAccountBooking extends string
-        ? WritableAccount<TAccountBooking>
-        : TAccountBooking,
       TAccountDispute extends string
         ? WritableAccount<TAccountDispute>
         : TAccountDispute,
+      TAccountBooking extends string
+        ? WritableAccount<TAccountBooking>
+        : TAccountBooking,
       TAccountCpiAuthority extends string
         ? ReadonlyAccount<TAccountCpiAuthority>
         : TAccountCpiAuthority,
@@ -97,98 +88,90 @@ export type OpenDisputeInstruction<
       TAccountStaykeEscrowProgram extends string
         ? ReadonlyAccount<TAccountStaykeEscrowProgram>
         : TAccountStaykeEscrowProgram,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
       ...TRemainingAccounts,
     ]
   >;
 
-export type OpenDisputeInstructionData = { discriminator: ReadonlyUint8Array };
+export type SolveDisputeBeforeAdminInstructionData = {
+  discriminator: ReadonlyUint8Array;
+};
 
-export type OpenDisputeInstructionDataArgs = {};
+export type SolveDisputeBeforeAdminInstructionDataArgs = {};
 
-export function getOpenDisputeInstructionDataEncoder(): FixedSizeEncoder<OpenDisputeInstructionDataArgs> {
+export function getSolveDisputeBeforeAdminInstructionDataEncoder(): FixedSizeEncoder<SolveDisputeBeforeAdminInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: OPEN_DISPUTE_DISCRIMINATOR }),
+    (value) => ({
+      ...value,
+      discriminator: SOLVE_DISPUTE_BEFORE_ADMIN_DISCRIMINATOR,
+    }),
   );
 }
 
-export function getOpenDisputeInstructionDataDecoder(): FixedSizeDecoder<OpenDisputeInstructionData> {
+export function getSolveDisputeBeforeAdminInstructionDataDecoder(): FixedSizeDecoder<SolveDisputeBeforeAdminInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
   ]);
 }
 
-export function getOpenDisputeInstructionDataCodec(): FixedSizeCodec<
-  OpenDisputeInstructionDataArgs,
-  OpenDisputeInstructionData
+export function getSolveDisputeBeforeAdminInstructionDataCodec(): FixedSizeCodec<
+  SolveDisputeBeforeAdminInstructionDataArgs,
+  SolveDisputeBeforeAdminInstructionData
 > {
   return combineCodec(
-    getOpenDisputeInstructionDataEncoder(),
-    getOpenDisputeInstructionDataDecoder(),
+    getSolveDisputeBeforeAdminInstructionDataEncoder(),
+    getSolveDisputeBeforeAdminInstructionDataDecoder(),
   );
 }
 
-export type OpenDisputeAsyncInput<
-  TAccountPayer extends string = string,
+export type SolveDisputeBeforeAdminAsyncInput<
   TAccountInitiator extends string = string,
   TAccountInitiatorProfile extends string = string,
-  TAccountBooking extends string = string,
   TAccountDispute extends string = string,
+  TAccountBooking extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
-  payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile?: Address<TAccountInitiatorProfile>;
+  dispute: Address<TAccountDispute>;
   booking: Address<TAccountBooking>;
-  dispute?: Address<TAccountDispute>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   globalConfig?: Address<TAccountGlobalConfig>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
 };
 
-export async function getOpenDisputeInstructionAsync<
-  TAccountPayer extends string,
+export async function getSolveDisputeBeforeAdminInstructionAsync<
   TAccountInitiator extends string,
   TAccountInitiatorProfile extends string,
-  TAccountBooking extends string,
   TAccountDispute extends string,
+  TAccountBooking extends string,
   TAccountCpiAuthority extends string,
   TAccountGlobalConfig extends string,
   TAccountStaykeEscrowProgram extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
-  input: OpenDisputeAsyncInput<
-    TAccountPayer,
+  input: SolveDisputeBeforeAdminAsyncInput<
     TAccountInitiator,
     TAccountInitiatorProfile,
-    TAccountBooking,
     TAccountDispute,
+    TAccountBooking,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
-    TAccountStaykeEscrowProgram,
-    TAccountSystemProgram
+    TAccountStaykeEscrowProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  OpenDisputeInstruction<
+  SolveDisputeBeforeAdminInstruction<
     TProgramAddress,
-    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
-    TAccountBooking,
     TAccountDispute,
+    TAccountBooking,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
-    TAccountStaykeEscrowProgram,
-    TAccountSystemProgram
+    TAccountStaykeEscrowProgram
   >
 > {
   // Program address.
@@ -197,21 +180,19 @@ export async function getOpenDisputeInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isWritable: true },
-    initiator: { value: input.initiator ?? null, isWritable: false },
+    initiator: { value: input.initiator ?? null, isWritable: true },
     initiatorProfile: {
       value: input.initiatorProfile ?? null,
       isWritable: false,
     },
-    booking: { value: input.booking ?? null, isWritable: true },
     dispute: { value: input.dispute ?? null, isWritable: true },
+    booking: { value: input.booking ?? null, isWritable: true },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
     },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -238,14 +219,6 @@ export async function getOpenDisputeInstructionAsync<
       ],
     });
   }
-  if (!accounts.dispute.value) {
-    accounts.dispute.value = await findDisputePda({
-      booking: getAddressFromResolvedInstructionAccount(
-        "booking",
-        accounts.booking.value,
-      ),
-    });
-  }
   if (!accounts.cpiAuthority.value) {
     accounts.cpiAuthority.value = await findCpiAuthorityPda();
   }
@@ -266,97 +239,79 @@ export async function getOpenDisputeInstructionAsync<
     accounts.staykeEscrowProgram.value =
       "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
   }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
       getAccountMeta("initiator", accounts.initiator),
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
-      getAccountMeta("booking", accounts.booking),
       getAccountMeta("dispute", accounts.dispute),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getOpenDisputeInstructionDataEncoder().encode({}),
+    data: getSolveDisputeBeforeAdminInstructionDataEncoder().encode({}),
     programAddress,
-  } as OpenDisputeInstruction<
+  } as SolveDisputeBeforeAdminInstruction<
     TProgramAddress,
-    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
-    TAccountBooking,
     TAccountDispute,
+    TAccountBooking,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
-    TAccountStaykeEscrowProgram,
-    TAccountSystemProgram
+    TAccountStaykeEscrowProgram
   >);
 }
 
-export type OpenDisputeInput<
-  TAccountPayer extends string = string,
+export type SolveDisputeBeforeAdminInput<
   TAccountInitiator extends string = string,
   TAccountInitiatorProfile extends string = string,
-  TAccountBooking extends string = string,
   TAccountDispute extends string = string,
+  TAccountBooking extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
-  payer: TransactionSigner<TAccountPayer>;
   initiator: TransactionSigner<TAccountInitiator>;
   initiatorProfile: Address<TAccountInitiatorProfile>;
-  booking: Address<TAccountBooking>;
   dispute: Address<TAccountDispute>;
+  booking: Address<TAccountBooking>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   globalConfig: Address<TAccountGlobalConfig>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
 };
 
-export function getOpenDisputeInstruction<
-  TAccountPayer extends string,
+export function getSolveDisputeBeforeAdminInstruction<
   TAccountInitiator extends string,
   TAccountInitiatorProfile extends string,
-  TAccountBooking extends string,
   TAccountDispute extends string,
+  TAccountBooking extends string,
   TAccountCpiAuthority extends string,
   TAccountGlobalConfig extends string,
   TAccountStaykeEscrowProgram extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
-  input: OpenDisputeInput<
-    TAccountPayer,
+  input: SolveDisputeBeforeAdminInput<
     TAccountInitiator,
     TAccountInitiatorProfile,
-    TAccountBooking,
     TAccountDispute,
+    TAccountBooking,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
-    TAccountStaykeEscrowProgram,
-    TAccountSystemProgram
+    TAccountStaykeEscrowProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): OpenDisputeInstruction<
+): SolveDisputeBeforeAdminInstruction<
   TProgramAddress,
-  TAccountPayer,
   TAccountInitiator,
   TAccountInitiatorProfile,
-  TAccountBooking,
   TAccountDispute,
+  TAccountBooking,
   TAccountCpiAuthority,
   TAccountGlobalConfig,
-  TAccountStaykeEscrowProgram,
-  TAccountSystemProgram
+  TAccountStaykeEscrowProgram
 > {
   // Program address.
   const programAddress =
@@ -364,21 +319,19 @@ export function getOpenDisputeInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isWritable: true },
-    initiator: { value: input.initiator ?? null, isWritable: false },
+    initiator: { value: input.initiator ?? null, isWritable: true },
     initiatorProfile: {
       value: input.initiatorProfile ?? null,
       isWritable: false,
     },
-    booking: { value: input.booking ?? null, isWritable: true },
     dispute: { value: input.dispute ?? null, isWritable: true },
+    booking: { value: input.booking ?? null, isWritable: true },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
     },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -390,73 +343,63 @@ export function getOpenDisputeInstruction<
     accounts.staykeEscrowProgram.value =
       "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
   }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
       getAccountMeta("initiator", accounts.initiator),
       getAccountMeta("initiatorProfile", accounts.initiatorProfile),
-      getAccountMeta("booking", accounts.booking),
       getAccountMeta("dispute", accounts.dispute),
+      getAccountMeta("booking", accounts.booking),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getOpenDisputeInstructionDataEncoder().encode({}),
+    data: getSolveDisputeBeforeAdminInstructionDataEncoder().encode({}),
     programAddress,
-  } as OpenDisputeInstruction<
+  } as SolveDisputeBeforeAdminInstruction<
     TProgramAddress,
-    TAccountPayer,
     TAccountInitiator,
     TAccountInitiatorProfile,
-    TAccountBooking,
     TAccountDispute,
+    TAccountBooking,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
-    TAccountStaykeEscrowProgram,
-    TAccountSystemProgram
+    TAccountStaykeEscrowProgram
   >);
 }
 
-export type ParsedOpenDisputeInstruction<
+export type ParsedSolveDisputeBeforeAdminInstruction<
   TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    payer: TAccountMetas[0];
-    initiator: TAccountMetas[1];
-    initiatorProfile: TAccountMetas[2];
+    initiator: TAccountMetas[0];
+    initiatorProfile: TAccountMetas[1];
+    dispute: TAccountMetas[2];
     booking: TAccountMetas[3];
-    dispute: TAccountMetas[4];
-    cpiAuthority: TAccountMetas[5];
-    globalConfig: TAccountMetas[6];
-    staykeEscrowProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
+    cpiAuthority: TAccountMetas[4];
+    globalConfig: TAccountMetas[5];
+    staykeEscrowProgram: TAccountMetas[6];
   };
-  data: OpenDisputeInstructionData;
+  data: SolveDisputeBeforeAdminInstructionData;
 };
 
-export function parseOpenDisputeInstruction<
+export function parseSolveDisputeBeforeAdminInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedOpenDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+): ParsedSolveDisputeBeforeAdminInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -469,16 +412,16 @@ export function parseOpenDisputeInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      payer: getNextAccount(),
       initiator: getNextAccount(),
       initiatorProfile: getNextAccount(),
-      booking: getNextAccount(),
       dispute: getNextAccount(),
+      booking: getNextAccount(),
       cpiAuthority: getNextAccount(),
       globalConfig: getNextAccount(),
       staykeEscrowProgram: getNextAccount(),
-      systemProgram: getNextAccount(),
     },
-    data: getOpenDisputeInstructionDataDecoder().decode(instruction.data),
+    data: getSolveDisputeBeforeAdminInstructionDataDecoder().decode(
+      instruction.data,
+    ),
   };
 }

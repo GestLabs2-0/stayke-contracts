@@ -10,24 +10,20 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
@@ -44,6 +40,12 @@ import {
 } from "@solana/program-client-core";
 import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
+import {
+  getDisputeOutcomeDecoder,
+  getDisputeOutcomeEncoder,
+  type DisputeOutcome,
+  type DisputeOutcomeArgs,
+} from "../types";
 
 export const RESOLVE_DISPUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
   [231, 6, 202, 6, 96, 103, 12, 230],
@@ -63,6 +65,7 @@ export type ResolveDisputeInstruction<
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountGuestProfile extends string | AccountMeta<string> = string,
+  TAccountGuiltyReputation extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
@@ -71,6 +74,13 @@ export type ResolveDisputeInstruction<
   TAccountPlatformVaultTokenAccount extends string | AccountMeta<string> =
     string,
   TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountTreasuryVault extends string | AccountMeta<string> = string,
+  TAccountTreasuryPda extends string | AccountMeta<string> = string,
+  TAccountConfigTreasury extends string | AccountMeta<string> = string,
+  TAccountStaykeCoreProgram extends string | AccountMeta<string> =
+    "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
+  TAccountStaykeTreasuryProgram extends string | AccountMeta<string> =
+    "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY",
   TAccountStaykeEscrowProgram extends string | AccountMeta<string> =
     "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
   TAccountTokenProgram extends string | AccountMeta<string> =
@@ -94,11 +104,14 @@ export type ResolveDisputeInstruction<
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
       TAccountHostProfile extends string
-        ? ReadonlyAccount<TAccountHostProfile>
+        ? WritableAccount<TAccountHostProfile>
         : TAccountHostProfile,
       TAccountGuestProfile extends string
-        ? ReadonlyAccount<TAccountGuestProfile>
+        ? WritableAccount<TAccountGuestProfile>
         : TAccountGuestProfile,
+      TAccountGuiltyReputation extends string
+        ? WritableAccount<TAccountGuiltyReputation>
+        : TAccountGuiltyReputation,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -120,6 +133,21 @@ export type ResolveDisputeInstruction<
       TAccountUsdcMint extends string
         ? WritableAccount<TAccountUsdcMint>
         : TAccountUsdcMint,
+      TAccountTreasuryVault extends string
+        ? WritableAccount<TAccountTreasuryVault>
+        : TAccountTreasuryVault,
+      TAccountTreasuryPda extends string
+        ? ReadonlyAccount<TAccountTreasuryPda>
+        : TAccountTreasuryPda,
+      TAccountConfigTreasury extends string
+        ? ReadonlyAccount<TAccountConfigTreasury>
+        : TAccountConfigTreasury,
+      TAccountStaykeCoreProgram extends string
+        ? ReadonlyAccount<TAccountStaykeCoreProgram>
+        : TAccountStaykeCoreProgram,
+      TAccountStaykeTreasuryProgram extends string
+        ? ReadonlyAccount<TAccountStaykeTreasuryProgram>
+        : TAccountStaykeTreasuryProgram,
       TAccountStaykeEscrowProgram extends string
         ? ReadonlyAccount<TAccountStaykeEscrowProgram>
         : TAccountStaykeEscrowProgram,
@@ -132,35 +160,29 @@ export type ResolveDisputeInstruction<
 
 export type ResolveDisputeInstructionData = {
   discriminator: ReadonlyUint8Array;
-  hostShareBps: number;
-  rejected: boolean;
+  outcome: DisputeOutcome;
 };
 
-export type ResolveDisputeInstructionDataArgs = {
-  hostShareBps: number;
-  rejected: boolean;
-};
+export type ResolveDisputeInstructionDataArgs = { outcome: DisputeOutcomeArgs };
 
-export function getResolveDisputeInstructionDataEncoder(): FixedSizeEncoder<ResolveDisputeInstructionDataArgs> {
+export function getResolveDisputeInstructionDataEncoder(): Encoder<ResolveDisputeInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["hostShareBps", getU16Encoder()],
-      ["rejected", getBooleanEncoder()],
+      ["outcome", getDisputeOutcomeEncoder()],
     ]),
     (value) => ({ ...value, discriminator: RESOLVE_DISPUTE_DISCRIMINATOR }),
   );
 }
 
-export function getResolveDisputeInstructionDataDecoder(): FixedSizeDecoder<ResolveDisputeInstructionData> {
+export function getResolveDisputeInstructionDataDecoder(): Decoder<ResolveDisputeInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["hostShareBps", getU16Decoder()],
-    ["rejected", getBooleanDecoder()],
+    ["outcome", getDisputeOutcomeDecoder()],
   ]);
 }
 
-export function getResolveDisputeInstructionDataCodec(): FixedSizeCodec<
+export function getResolveDisputeInstructionDataCodec(): Codec<
   ResolveDisputeInstructionDataArgs,
   ResolveDisputeInstructionData
 > {
@@ -177,6 +199,7 @@ export type ResolveDisputeAsyncInput<
   TAccountBooking extends string = string,
   TAccountHostProfile extends string = string,
   TAccountGuestProfile extends string = string,
+  TAccountGuiltyReputation extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountEscrowTokenAccount extends string = string,
@@ -184,6 +207,11 @@ export type ResolveDisputeAsyncInput<
   TAccountGuestTokenAccount extends string = string,
   TAccountPlatformVaultTokenAccount extends string = string,
   TAccountUsdcMint extends string = string,
+  TAccountTreasuryVault extends string = string,
+  TAccountTreasuryPda extends string = string,
+  TAccountConfigTreasury extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
+  TAccountStaykeTreasuryProgram extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
@@ -193,6 +221,7 @@ export type ResolveDisputeAsyncInput<
   booking: Address<TAccountBooking>;
   hostProfile: Address<TAccountHostProfile>;
   guestProfile: Address<TAccountGuestProfile>;
+  guiltyReputation: Address<TAccountGuiltyReputation>;
   globalConfig?: Address<TAccountGlobalConfig>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
@@ -200,10 +229,14 @@ export type ResolveDisputeAsyncInput<
   guestTokenAccount: Address<TAccountGuestTokenAccount>;
   platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
   usdcMint: Address<TAccountUsdcMint>;
+  treasuryVault: Address<TAccountTreasuryVault>;
+  treasuryPda?: Address<TAccountTreasuryPda>;
+  configTreasury?: Address<TAccountConfigTreasury>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  staykeTreasuryProgram?: Address<TAccountStaykeTreasuryProgram>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: ResolveDisputeInstructionDataArgs["hostShareBps"];
-  rejected: ResolveDisputeInstructionDataArgs["rejected"];
+  outcome: ResolveDisputeInstructionDataArgs["outcome"];
 };
 
 export async function getResolveDisputeInstructionAsync<
@@ -213,6 +246,7 @@ export async function getResolveDisputeInstructionAsync<
   TAccountBooking extends string,
   TAccountHostProfile extends string,
   TAccountGuestProfile extends string,
+  TAccountGuiltyReputation extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountEscrowTokenAccount extends string,
@@ -220,6 +254,11 @@ export async function getResolveDisputeInstructionAsync<
   TAccountGuestTokenAccount extends string,
   TAccountPlatformVaultTokenAccount extends string,
   TAccountUsdcMint extends string,
+  TAccountTreasuryVault extends string,
+  TAccountTreasuryPda extends string,
+  TAccountConfigTreasury extends string,
+  TAccountStaykeCoreProgram extends string,
+  TAccountStaykeTreasuryProgram extends string,
   TAccountStaykeEscrowProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
@@ -231,6 +270,7 @@ export async function getResolveDisputeInstructionAsync<
     TAccountBooking,
     TAccountHostProfile,
     TAccountGuestProfile,
+    TAccountGuiltyReputation,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -238,6 +278,11 @@ export async function getResolveDisputeInstructionAsync<
     TAccountGuestTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountUsdcMint,
+    TAccountTreasuryVault,
+    TAccountTreasuryPda,
+    TAccountConfigTreasury,
+    TAccountStaykeCoreProgram,
+    TAccountStaykeTreasuryProgram,
     TAccountStaykeEscrowProgram,
     TAccountTokenProgram
   >,
@@ -251,6 +296,7 @@ export async function getResolveDisputeInstructionAsync<
     TAccountBooking,
     TAccountHostProfile,
     TAccountGuestProfile,
+    TAccountGuiltyReputation,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -258,6 +304,11 @@ export async function getResolveDisputeInstructionAsync<
     TAccountGuestTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountUsdcMint,
+    TAccountTreasuryVault,
+    TAccountTreasuryPda,
+    TAccountConfigTreasury,
+    TAccountStaykeCoreProgram,
+    TAccountStaykeTreasuryProgram,
     TAccountStaykeEscrowProgram,
     TAccountTokenProgram
   >
@@ -272,8 +323,12 @@ export async function getResolveDisputeInstructionAsync<
     config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
+    guiltyReputation: {
+      value: input.guiltyReputation ?? null,
+      isWritable: true,
+    },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     escrowTokenAccount: {
@@ -293,6 +348,17 @@ export async function getResolveDisputeInstructionAsync<
       isWritable: true,
     },
     usdcMint: { value: input.usdcMint ?? null, isWritable: true },
+    treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
+    treasuryPda: { value: input.treasuryPda ?? null, isWritable: false },
+    configTreasury: { value: input.configTreasury ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
+    staykeTreasuryProgram: {
+      value: input.staykeTreasuryProgram ?? null,
+      isWritable: false,
+    },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
@@ -335,6 +401,39 @@ export async function getResolveDisputeInstructionAsync<
   if (!accounts.cpiAuthority.value) {
     accounts.cpiAuthority.value = await findCpiAuthorityPda();
   }
+  if (!accounts.treasuryPda.value) {
+    accounts.treasuryPda.value = await getProgramDerivedAddress({
+      programAddress:
+        "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([116, 114, 101, 97, 115, 117, 114, 121]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.configTreasury.value) {
+    accounts.configTreasury.value = await getProgramDerivedAddress({
+      programAddress:
+        "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            116, 114, 101, 97, 115, 117, 114, 121, 95, 99, 111, 110, 102, 105,
+            103,
+          ]),
+        ),
+      ],
+    });
+  }
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
+  if (!accounts.staykeTreasuryProgram.value) {
+    accounts.staykeTreasuryProgram.value =
+      "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">;
+  }
   if (!accounts.staykeEscrowProgram.value) {
     accounts.staykeEscrowProgram.value =
       "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
@@ -353,6 +452,7 @@ export async function getResolveDisputeInstructionAsync<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("guiltyReputation", accounts.guiltyReputation),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
@@ -363,6 +463,11 @@ export async function getResolveDisputeInstructionAsync<
         accounts.platformVaultTokenAccount,
       ),
       getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("treasuryVault", accounts.treasuryVault),
+      getAccountMeta("treasuryPda", accounts.treasuryPda),
+      getAccountMeta("configTreasury", accounts.configTreasury),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
+      getAccountMeta("staykeTreasuryProgram", accounts.staykeTreasuryProgram),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
@@ -378,6 +483,7 @@ export async function getResolveDisputeInstructionAsync<
     TAccountBooking,
     TAccountHostProfile,
     TAccountGuestProfile,
+    TAccountGuiltyReputation,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -385,6 +491,11 @@ export async function getResolveDisputeInstructionAsync<
     TAccountGuestTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountUsdcMint,
+    TAccountTreasuryVault,
+    TAccountTreasuryPda,
+    TAccountConfigTreasury,
+    TAccountStaykeCoreProgram,
+    TAccountStaykeTreasuryProgram,
     TAccountStaykeEscrowProgram,
     TAccountTokenProgram
   >);
@@ -397,6 +508,7 @@ export type ResolveDisputeInput<
   TAccountBooking extends string = string,
   TAccountHostProfile extends string = string,
   TAccountGuestProfile extends string = string,
+  TAccountGuiltyReputation extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountEscrowTokenAccount extends string = string,
@@ -404,6 +516,11 @@ export type ResolveDisputeInput<
   TAccountGuestTokenAccount extends string = string,
   TAccountPlatformVaultTokenAccount extends string = string,
   TAccountUsdcMint extends string = string,
+  TAccountTreasuryVault extends string = string,
+  TAccountTreasuryPda extends string = string,
+  TAccountConfigTreasury extends string = string,
+  TAccountStaykeCoreProgram extends string = string,
+  TAccountStaykeTreasuryProgram extends string = string,
   TAccountStaykeEscrowProgram extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
@@ -413,6 +530,7 @@ export type ResolveDisputeInput<
   booking: Address<TAccountBooking>;
   hostProfile: Address<TAccountHostProfile>;
   guestProfile: Address<TAccountGuestProfile>;
+  guiltyReputation: Address<TAccountGuiltyReputation>;
   globalConfig: Address<TAccountGlobalConfig>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
@@ -420,10 +538,14 @@ export type ResolveDisputeInput<
   guestTokenAccount: Address<TAccountGuestTokenAccount>;
   platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
   usdcMint: Address<TAccountUsdcMint>;
+  treasuryVault: Address<TAccountTreasuryVault>;
+  treasuryPda: Address<TAccountTreasuryPda>;
+  configTreasury: Address<TAccountConfigTreasury>;
+  staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  staykeTreasuryProgram?: Address<TAccountStaykeTreasuryProgram>;
   staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: ResolveDisputeInstructionDataArgs["hostShareBps"];
-  rejected: ResolveDisputeInstructionDataArgs["rejected"];
+  outcome: ResolveDisputeInstructionDataArgs["outcome"];
 };
 
 export function getResolveDisputeInstruction<
@@ -433,6 +555,7 @@ export function getResolveDisputeInstruction<
   TAccountBooking extends string,
   TAccountHostProfile extends string,
   TAccountGuestProfile extends string,
+  TAccountGuiltyReputation extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountEscrowTokenAccount extends string,
@@ -440,6 +563,11 @@ export function getResolveDisputeInstruction<
   TAccountGuestTokenAccount extends string,
   TAccountPlatformVaultTokenAccount extends string,
   TAccountUsdcMint extends string,
+  TAccountTreasuryVault extends string,
+  TAccountTreasuryPda extends string,
+  TAccountConfigTreasury extends string,
+  TAccountStaykeCoreProgram extends string,
+  TAccountStaykeTreasuryProgram extends string,
   TAccountStaykeEscrowProgram extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
@@ -451,6 +579,7 @@ export function getResolveDisputeInstruction<
     TAccountBooking,
     TAccountHostProfile,
     TAccountGuestProfile,
+    TAccountGuiltyReputation,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -458,6 +587,11 @@ export function getResolveDisputeInstruction<
     TAccountGuestTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountUsdcMint,
+    TAccountTreasuryVault,
+    TAccountTreasuryPda,
+    TAccountConfigTreasury,
+    TAccountStaykeCoreProgram,
+    TAccountStaykeTreasuryProgram,
     TAccountStaykeEscrowProgram,
     TAccountTokenProgram
   >,
@@ -470,6 +604,7 @@ export function getResolveDisputeInstruction<
   TAccountBooking,
   TAccountHostProfile,
   TAccountGuestProfile,
+  TAccountGuiltyReputation,
   TAccountGlobalConfig,
   TAccountCpiAuthority,
   TAccountEscrowTokenAccount,
@@ -477,6 +612,11 @@ export function getResolveDisputeInstruction<
   TAccountGuestTokenAccount,
   TAccountPlatformVaultTokenAccount,
   TAccountUsdcMint,
+  TAccountTreasuryVault,
+  TAccountTreasuryPda,
+  TAccountConfigTreasury,
+  TAccountStaykeCoreProgram,
+  TAccountStaykeTreasuryProgram,
   TAccountStaykeEscrowProgram,
   TAccountTokenProgram
 > {
@@ -490,8 +630,12 @@ export function getResolveDisputeInstruction<
     config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: true },
+    guestProfile: { value: input.guestProfile ?? null, isWritable: true },
+    guiltyReputation: {
+      value: input.guiltyReputation ?? null,
+      isWritable: true,
+    },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     escrowTokenAccount: {
@@ -511,6 +655,17 @@ export function getResolveDisputeInstruction<
       isWritable: true,
     },
     usdcMint: { value: input.usdcMint ?? null, isWritable: true },
+    treasuryVault: { value: input.treasuryVault ?? null, isWritable: true },
+    treasuryPda: { value: input.treasuryPda ?? null, isWritable: false },
+    configTreasury: { value: input.configTreasury ?? null, isWritable: false },
+    staykeCoreProgram: {
+      value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
+    staykeTreasuryProgram: {
+      value: input.staykeTreasuryProgram ?? null,
+      isWritable: false,
+    },
     staykeEscrowProgram: {
       value: input.staykeEscrowProgram ?? null,
       isWritable: false,
@@ -526,6 +681,14 @@ export function getResolveDisputeInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.staykeCoreProgram.value) {
+    accounts.staykeCoreProgram.value =
+      "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
+  }
+  if (!accounts.staykeTreasuryProgram.value) {
+    accounts.staykeTreasuryProgram.value =
+      "HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY" as Address<"HV16vUTaZ78bJP1CyH5KDWyx8NqS1MYSGdPkRsMcnSuY">;
+  }
   if (!accounts.staykeEscrowProgram.value) {
     accounts.staykeEscrowProgram.value =
       "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
@@ -544,6 +707,7 @@ export function getResolveDisputeInstruction<
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("guiltyReputation", accounts.guiltyReputation),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
@@ -554,6 +718,11 @@ export function getResolveDisputeInstruction<
         accounts.platformVaultTokenAccount,
       ),
       getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("treasuryVault", accounts.treasuryVault),
+      getAccountMeta("treasuryPda", accounts.treasuryPda),
+      getAccountMeta("configTreasury", accounts.configTreasury),
+      getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
+      getAccountMeta("staykeTreasuryProgram", accounts.staykeTreasuryProgram),
       getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
@@ -569,6 +738,7 @@ export function getResolveDisputeInstruction<
     TAccountBooking,
     TAccountHostProfile,
     TAccountGuestProfile,
+    TAccountGuiltyReputation,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
     TAccountEscrowTokenAccount,
@@ -576,6 +746,11 @@ export function getResolveDisputeInstruction<
     TAccountGuestTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountUsdcMint,
+    TAccountTreasuryVault,
+    TAccountTreasuryPda,
+    TAccountConfigTreasury,
+    TAccountStaykeCoreProgram,
+    TAccountStaykeTreasuryProgram,
     TAccountStaykeEscrowProgram,
     TAccountTokenProgram
   >);
@@ -593,15 +768,21 @@ export type ParsedResolveDisputeInstruction<
     booking: TAccountMetas[3];
     hostProfile: TAccountMetas[4];
     guestProfile: TAccountMetas[5];
-    globalConfig: TAccountMetas[6];
-    cpiAuthority: TAccountMetas[7];
-    escrowTokenAccount: TAccountMetas[8];
-    hostTokenAccount: TAccountMetas[9];
-    guestTokenAccount: TAccountMetas[10];
-    platformVaultTokenAccount: TAccountMetas[11];
-    usdcMint: TAccountMetas[12];
-    staykeEscrowProgram: TAccountMetas[13];
-    tokenProgram: TAccountMetas[14];
+    guiltyReputation: TAccountMetas[6];
+    globalConfig: TAccountMetas[7];
+    cpiAuthority: TAccountMetas[8];
+    escrowTokenAccount: TAccountMetas[9];
+    hostTokenAccount: TAccountMetas[10];
+    guestTokenAccount: TAccountMetas[11];
+    platformVaultTokenAccount: TAccountMetas[12];
+    usdcMint: TAccountMetas[13];
+    treasuryVault: TAccountMetas[14];
+    treasuryPda: TAccountMetas[15];
+    configTreasury: TAccountMetas[16];
+    staykeCoreProgram: TAccountMetas[17];
+    staykeTreasuryProgram: TAccountMetas[18];
+    staykeEscrowProgram: TAccountMetas[19];
+    tokenProgram: TAccountMetas[20];
   };
   data: ResolveDisputeInstructionData;
 };
@@ -614,12 +795,12 @@ export function parseResolveDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedResolveDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 15) {
+  if (instruction.accounts.length < 21) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 15,
+        expectedAccountMetas: 21,
       },
     );
   }
@@ -638,6 +819,7 @@ export function parseResolveDisputeInstruction<
       booking: getNextAccount(),
       hostProfile: getNextAccount(),
       guestProfile: getNextAccount(),
+      guiltyReputation: getNextAccount(),
       globalConfig: getNextAccount(),
       cpiAuthority: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
@@ -645,6 +827,11 @@ export function parseResolveDisputeInstruction<
       guestTokenAccount: getNextAccount(),
       platformVaultTokenAccount: getNextAccount(),
       usdcMint: getNextAccount(),
+      treasuryVault: getNextAccount(),
+      treasuryPda: getNextAccount(),
+      configTreasury: getNextAccount(),
+      staykeCoreProgram: getNextAccount(),
+      staykeTreasuryProgram: getNextAccount(),
       staykeEscrowProgram: getNextAccount(),
       tokenProgram: getNextAccount(),
     },

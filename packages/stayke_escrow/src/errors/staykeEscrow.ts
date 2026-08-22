@@ -106,6 +106,10 @@ export const STAYKE_ESCROW_ERROR__UNAUTHORIZED_CANCELLATION = 0x179b; // 6043
 export const STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW = 0x179c; // 6044
 /** InvalidCancellationPercentage: Invalid cancellation percentage */
 export const STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_PERCENTAGE = 0x179d; // 6045
+/** ProfileUnmatchBooking: Profile does not match booking */
+export const STAYKE_ESCROW_ERROR__PROFILE_UNMATCH_BOOKING = 0x179e; // 6046
+/** NotAllowedSameProfile: Victim and guilty can not be the same */
+export const STAYKE_ESCROW_ERROR__NOT_ALLOWED_SAME_PROFILE = 0x179f; // 6047
 
 export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__ACTIVE_BOOKING_EXISTS
@@ -137,8 +141,10 @@ export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__INVALID_SCORE
   | typeof STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT
+  | typeof STAYKE_ESCROW_ERROR__NOT_ALLOWED_SAME_PROFILE
   | typeof STAYKE_ESCROW_ERROR__NOT_OVER24_HOURS
   | typeof STAYKE_ESCROW_ERROR__PRICE_OVERFLOW
+  | typeof STAYKE_ESCROW_ERROR__PROFILE_UNMATCH_BOOKING
   | typeof STAYKE_ESCROW_ERROR__RELEASE_WINDOW_NOT_ELAPSED
   | typeof STAYKE_ESCROW_ERROR__REVIEW_ALREADY_SUBMITTED
   | typeof STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID
@@ -187,8 +193,10 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_ESCROW_ERROR__INVALID_SCORE]: `Invalid score — must be between 1 and 5`,
     [STAYKE_ESCROW_ERROR__INVALID_TOKEN_MINT]: `The token mint does not match the configured USDC mint`,
     [STAYKE_ESCROW_ERROR__INVALID_VAULT_ACCOUNT]: `The treasury/vault account does not match the configured one`,
+    [STAYKE_ESCROW_ERROR__NOT_ALLOWED_SAME_PROFILE]: `Victim and guilty can not be the same`,
     [STAYKE_ESCROW_ERROR__NOT_OVER24_HOURS]: `Pending booking must be over 24h`,
     [STAYKE_ESCROW_ERROR__PRICE_OVERFLOW]: `Price calculation overflow`,
+    [STAYKE_ESCROW_ERROR__PROFILE_UNMATCH_BOOKING]: `Profile does not match booking`,
     [STAYKE_ESCROW_ERROR__RELEASE_WINDOW_NOT_ELAPSED]: `Release window (24h) has not elapsed`,
     [STAYKE_ESCROW_ERROR__REVIEW_ALREADY_SUBMITTED]: `Review has already been submitted for this booking`,
     [STAYKE_ESCROW_ERROR__SINGLE_YEAR_BOOKING_INVALID]: `Single year booking invalid`,

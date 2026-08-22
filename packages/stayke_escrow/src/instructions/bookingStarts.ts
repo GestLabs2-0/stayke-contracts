@@ -55,6 +55,7 @@ export type BookingStartsInstruction<
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountGuest extends string | AccountMeta<string> = string,
+  TAccountHostProfile extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountStaykeCore extends string | AccountMeta<string> =
@@ -74,6 +75,9 @@ export type BookingStartsInstruction<
       TAccountGuest extends string
         ? WritableAccount<TAccountGuest>
         : TAccountGuest,
+      TAccountHostProfile extends string
+        ? ReadonlyAccount<TAccountHostProfile>
+        : TAccountHostProfile,
       TAccountCpiAuthority extends string
         ? ReadonlyAccount<TAccountCpiAuthority>
         : TAccountCpiAuthority,
@@ -120,6 +124,7 @@ export type BookingStartsAsyncInput<
   TAccountPayer extends string = string,
   TAccountBooking extends string = string,
   TAccountGuest extends string = string,
+  TAccountHostProfile extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountStaykeCore extends string = string,
@@ -127,6 +132,7 @@ export type BookingStartsAsyncInput<
   payer: TransactionSigner<TAccountPayer>;
   booking: Address<TAccountBooking>;
   guest: Address<TAccountGuest>;
+  hostProfile: Address<TAccountHostProfile>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   globalConfig?: Address<TAccountGlobalConfig>;
   staykeCore?: Address<TAccountStaykeCore>;
@@ -136,6 +142,7 @@ export async function getBookingStartsInstructionAsync<
   TAccountPayer extends string,
   TAccountBooking extends string,
   TAccountGuest extends string,
+  TAccountHostProfile extends string,
   TAccountCpiAuthority extends string,
   TAccountGlobalConfig extends string,
   TAccountStaykeCore extends string,
@@ -145,6 +152,7 @@ export async function getBookingStartsInstructionAsync<
     TAccountPayer,
     TAccountBooking,
     TAccountGuest,
+    TAccountHostProfile,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
     TAccountStaykeCore
@@ -156,6 +164,7 @@ export async function getBookingStartsInstructionAsync<
     TAccountPayer,
     TAccountBooking,
     TAccountGuest,
+    TAccountHostProfile,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
     TAccountStaykeCore
@@ -170,6 +179,7 @@ export async function getBookingStartsInstructionAsync<
     payer: { value: input.payer ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     guest: { value: input.guest ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeCore: { value: input.staykeCore ?? null, isWritable: false },
@@ -207,6 +217,7 @@ export async function getBookingStartsInstructionAsync<
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("guest", accounts.guest),
+      getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeCore", accounts.staykeCore),
@@ -218,6 +229,7 @@ export async function getBookingStartsInstructionAsync<
     TAccountPayer,
     TAccountBooking,
     TAccountGuest,
+    TAccountHostProfile,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
     TAccountStaykeCore
@@ -228,6 +240,7 @@ export type BookingStartsInput<
   TAccountPayer extends string = string,
   TAccountBooking extends string = string,
   TAccountGuest extends string = string,
+  TAccountHostProfile extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountStaykeCore extends string = string,
@@ -235,6 +248,7 @@ export type BookingStartsInput<
   payer: TransactionSigner<TAccountPayer>;
   booking: Address<TAccountBooking>;
   guest: Address<TAccountGuest>;
+  hostProfile: Address<TAccountHostProfile>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   globalConfig: Address<TAccountGlobalConfig>;
   staykeCore?: Address<TAccountStaykeCore>;
@@ -244,6 +258,7 @@ export function getBookingStartsInstruction<
   TAccountPayer extends string,
   TAccountBooking extends string,
   TAccountGuest extends string,
+  TAccountHostProfile extends string,
   TAccountCpiAuthority extends string,
   TAccountGlobalConfig extends string,
   TAccountStaykeCore extends string,
@@ -253,6 +268,7 @@ export function getBookingStartsInstruction<
     TAccountPayer,
     TAccountBooking,
     TAccountGuest,
+    TAccountHostProfile,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
     TAccountStaykeCore
@@ -263,6 +279,7 @@ export function getBookingStartsInstruction<
   TAccountPayer,
   TAccountBooking,
   TAccountGuest,
+  TAccountHostProfile,
   TAccountCpiAuthority,
   TAccountGlobalConfig,
   TAccountStaykeCore
@@ -276,6 +293,7 @@ export function getBookingStartsInstruction<
     payer: { value: input.payer ?? null, isWritable: true },
     booking: { value: input.booking ?? null, isWritable: true },
     guest: { value: input.guest ?? null, isWritable: true },
+    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     staykeCore: { value: input.staykeCore ?? null, isWritable: false },
@@ -297,6 +315,7 @@ export function getBookingStartsInstruction<
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("guest", accounts.guest),
+      getAccountMeta("hostProfile", accounts.hostProfile),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("staykeCore", accounts.staykeCore),
@@ -308,6 +327,7 @@ export function getBookingStartsInstruction<
     TAccountPayer,
     TAccountBooking,
     TAccountGuest,
+    TAccountHostProfile,
     TAccountCpiAuthority,
     TAccountGlobalConfig,
     TAccountStaykeCore
@@ -323,9 +343,10 @@ export type ParsedBookingStartsInstruction<
     payer: TAccountMetas[0];
     booking: TAccountMetas[1];
     guest: TAccountMetas[2];
-    cpiAuthority: TAccountMetas[3];
-    globalConfig: TAccountMetas[4];
-    staykeCore: TAccountMetas[5];
+    hostProfile: TAccountMetas[3];
+    cpiAuthority: TAccountMetas[4];
+    globalConfig: TAccountMetas[5];
+    staykeCore: TAccountMetas[6];
   };
   data: BookingStartsInstructionData;
 };
@@ -338,12 +359,12 @@ export function parseBookingStartsInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedBookingStartsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -359,6 +380,7 @@ export function parseBookingStartsInstruction<
       payer: getNextAccount(),
       booking: getNextAccount(),
       guest: getNextAccount(),
+      hostProfile: getNextAccount(),
       cpiAuthority: getNextAccount(),
       globalConfig: getNextAccount(),
       staykeCore: getNextAccount(),

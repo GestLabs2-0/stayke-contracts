@@ -19,7 +19,6 @@ import {
   SolanaError,
   transformEncoder,
   type AccountMeta,
-  type AccountSignerMeta,
   type Address,
   type FixedSizeCodec,
   type FixedSizeDecoder,
@@ -29,16 +28,14 @@ import {
   type InstructionWithData,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
+import { findCpiAuthorityPda, findDisputePda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 
 export const CLOSE_DISPUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -53,34 +50,27 @@ export function getCloseDisputeDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CloseDisputeInstruction<
   TProgram extends string = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
-  TAccountAdmin extends string | AccountMeta<string> = string,
-  TAccountConfig extends string | AccountMeta<string> = string,
   TAccountDispute extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
   TAccountGuestProfile extends string | AccountMeta<string> = string,
   TAccountHostProfile extends string | AccountMeta<string> = string,
-  TAccountListing extends string | AccountMeta<string> = string,
+  TAccountOpenerWallet extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountStaykeCoreProgram extends string | AccountMeta<string> =
     "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm",
+  TAccountStaykeEscrowProgram extends string | AccountMeta<string> =
+    "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAdmin extends string
-        ? WritableSignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
-        : TAccountAdmin,
-      TAccountConfig extends string
-        ? ReadonlyAccount<TAccountConfig>
-        : TAccountConfig,
       TAccountDispute extends string
         ? WritableAccount<TAccountDispute>
         : TAccountDispute,
       TAccountBooking extends string
-        ? ReadonlyAccount<TAccountBooking>
+        ? WritableAccount<TAccountBooking>
         : TAccountBooking,
       TAccountGuestProfile extends string
         ? WritableAccount<TAccountGuestProfile>
@@ -88,9 +78,9 @@ export type CloseDisputeInstruction<
       TAccountHostProfile extends string
         ? WritableAccount<TAccountHostProfile>
         : TAccountHostProfile,
-      TAccountListing extends string
-        ? WritableAccount<TAccountListing>
-        : TAccountListing,
+      TAccountOpenerWallet extends string
+        ? WritableAccount<TAccountOpenerWallet>
+        : TAccountOpenerWallet,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
@@ -100,6 +90,9 @@ export type CloseDisputeInstruction<
       TAccountStaykeCoreProgram extends string
         ? ReadonlyAccount<TAccountStaykeCoreProgram>
         : TAccountStaykeCoreProgram,
+      TAccountStaykeEscrowProgram extends string
+        ? ReadonlyAccount<TAccountStaykeEscrowProgram>
+        : TAccountStaykeEscrowProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -132,69 +125,77 @@ export function getCloseDisputeInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CloseDisputeAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountConfig extends string = string,
   TAccountDispute extends string = string,
   TAccountBooking extends string = string,
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
-  TAccountListing extends string = string,
+  TAccountOpenerWallet extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
+  TAccountStaykeEscrowProgram extends string = string,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  config?: Address<TAccountConfig>;
+  /** Dispute PDA, seeded from the booking key. Only a resolved dispute can be closed. */
   dispute?: Address<TAccountDispute>;
-  /** Dispute PDA is seeded from this booking key. */
+  /** The booking this dispute was opened against. */
   booking: Address<TAccountBooking>;
+  /**
+   * The guest's UserProfile — mutable for the `completed_stays` CPI on the
+   * admin-resolved route.
+   */
   guestProfile: Address<TAccountGuestProfile>;
+  /**
+   * The host's UserProfile — mutable for the `hosted_stays` CPI on the
+   * admin-resolved route.
+   */
   hostProfile: Address<TAccountHostProfile>;
-  listing: Address<TAccountListing>;
+  /**
+   * Wallet of the party that opened the dispute — receives the account rent
+   * when the dispute account is closed.
+   */
+  openerWallet: Address<TAccountOpenerWallet>;
   globalConfig?: Address<TAccountGlobalConfig>;
   cpiAuthority?: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
 };
 
 export async function getCloseDisputeInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountConfig extends string,
   TAccountDispute extends string,
   TAccountBooking extends string,
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
-  TAccountListing extends string,
+  TAccountOpenerWallet extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
+  TAccountStaykeEscrowProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
   input: CloseDisputeAsyncInput<
-    TAccountAdmin,
-    TAccountConfig,
     TAccountDispute,
     TAccountBooking,
     TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountListing,
+    TAccountOpenerWallet,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
-    TAccountStaykeCoreProgram
+    TAccountStaykeCoreProgram,
+    TAccountStaykeEscrowProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
   CloseDisputeInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
     TAccountDispute,
     TAccountBooking,
     TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountListing,
+    TAccountOpenerWallet,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
-    TAccountStaykeCoreProgram
+    TAccountStaykeCoreProgram,
+    TAccountStaykeEscrowProgram
   >
 > {
   // Program address.
@@ -203,17 +204,19 @@ export async function getCloseDisputeInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: true },
-    config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
-    booking: { value: input.booking ?? null, isWritable: false },
+    booking: { value: input.booking ?? null, isWritable: true },
     guestProfile: { value: input.guestProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: true },
-    listing: { value: input.listing ?? null, isWritable: true },
+    openerWallet: { value: input.openerWallet ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
+    staykeEscrowProgram: {
+      value: input.staykeEscrowProgram ?? null,
       isWritable: false,
     },
   };
@@ -223,9 +226,6 @@ export async function getCloseDisputeInstructionAsync<
   >;
 
   // Resolve default values.
-  if (!accounts.config.value) {
-    accounts.config.value = await findConfigPda();
-  }
   if (!accounts.dispute.value) {
     accounts.dispute.value = await findDisputePda({
       booking: getAddressFromResolvedInstructionAccount(
@@ -254,101 +254,111 @@ export async function getCloseDisputeInstructionAsync<
     accounts.staykeCoreProgram.value =
       "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
   }
+  if (!accounts.staykeEscrowProgram.value) {
+    accounts.staykeEscrowProgram.value =
+      "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("admin", accounts.admin),
-      getAccountMeta("config", accounts.config),
       getAccountMeta("dispute", accounts.dispute),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("listing", accounts.listing),
+      getAccountMeta("openerWallet", accounts.openerWallet),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
+      getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
     ],
     data: getCloseDisputeInstructionDataEncoder().encode({}),
     programAddress,
   } as CloseDisputeInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
     TAccountDispute,
     TAccountBooking,
     TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountListing,
+    TAccountOpenerWallet,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
-    TAccountStaykeCoreProgram
+    TAccountStaykeCoreProgram,
+    TAccountStaykeEscrowProgram
   >);
 }
 
 export type CloseDisputeInput<
-  TAccountAdmin extends string = string,
-  TAccountConfig extends string = string,
   TAccountDispute extends string = string,
   TAccountBooking extends string = string,
   TAccountGuestProfile extends string = string,
   TAccountHostProfile extends string = string,
-  TAccountListing extends string = string,
+  TAccountOpenerWallet extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountCpiAuthority extends string = string,
   TAccountStaykeCoreProgram extends string = string,
+  TAccountStaykeEscrowProgram extends string = string,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  config: Address<TAccountConfig>;
+  /** Dispute PDA, seeded from the booking key. Only a resolved dispute can be closed. */
   dispute: Address<TAccountDispute>;
-  /** Dispute PDA is seeded from this booking key. */
+  /** The booking this dispute was opened against. */
   booking: Address<TAccountBooking>;
+  /**
+   * The guest's UserProfile — mutable for the `completed_stays` CPI on the
+   * admin-resolved route.
+   */
   guestProfile: Address<TAccountGuestProfile>;
+  /**
+   * The host's UserProfile — mutable for the `hosted_stays` CPI on the
+   * admin-resolved route.
+   */
   hostProfile: Address<TAccountHostProfile>;
-  listing: Address<TAccountListing>;
+  /**
+   * Wallet of the party that opened the dispute — receives the account rent
+   * when the dispute account is closed.
+   */
+  openerWallet: Address<TAccountOpenerWallet>;
   globalConfig: Address<TAccountGlobalConfig>;
   cpiAuthority: Address<TAccountCpiAuthority>;
   staykeCoreProgram?: Address<TAccountStaykeCoreProgram>;
+  staykeEscrowProgram?: Address<TAccountStaykeEscrowProgram>;
 };
 
 export function getCloseDisputeInstruction<
-  TAccountAdmin extends string,
-  TAccountConfig extends string,
   TAccountDispute extends string,
   TAccountBooking extends string,
   TAccountGuestProfile extends string,
   TAccountHostProfile extends string,
-  TAccountListing extends string,
+  TAccountOpenerWallet extends string,
   TAccountGlobalConfig extends string,
   TAccountCpiAuthority extends string,
   TAccountStaykeCoreProgram extends string,
+  TAccountStaykeEscrowProgram extends string,
   TProgramAddress extends Address = typeof STAYKE_DISPUTES_PROGRAM_ADDRESS,
 >(
   input: CloseDisputeInput<
-    TAccountAdmin,
-    TAccountConfig,
     TAccountDispute,
     TAccountBooking,
     TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountListing,
+    TAccountOpenerWallet,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
-    TAccountStaykeCoreProgram
+    TAccountStaykeCoreProgram,
+    TAccountStaykeEscrowProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): CloseDisputeInstruction<
   TProgramAddress,
-  TAccountAdmin,
-  TAccountConfig,
   TAccountDispute,
   TAccountBooking,
   TAccountGuestProfile,
   TAccountHostProfile,
-  TAccountListing,
+  TAccountOpenerWallet,
   TAccountGlobalConfig,
   TAccountCpiAuthority,
-  TAccountStaykeCoreProgram
+  TAccountStaykeCoreProgram,
+  TAccountStaykeEscrowProgram
 > {
   // Program address.
   const programAddress =
@@ -356,17 +366,19 @@ export function getCloseDisputeInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: true },
-    config: { value: input.config ?? null, isWritable: false },
     dispute: { value: input.dispute ?? null, isWritable: true },
-    booking: { value: input.booking ?? null, isWritable: false },
+    booking: { value: input.booking ?? null, isWritable: true },
     guestProfile: { value: input.guestProfile ?? null, isWritable: true },
     hostProfile: { value: input.hostProfile ?? null, isWritable: true },
-    listing: { value: input.listing ?? null, isWritable: true },
+    openerWallet: { value: input.openerWallet ?? null, isWritable: true },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     staykeCoreProgram: {
       value: input.staykeCoreProgram ?? null,
+      isWritable: false,
+    },
+    staykeEscrowProgram: {
+      value: input.staykeEscrowProgram ?? null,
       isWritable: false,
     },
   };
@@ -380,35 +392,37 @@ export function getCloseDisputeInstruction<
     accounts.staykeCoreProgram.value =
       "2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm" as Address<"2u1JrVasLvuGR5s3n84p5yaitHU2PGa8VjWZ7P2Eescm">;
   }
+  if (!accounts.staykeEscrowProgram.value) {
+    accounts.staykeEscrowProgram.value =
+      "68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a" as Address<"68ipZiXiUhsaSYSqEM3619vXgKy5CqFmNE6rYzxrXu6a">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("admin", accounts.admin),
-      getAccountMeta("config", accounts.config),
       getAccountMeta("dispute", accounts.dispute),
       getAccountMeta("booking", accounts.booking),
       getAccountMeta("guestProfile", accounts.guestProfile),
       getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("listing", accounts.listing),
+      getAccountMeta("openerWallet", accounts.openerWallet),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("staykeCoreProgram", accounts.staykeCoreProgram),
+      getAccountMeta("staykeEscrowProgram", accounts.staykeEscrowProgram),
     ],
     data: getCloseDisputeInstructionDataEncoder().encode({}),
     programAddress,
   } as CloseDisputeInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountConfig,
     TAccountDispute,
     TAccountBooking,
     TAccountGuestProfile,
     TAccountHostProfile,
-    TAccountListing,
+    TAccountOpenerWallet,
     TAccountGlobalConfig,
     TAccountCpiAuthority,
-    TAccountStaykeCoreProgram
+    TAccountStaykeCoreProgram,
+    TAccountStaykeEscrowProgram
   >);
 }
 
@@ -418,17 +432,29 @@ export type ParsedCloseDisputeInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    admin: TAccountMetas[0];
-    config: TAccountMetas[1];
-    dispute: TAccountMetas[2];
-    /** Dispute PDA is seeded from this booking key. */
-    booking: TAccountMetas[3];
-    guestProfile: TAccountMetas[4];
-    hostProfile: TAccountMetas[5];
-    listing: TAccountMetas[6];
-    globalConfig: TAccountMetas[7];
-    cpiAuthority: TAccountMetas[8];
-    staykeCoreProgram: TAccountMetas[9];
+    /** Dispute PDA, seeded from the booking key. Only a resolved dispute can be closed. */
+    dispute: TAccountMetas[0];
+    /** The booking this dispute was opened against. */
+    booking: TAccountMetas[1];
+    /**
+     * The guest's UserProfile — mutable for the `completed_stays` CPI on the
+     * admin-resolved route.
+     */
+    guestProfile: TAccountMetas[2];
+    /**
+     * The host's UserProfile — mutable for the `hosted_stays` CPI on the
+     * admin-resolved route.
+     */
+    hostProfile: TAccountMetas[3];
+    /**
+     * Wallet of the party that opened the dispute — receives the account rent
+     * when the dispute account is closed.
+     */
+    openerWallet: TAccountMetas[4];
+    globalConfig: TAccountMetas[5];
+    cpiAuthority: TAccountMetas[6];
+    staykeCoreProgram: TAccountMetas[7];
+    staykeEscrowProgram: TAccountMetas[8];
   };
   data: CloseDisputeInstructionData;
 };
@@ -441,12 +467,12 @@ export function parseCloseDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCloseDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -459,16 +485,15 @@ export function parseCloseDisputeInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      admin: getNextAccount(),
-      config: getNextAccount(),
       dispute: getNextAccount(),
       booking: getNextAccount(),
       guestProfile: getNextAccount(),
       hostProfile: getNextAccount(),
-      listing: getNextAccount(),
+      openerWallet: getNextAccount(),
       globalConfig: getNextAccount(),
       cpiAuthority: getNextAccount(),
       staykeCoreProgram: getNextAccount(),
+      staykeEscrowProgram: getNextAccount(),
     },
     data: getCloseDisputeInstructionDataDecoder().decode(instruction.data),
   };
