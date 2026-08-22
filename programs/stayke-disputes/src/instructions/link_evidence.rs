@@ -8,7 +8,7 @@ use crate::{
     constants::DISPUTE_PDA_SEED,
     error::DisputeError,
     events::EvidenceLinked,
-    state::{DisputeAccount, DisputeParty, DisputeState},
+    state::{DisputeAccount, DisputeState},
 };
 
 #[derive(Accounts)]
@@ -44,22 +44,16 @@ pub fn handler_link_evidence(ctx: Context<LinkEvidence>, evidence: [u8; 32]) -> 
     let dispute = &mut ctx.accounts.dispute;
     let booking = &ctx.accounts.booking;
     let user_profile_key = ctx.accounts.user_profile.key();
+    let mut is_guest = true;
 
-    let is_guest = if dispute.opened_by == DisputeParty::Guest {
-        require!(
-            user_profile_key == booking.guest,
-            DisputeError::UnauthorizedUser
-        );
+    if user_profile_key == booking.guest {
         dispute.guest_evidence = Some(evidence);
-        true
-    } else {
-        require!(
-            user_profile_key == booking.host,
-            DisputeError::UnauthorizedUser
-        );
+    } else if user_profile_key == booking.host {
         dispute.host_evidence = Some(evidence);
-        false
-    };
+        is_guest = false;
+    } else {
+        return err!(DisputeError::UnauthorizedUser);
+    }
 
     emit!(EvidenceLinked {
         is_guest,
