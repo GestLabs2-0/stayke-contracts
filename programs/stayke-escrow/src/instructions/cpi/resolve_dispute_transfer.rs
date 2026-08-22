@@ -39,20 +39,21 @@ pub struct ResolveDisputeTransferCpi<'info> {
     pub booking: Box<Account<'info, Booking>>,
 
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), host_profile.authority.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), guilty_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
-        bump = host_profile.bump,
-        constraint = booking.host == host_profile.key() @ EscrowError::InvalidHostBooking,
+        bump = guilty_profile.bump,
+        constraint = booking.host == guilty_profile.key() || booking.guest == guilty_profile.key() @ EscrowError::ProfileUnmatchBooking,
+        constraint = guilty_profile.key() != victim_profile.key() @ EscrowError::NotAllowedSameProfile
     )]
-    pub host_profile: Box<Account<'info, UserProfile>>,
+    pub guilty_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
-        seeds = [USER_PROFILE_SEED.as_bytes(), guest_profile.authority.key().as_ref()],
+        seeds = [USER_PROFILE_SEED.as_bytes(), victim_profile.authority.key().as_ref()],
         seeds::program = stayke_core::ID,
-        bump = guest_profile.bump,
-        constraint = booking.guest == guest_profile.key() @ EscrowError::UnauthorizedBooking,
+        bump = victim_profile.bump,
+        constraint = booking.guest == victim_profile.key() || booking.host == victim_profile.key() @ EscrowError::ProfileUnmatchBooking,
     )]
-    pub guest_profile: Box<Account<'info, UserProfile>>,
+    pub victim_profile: Box<Account<'info, UserProfile>>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
@@ -73,18 +74,18 @@ pub struct ResolveDisputeTransferCpi<'info> {
     /// Host's USDC — must belong to the host wallet.
     #[account(
         mut,
-        constraint = host_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
-        constraint = host_token_account.owner == host_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
+        constraint = guilty_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
+        constraint = guilty_token_account.owner == guilty_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
     )]
-    pub host_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub guilty_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Guest's USDC — must belong to the guest wallet.
     #[account(
         mut,
-        constraint = guest_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
-        constraint = guest_token_account.owner == guest_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
+        constraint = victim_token_account.mint == mint.key() @ EscrowError::InvalidTokenMint,
+        constraint = victim_token_account.owner == victim_profile.authority @ EscrowError::InvalidPayoutTokenAccount,
     )]
-    pub guest_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub victim_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// Platform vault
     #[account(
@@ -104,10 +105,9 @@ pub struct ResolveDisputeTransferCpi<'info> {
 
 pub fn handler_cpi_resolve_dispute_transfer(
     ctx: Context<ResolveDisputeTransferCpi>,
-    host_share_bps: u16,
-    rejected: bool,
+    slash_bps: u16,
 ) -> Result<()> {
-    require!(host_share_bps <= 10_000, StaykeConfigError::InvalidFeeBps);
+    require!(slash_bps <= 10_000, StaykeConfigError::InvalidFeeBps);
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
@@ -124,14 +124,10 @@ pub fn handler_cpi_resolve_dispute_transfer(
         .saturating_div(10_000) as u64;
     let distributable = total.saturating_sub(fee);
 
-    let host_amount = if rejected {
-        distributable
-    } else {
-        (distributable as u128)
-            .saturating_mul(host_share_bps as u128)
-            .saturating_div(10_000) as u64
-    };
-    let guest_amount = distributable.saturating_sub(host_amount);
+    let victim_amount = (distributable as u128)
+        .saturating_mul(slash_bps as u128)
+        .saturating_div(10_000) as u64;
+    let guilty_amount = distributable.saturating_sub(victim_amount);
 
     let booking_seeds: &[&[&[u8]]] = &[&[
         BOOKING_SEED.as_bytes(),
@@ -141,36 +137,36 @@ pub fn handler_cpi_resolve_dispute_transfer(
         &[booking.bump],
     ]];
 
-    if host_amount > 0 {
+    if guilty_amount > 0 {
         token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.key(),
                 TransferChecked {
                     from: ctx.accounts.escrow_token_account.to_account_info(),
-                    to: ctx.accounts.host_token_account.to_account_info(),
+                    to: ctx.accounts.guilty_token_account.to_account_info(),
                     authority: booking.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
                 },
                 booking_seeds,
             ),
-            host_amount,
+            guilty_amount,
             decimals,
         )?;
     }
 
-    if guest_amount > 0 {
+    if victim_amount > 0 {
         token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.key(),
                 TransferChecked {
                     from: ctx.accounts.escrow_token_account.to_account_info(),
-                    to: ctx.accounts.guest_token_account.to_account_info(),
+                    to: ctx.accounts.victim_token_account.to_account_info(),
                     authority: booking.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
                 },
                 booking_seeds,
             ),
-            guest_amount,
+            victim_amount,
             decimals,
         )?;
     }
@@ -203,11 +199,7 @@ pub fn handler_cpi_resolve_dispute_transfer(
         booking_seeds,
     ))?;
 
-    let final_status = if rejected {
-        BookingStatus::DisputeRejected
-    } else {
-        BookingStatus::DisputeResolved
-    };
+    let final_status = BookingStatus::DisputeResolved;
 
     booking.status = final_status.clone();
 

@@ -8,10 +8,10 @@
 
 export * from "./booking";
 export * from "./bookingStatus";
-export * from "./disputeReason";
-export * from "./disputeStatus";
+export * from "./disputeOutcome";
+export * from "./disputeParty";
+export * from "./disputeState";
 export * from "./globalConfig";
-export * from "./listing";
 export * from "./penaltySeverity";
 export * from "./reputationProfile";
 export * from "./treasuryConfig";

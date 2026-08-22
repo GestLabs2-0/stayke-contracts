@@ -43,4 +43,29 @@ pub enum DisputeError {
     InvalidPayoutTokenAccount,
     #[msg("Token account is not owned by the affected wallet")]
     InvalidAffectedTokenAccount,
+
+    #[msg("Dispute is not in OpenP2P state and cannot be escalated")]
+    DisputeNotOpenP2P,
+    #[msg("Dispute cannot be escalated before the 24-hour P2P window elapses")]
+    EscalationWindowNotElapsed,
+
+    #[msg("Only the user who opened the dispute can withdraw it")]
+    UnauthorizedDisputeSolver,
+    #[msg("The P2P resolution window has elapsed; dispute must be resolved by admin")]
+    P2PWindowElapsed,
+
+    #[msg("Can perform action only in escalated dispute")]
+    DisputeNotEscalated,
+    #[msg("Evidence already linked")]
+    EvidenceLinked,
+    #[msg("Unauthorized user")]
+    UnauthorizedUser,
+
+    #[msg("Dispute is not bound to this booking")]
+    UnboundBooking,
+
+    #[msg("Dispute must be resolved by admin or by P2P before closing")]
+    DisputeNotResolved,
+    #[msg("The provided wallet is not the party that opened the dispute")]
+    InvalidOpenerWallet,
 }

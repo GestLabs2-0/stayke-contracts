@@ -10,8 +10,6 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getProgramDerivedAddress,
@@ -58,12 +56,12 @@ export type CpiResolveDisputeTransferInstruction<
   TProgram extends string = typeof STAYKE_ESCROW_PROGRAM_ADDRESS,
   TAccountCpiAuthority extends string | AccountMeta<string> = string,
   TAccountBooking extends string | AccountMeta<string> = string,
-  TAccountHostProfile extends string | AccountMeta<string> = string,
-  TAccountGuestProfile extends string | AccountMeta<string> = string,
+  TAccountGuiltyProfile extends string | AccountMeta<string> = string,
+  TAccountVictimProfile extends string | AccountMeta<string> = string,
   TAccountGlobalConfig extends string | AccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | AccountMeta<string> = string,
-  TAccountHostTokenAccount extends string | AccountMeta<string> = string,
-  TAccountGuestTokenAccount extends string | AccountMeta<string> = string,
+  TAccountGuiltyTokenAccount extends string | AccountMeta<string> = string,
+  TAccountVictimTokenAccount extends string | AccountMeta<string> = string,
   TAccountPlatformVaultTokenAccount extends string | AccountMeta<string> =
     string,
   TAccountMint extends string | AccountMeta<string> = string,
@@ -81,24 +79,24 @@ export type CpiResolveDisputeTransferInstruction<
       TAccountBooking extends string
         ? WritableAccount<TAccountBooking>
         : TAccountBooking,
-      TAccountHostProfile extends string
-        ? ReadonlyAccount<TAccountHostProfile>
-        : TAccountHostProfile,
-      TAccountGuestProfile extends string
-        ? ReadonlyAccount<TAccountGuestProfile>
-        : TAccountGuestProfile,
+      TAccountGuiltyProfile extends string
+        ? ReadonlyAccount<TAccountGuiltyProfile>
+        : TAccountGuiltyProfile,
+      TAccountVictimProfile extends string
+        ? ReadonlyAccount<TAccountVictimProfile>
+        : TAccountVictimProfile,
       TAccountGlobalConfig extends string
         ? ReadonlyAccount<TAccountGlobalConfig>
         : TAccountGlobalConfig,
       TAccountEscrowTokenAccount extends string
         ? WritableAccount<TAccountEscrowTokenAccount>
         : TAccountEscrowTokenAccount,
-      TAccountHostTokenAccount extends string
-        ? WritableAccount<TAccountHostTokenAccount>
-        : TAccountHostTokenAccount,
-      TAccountGuestTokenAccount extends string
-        ? WritableAccount<TAccountGuestTokenAccount>
-        : TAccountGuestTokenAccount,
+      TAccountGuiltyTokenAccount extends string
+        ? WritableAccount<TAccountGuiltyTokenAccount>
+        : TAccountGuiltyTokenAccount,
+      TAccountVictimTokenAccount extends string
+        ? WritableAccount<TAccountVictimTokenAccount>
+        : TAccountVictimTokenAccount,
       TAccountPlatformVaultTokenAccount extends string
         ? WritableAccount<TAccountPlatformVaultTokenAccount>
         : TAccountPlatformVaultTokenAccount,
@@ -114,21 +112,16 @@ export type CpiResolveDisputeTransferInstruction<
 
 export type CpiResolveDisputeTransferInstructionData = {
   discriminator: ReadonlyUint8Array;
-  hostShareBps: number;
-  rejected: boolean;
+  slashBps: number;
 };
 
-export type CpiResolveDisputeTransferInstructionDataArgs = {
-  hostShareBps: number;
-  rejected: boolean;
-};
+export type CpiResolveDisputeTransferInstructionDataArgs = { slashBps: number };
 
 export function getCpiResolveDisputeTransferInstructionDataEncoder(): FixedSizeEncoder<CpiResolveDisputeTransferInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["hostShareBps", getU16Encoder()],
-      ["rejected", getBooleanEncoder()],
+      ["slashBps", getU16Encoder()],
     ]),
     (value) => ({
       ...value,
@@ -140,8 +133,7 @@ export function getCpiResolveDisputeTransferInstructionDataEncoder(): FixedSizeE
 export function getCpiResolveDisputeTransferInstructionDataDecoder(): FixedSizeDecoder<CpiResolveDisputeTransferInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["hostShareBps", getU16Decoder()],
-    ["rejected", getBooleanDecoder()],
+    ["slashBps", getU16Decoder()],
   ]);
 }
 
@@ -158,43 +150,42 @@ export function getCpiResolveDisputeTransferInstructionDataCodec(): FixedSizeCod
 export type CpiResolveDisputeTransferAsyncInput<
   TAccountCpiAuthority extends string = string,
   TAccountBooking extends string = string,
-  TAccountHostProfile extends string = string,
-  TAccountGuestProfile extends string = string,
+  TAccountGuiltyProfile extends string = string,
+  TAccountVictimProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
-  TAccountHostTokenAccount extends string = string,
-  TAccountGuestTokenAccount extends string = string,
+  TAccountGuiltyTokenAccount extends string = string,
+  TAccountVictimTokenAccount extends string = string,
   TAccountPlatformVaultTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   booking: Address<TAccountBooking>;
-  hostProfile: Address<TAccountHostProfile>;
-  guestProfile: Address<TAccountGuestProfile>;
+  guiltyProfile: Address<TAccountGuiltyProfile>;
+  victimProfile: Address<TAccountVictimProfile>;
   globalConfig?: Address<TAccountGlobalConfig>;
   escrowTokenAccount?: Address<TAccountEscrowTokenAccount>;
   /** Host's USDC — must belong to the host wallet. */
-  hostTokenAccount: Address<TAccountHostTokenAccount>;
+  guiltyTokenAccount: Address<TAccountGuiltyTokenAccount>;
   /** Guest's USDC — must belong to the guest wallet. */
-  guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  victimTokenAccount: Address<TAccountVictimTokenAccount>;
   /** Platform vault */
   platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
   mint: Address<TAccountMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: CpiResolveDisputeTransferInstructionDataArgs["hostShareBps"];
-  rejected: CpiResolveDisputeTransferInstructionDataArgs["rejected"];
+  slashBps: CpiResolveDisputeTransferInstructionDataArgs["slashBps"];
 };
 
 export async function getCpiResolveDisputeTransferInstructionAsync<
   TAccountCpiAuthority extends string,
   TAccountBooking extends string,
-  TAccountHostProfile extends string,
-  TAccountGuestProfile extends string,
+  TAccountGuiltyProfile extends string,
+  TAccountVictimProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
-  TAccountHostTokenAccount extends string,
-  TAccountGuestTokenAccount extends string,
+  TAccountGuiltyTokenAccount extends string,
+  TAccountVictimTokenAccount extends string,
   TAccountPlatformVaultTokenAccount extends string,
   TAccountMint extends string,
   TAccountTokenProgram extends string,
@@ -203,12 +194,12 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   input: CpiResolveDisputeTransferAsyncInput<
     TAccountCpiAuthority,
     TAccountBooking,
-    TAccountHostProfile,
-    TAccountGuestProfile,
+    TAccountGuiltyProfile,
+    TAccountVictimProfile,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
-    TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
+    TAccountGuiltyTokenAccount,
+    TAccountVictimTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountMint,
     TAccountTokenProgram
@@ -219,12 +210,12 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
     TProgramAddress,
     TAccountCpiAuthority,
     TAccountBooking,
-    TAccountHostProfile,
-    TAccountGuestProfile,
+    TAccountGuiltyProfile,
+    TAccountVictimProfile,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
-    TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
+    TAccountGuiltyTokenAccount,
+    TAccountVictimTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountMint,
     TAccountTokenProgram
@@ -238,19 +229,19 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
   const originalAccounts = {
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    guiltyProfile: { value: input.guiltyProfile ?? null, isWritable: false },
+    victimProfile: { value: input.victimProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
     },
-    hostTokenAccount: {
-      value: input.hostTokenAccount ?? null,
+    guiltyTokenAccount: {
+      value: input.guiltyTokenAccount ?? null,
       isWritable: true,
     },
-    guestTokenAccount: {
-      value: input.guestTokenAccount ?? null,
+    victimTokenAccount: {
+      value: input.victimTokenAccount ?? null,
       isWritable: true,
     },
     platformVaultTokenAccount: {
@@ -300,12 +291,12 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
     accounts: [
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("booking", accounts.booking),
-      getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("guiltyProfile", accounts.guiltyProfile),
+      getAccountMeta("victimProfile", accounts.victimProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
-      getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
-      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("guiltyTokenAccount", accounts.guiltyTokenAccount),
+      getAccountMeta("victimTokenAccount", accounts.victimTokenAccount),
       getAccountMeta(
         "platformVaultTokenAccount",
         accounts.platformVaultTokenAccount,
@@ -321,12 +312,12 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
     TProgramAddress,
     TAccountCpiAuthority,
     TAccountBooking,
-    TAccountHostProfile,
-    TAccountGuestProfile,
+    TAccountGuiltyProfile,
+    TAccountVictimProfile,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
-    TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
+    TAccountGuiltyTokenAccount,
+    TAccountVictimTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountMint,
     TAccountTokenProgram
@@ -336,43 +327,42 @@ export async function getCpiResolveDisputeTransferInstructionAsync<
 export type CpiResolveDisputeTransferInput<
   TAccountCpiAuthority extends string = string,
   TAccountBooking extends string = string,
-  TAccountHostProfile extends string = string,
-  TAccountGuestProfile extends string = string,
+  TAccountGuiltyProfile extends string = string,
+  TAccountVictimProfile extends string = string,
   TAccountGlobalConfig extends string = string,
   TAccountEscrowTokenAccount extends string = string,
-  TAccountHostTokenAccount extends string = string,
-  TAccountGuestTokenAccount extends string = string,
+  TAccountGuiltyTokenAccount extends string = string,
+  TAccountVictimTokenAccount extends string = string,
   TAccountPlatformVaultTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
   cpiAuthority: TransactionSigner<TAccountCpiAuthority>;
   booking: Address<TAccountBooking>;
-  hostProfile: Address<TAccountHostProfile>;
-  guestProfile: Address<TAccountGuestProfile>;
+  guiltyProfile: Address<TAccountGuiltyProfile>;
+  victimProfile: Address<TAccountVictimProfile>;
   globalConfig: Address<TAccountGlobalConfig>;
   escrowTokenAccount: Address<TAccountEscrowTokenAccount>;
   /** Host's USDC — must belong to the host wallet. */
-  hostTokenAccount: Address<TAccountHostTokenAccount>;
+  guiltyTokenAccount: Address<TAccountGuiltyTokenAccount>;
   /** Guest's USDC — must belong to the guest wallet. */
-  guestTokenAccount: Address<TAccountGuestTokenAccount>;
+  victimTokenAccount: Address<TAccountVictimTokenAccount>;
   /** Platform vault */
   platformVaultTokenAccount: Address<TAccountPlatformVaultTokenAccount>;
   mint: Address<TAccountMint>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  hostShareBps: CpiResolveDisputeTransferInstructionDataArgs["hostShareBps"];
-  rejected: CpiResolveDisputeTransferInstructionDataArgs["rejected"];
+  slashBps: CpiResolveDisputeTransferInstructionDataArgs["slashBps"];
 };
 
 export function getCpiResolveDisputeTransferInstruction<
   TAccountCpiAuthority extends string,
   TAccountBooking extends string,
-  TAccountHostProfile extends string,
-  TAccountGuestProfile extends string,
+  TAccountGuiltyProfile extends string,
+  TAccountVictimProfile extends string,
   TAccountGlobalConfig extends string,
   TAccountEscrowTokenAccount extends string,
-  TAccountHostTokenAccount extends string,
-  TAccountGuestTokenAccount extends string,
+  TAccountGuiltyTokenAccount extends string,
+  TAccountVictimTokenAccount extends string,
   TAccountPlatformVaultTokenAccount extends string,
   TAccountMint extends string,
   TAccountTokenProgram extends string,
@@ -381,12 +371,12 @@ export function getCpiResolveDisputeTransferInstruction<
   input: CpiResolveDisputeTransferInput<
     TAccountCpiAuthority,
     TAccountBooking,
-    TAccountHostProfile,
-    TAccountGuestProfile,
+    TAccountGuiltyProfile,
+    TAccountVictimProfile,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
-    TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
+    TAccountGuiltyTokenAccount,
+    TAccountVictimTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountMint,
     TAccountTokenProgram
@@ -396,12 +386,12 @@ export function getCpiResolveDisputeTransferInstruction<
   TProgramAddress,
   TAccountCpiAuthority,
   TAccountBooking,
-  TAccountHostProfile,
-  TAccountGuestProfile,
+  TAccountGuiltyProfile,
+  TAccountVictimProfile,
   TAccountGlobalConfig,
   TAccountEscrowTokenAccount,
-  TAccountHostTokenAccount,
-  TAccountGuestTokenAccount,
+  TAccountGuiltyTokenAccount,
+  TAccountVictimTokenAccount,
   TAccountPlatformVaultTokenAccount,
   TAccountMint,
   TAccountTokenProgram
@@ -414,19 +404,19 @@ export function getCpiResolveDisputeTransferInstruction<
   const originalAccounts = {
     cpiAuthority: { value: input.cpiAuthority ?? null, isWritable: false },
     booking: { value: input.booking ?? null, isWritable: true },
-    hostProfile: { value: input.hostProfile ?? null, isWritable: false },
-    guestProfile: { value: input.guestProfile ?? null, isWritable: false },
+    guiltyProfile: { value: input.guiltyProfile ?? null, isWritable: false },
+    victimProfile: { value: input.victimProfile ?? null, isWritable: false },
     globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     escrowTokenAccount: {
       value: input.escrowTokenAccount ?? null,
       isWritable: true,
     },
-    hostTokenAccount: {
-      value: input.hostTokenAccount ?? null,
+    guiltyTokenAccount: {
+      value: input.guiltyTokenAccount ?? null,
       isWritable: true,
     },
-    guestTokenAccount: {
-      value: input.guestTokenAccount ?? null,
+    victimTokenAccount: {
+      value: input.victimTokenAccount ?? null,
       isWritable: true,
     },
     platformVaultTokenAccount: {
@@ -455,12 +445,12 @@ export function getCpiResolveDisputeTransferInstruction<
     accounts: [
       getAccountMeta("cpiAuthority", accounts.cpiAuthority),
       getAccountMeta("booking", accounts.booking),
-      getAccountMeta("hostProfile", accounts.hostProfile),
-      getAccountMeta("guestProfile", accounts.guestProfile),
+      getAccountMeta("guiltyProfile", accounts.guiltyProfile),
+      getAccountMeta("victimProfile", accounts.victimProfile),
       getAccountMeta("globalConfig", accounts.globalConfig),
       getAccountMeta("escrowTokenAccount", accounts.escrowTokenAccount),
-      getAccountMeta("hostTokenAccount", accounts.hostTokenAccount),
-      getAccountMeta("guestTokenAccount", accounts.guestTokenAccount),
+      getAccountMeta("guiltyTokenAccount", accounts.guiltyTokenAccount),
+      getAccountMeta("victimTokenAccount", accounts.victimTokenAccount),
       getAccountMeta(
         "platformVaultTokenAccount",
         accounts.platformVaultTokenAccount,
@@ -476,12 +466,12 @@ export function getCpiResolveDisputeTransferInstruction<
     TProgramAddress,
     TAccountCpiAuthority,
     TAccountBooking,
-    TAccountHostProfile,
-    TAccountGuestProfile,
+    TAccountGuiltyProfile,
+    TAccountVictimProfile,
     TAccountGlobalConfig,
     TAccountEscrowTokenAccount,
-    TAccountHostTokenAccount,
-    TAccountGuestTokenAccount,
+    TAccountGuiltyTokenAccount,
+    TAccountVictimTokenAccount,
     TAccountPlatformVaultTokenAccount,
     TAccountMint,
     TAccountTokenProgram
@@ -496,14 +486,14 @@ export type ParsedCpiResolveDisputeTransferInstruction<
   accounts: {
     cpiAuthority: TAccountMetas[0];
     booking: TAccountMetas[1];
-    hostProfile: TAccountMetas[2];
-    guestProfile: TAccountMetas[3];
+    guiltyProfile: TAccountMetas[2];
+    victimProfile: TAccountMetas[3];
     globalConfig: TAccountMetas[4];
     escrowTokenAccount: TAccountMetas[5];
     /** Host's USDC — must belong to the host wallet. */
-    hostTokenAccount: TAccountMetas[6];
+    guiltyTokenAccount: TAccountMetas[6];
     /** Guest's USDC — must belong to the guest wallet. */
-    guestTokenAccount: TAccountMetas[7];
+    victimTokenAccount: TAccountMetas[7];
     /** Platform vault */
     platformVaultTokenAccount: TAccountMetas[8];
     mint: TAccountMetas[9];
@@ -540,12 +530,12 @@ export function parseCpiResolveDisputeTransferInstruction<
     accounts: {
       cpiAuthority: getNextAccount(),
       booking: getNextAccount(),
-      hostProfile: getNextAccount(),
-      guestProfile: getNextAccount(),
+      guiltyProfile: getNextAccount(),
+      victimProfile: getNextAccount(),
       globalConfig: getNextAccount(),
       escrowTokenAccount: getNextAccount(),
-      hostTokenAccount: getNextAccount(),
-      guestTokenAccount: getNextAccount(),
+      guiltyTokenAccount: getNextAccount(),
+      victimTokenAccount: getNextAccount(),
       platformVaultTokenAccount: getNextAccount(),
       mint: getNextAccount(),
       tokenProgram: getNextAccount(),

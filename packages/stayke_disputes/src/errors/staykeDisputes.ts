@@ -48,21 +48,51 @@ export const STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE = 0x177e; // 6014
 export const STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT = 0x177f; // 6015
 /** InvalidAffectedTokenAccount: Token account is not owned by the affected wallet */
 export const STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT = 0x1780; // 6016
+/** DisputeNotOpenP2P: Dispute is not in OpenP2P state and cannot be escalated */
+export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN_P2_P = 0x1781; // 6017
+/** EscalationWindowNotElapsed: Dispute cannot be escalated before the 24-hour P2P window elapses */
+export const STAYKE_DISPUTES_ERROR__ESCALATION_WINDOW_NOT_ELAPSED = 0x1782; // 6018
+/** UnauthorizedDisputeSolver: Only the user who opened the dispute can withdraw it */
+export const STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_SOLVER = 0x1783; // 6019
+/** P2PWindowElapsed: The P2P resolution window has elapsed; dispute must be resolved by admin */
+export const STAYKE_DISPUTES_ERROR__P2_P_WINDOW_ELAPSED = 0x1784; // 6020
+/** DisputeNotEscalated: Can perform action only in escalated dispute */
+export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_ESCALATED = 0x1785; // 6021
+/** EvidenceLinked: Evidence already linked */
+export const STAYKE_DISPUTES_ERROR__EVIDENCE_LINKED = 0x1786; // 6022
+/** UnauthorizedUser: Unauthorized user */
+export const STAYKE_DISPUTES_ERROR__UNAUTHORIZED_USER = 0x1787; // 6023
+/** UnboundBooking: Dispute is not bound to this booking */
+export const STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING = 0x1788; // 6024
+/** DisputeNotResolved: Dispute must be resolved by admin or by P2P before closing */
+export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_RESOLVED = 0x1789; // 6025
+/** InvalidOpenerWallet: The provided wallet is not the party that opened the dispute */
+export const STAYKE_DISPUTES_ERROR__INVALID_OPENER_WALLET = 0x178a; // 6026
 
 export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND
   | typeof STAYKE_DISPUTES_ERROR__AT_LEAST_ONE_ADMIN_REQUIRED
   | typeof STAYKE_DISPUTES_ERROR__BOOKING_NOT_DISPUTABLE
   | typeof STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF
+  | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_ESCALATED
   | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN
+  | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN_P2_P
+  | typeof STAYKE_DISPUTES_ERROR__DISPUTE_NOT_RESOLVED
+  | typeof STAYKE_DISPUTES_ERROR__ESCALATION_WINDOW_NOT_ELAPSED
+  | typeof STAYKE_DISPUTES_ERROR__EVIDENCE_LINKED
   | typeof STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT
   | typeof STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS
+  | typeof STAYKE_DISPUTES_ERROR__INVALID_OPENER_WALLET
   | typeof STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT
   | typeof STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE
   | typeof STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED
+  | typeof STAYKE_DISPUTES_ERROR__P2_P_WINDOW_ELAPSED
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR
+  | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_SOLVER
+  | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_USER
+  | typeof STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING
   | typeof STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING_ACCOUNT
   | typeof STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG
   | typeof STAYKE_DISPUTES_ERROR__USER_BANNED
@@ -77,15 +107,25 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_DISPUTES_ERROR__AT_LEAST_ONE_ADMIN_REQUIRED]: `At least one admin is required`,
     [STAYKE_DISPUTES_ERROR__BOOKING_NOT_DISPUTABLE]: `Booking must be in Active or Completed status to open a dispute`,
     [STAYKE_DISPUTES_ERROR__CANNOT_REMOVE_SELF]: `Cannot remove yourself as admin`,
+    [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_ESCALATED]: `Can perform action only in escalated dispute`,
     [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN]: `Dispute is already resolved or rejected`,
+    [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_OPEN_P2_P]: `Dispute is not in OpenP2P state and cannot be escalated`,
+    [STAYKE_DISPUTES_ERROR__DISPUTE_NOT_RESOLVED]: `Dispute must be resolved by admin or by P2P before closing`,
+    [STAYKE_DISPUTES_ERROR__ESCALATION_WINDOW_NOT_ELAPSED]: `Dispute cannot be escalated before the 24-hour P2P window elapses`,
+    [STAYKE_DISPUTES_ERROR__EVIDENCE_LINKED]: `Evidence already linked`,
     [STAYKE_DISPUTES_ERROR__INVALID_AFFECTED_TOKEN_ACCOUNT]: `Token account is not owned by the affected wallet`,
     [STAYKE_DISPUTES_ERROR__INVALID_FEE_BPS]: `Invalid configuration`,
+    [STAYKE_DISPUTES_ERROR__INVALID_OPENER_WALLET]: `The provided wallet is not the party that opened the dispute`,
     [STAYKE_DISPUTES_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT]: `Payout token account is not owned by the booking party`,
     [STAYKE_DISPUTES_ERROR__INVALID_REPUTATION_PROFILE]: `Reputation profile does not belong to the penalized user`,
     [STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT]: `Token mint does not match GlobalConfig.usdc_mint`,
     [STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED]: `Max admins reached`,
+    [STAYKE_DISPUTES_ERROR__P2_P_WINDOW_ELAPSED]: `The P2P resolution window has elapsed; dispute must be resolved by admin`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR]: `Only the guest or host can open a dispute`,
+    [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_SOLVER]: `Only the user who opened the dispute can withdraw it`,
+    [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_USER]: `Unauthorized user`,
+    [STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING]: `Dispute is not bound to this booking`,
     [STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING_ACCOUNT]: `Profile or listing is not bound to this booking`,
     [STAYKE_DISPUTES_ERROR__UNLINKED_TREASURY_CONFIG]: `Treasury config is not linked to the provided global config`,
     [STAYKE_DISPUTES_ERROR__USER_BANNED]: `User is banned`,

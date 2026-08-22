@@ -137,7 +137,7 @@ pub fn handler_increment_completed_stays(ctx: Context<UpdateUserProfile>) -> Res
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
-        &[AllowedCaller::Escrow],
+        &[AllowedCaller::Escrow, AllowedCaller::Disputes],
     )?;
 
     let user_profile = &mut ctx.accounts.user_profile;
@@ -151,7 +151,7 @@ pub fn handler_increment_hosted_stays(ctx: Context<UpdateUserProfile>) -> Result
     assert_cpi_authority(
         &ctx.accounts.global_config,
         &ctx.accounts.cpi_authority.key(),
-        &[AllowedCaller::Escrow],
+        &[AllowedCaller::Escrow, AllowedCaller::Disputes],
     )?;
 
     let user_profile = &mut ctx.accounts.user_profile;

@@ -7,7 +7,9 @@
  */
 
 export * from "./closeDispute";
+export * from "./escalateDispute";
 export * from "./initializeConfig";
+export * from "./linkEvidente";
 export * from "./openDispute";
-export * from "./penalizeUser";
 export * from "./resolveDispute";
+export * from "./solveDisputeBeforeAdmin";

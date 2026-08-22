@@ -120,4 +120,9 @@ pub enum EscrowError {
     InvalidCancellationWindow,
     #[msg("Invalid cancellation percentage")]
     InvalidCancellationPercentage,
+
+    #[msg("Profile does not match booking")]
+    ProfileUnmatchBooking,
+    #[msg("Victim and guilty can not be the same")]
+    NotAllowedSameProfile,
 }

@@ -13,11 +13,12 @@ use {
     solana_transaction::{
         versioned::VersionedTransaction, InstructionError::Custom, TransactionError,
     },
-    stayke_disputes::state::DisputeReason,
+    stayke_disputes::state::{DisputeAccount, DisputeParty, DisputeState},
     stayke_escrow::state::BookingStatus,
 };
 
-/// Compute the UserProfile PDA for a given authority pubkey.
+const CHECK_IN: i64 = 1_735_689_600;
+
 fn user_profile_pda(authority: Pubkey) -> Pubkey {
     Pubkey::find_program_address(
         &[
@@ -29,8 +30,57 @@ fn user_profile_pda(authority: Pubkey) -> Pubkey {
     .0
 }
 
+fn open_dispute_ix(payer: Pubkey, initiator: Pubkey, booking: Pubkey) -> Instruction {
+    let dispute = dispute_pda(booking);
+    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
+    let global_cfg = Pubkey::find_program_address(
+        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
+        &stayke_config::id(),
+    )
+    .0;
+
+    Instruction::new_with_bytes(
+        stayke_disputes::id(),
+        &stayke_disputes::instruction::OpenDispute {}.data(),
+        stayke_disputes::accounts::OpenDispute {
+            payer,
+            initiator,
+            initiator_profile: user_profile_pda(initiator),
+            booking,
+            dispute,
+            cpi_authority: cpi_auth,
+            global_config: global_cfg,
+            stayke_escrow_program: stayke_escrow::id(),
+            system_program: solana_system_program::id(),
+        }
+        .to_account_metas(None),
+    )
+}
+
+fn send_and_read_dispute(
+    svm: &mut litesvm::LiteSVM,
+    payer: &Keypair,
+    initiator: &Keypair,
+    booking: Pubkey,
+) -> (Result<(), TransactionError>, Option<DisputeAccount>) {
+    let instruction = open_dispute_ix(payer.pubkey(), initiator.pubkey(), booking);
+
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
+    let tx =
+        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer, initiator]).unwrap();
+    let res = svm.send_transaction(tx);
+
+    let dispute = dispute_pda(booking);
+    let account = svm.get_account(&dispute);
+    let disp = account.map(|a| {
+        AnchorDeserialize::deserialize(&mut &a.data[8..]).expect("deserialize DisputeAccount")
+    });
+
+    (res.map(|_| ()).map_err(|e| e.err), disp)
+}
+
 #[test]
-// #[ignore = "Requires aligned program binary IDs between test crate and .so for stayke-escrow CPI"]
 fn open_dispute_guest_success() {
     let (mut svm, payer) = build_svm_with_programs();
     let guest = Keypair::new();
@@ -39,85 +89,49 @@ fn open_dispute_guest_success() {
 
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-
     let mut clock = svm.get_sysvar::<Clock>();
-    clock.unix_timestamp = 1735689600;
+    clock.unix_timestamp = CHECK_IN;
     svm.set_sysvar::<Clock>(&clock);
 
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::PropertyNotAsDescribed,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: guest.pubkey(),
-            initiator_profile: guest_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, disp) = send_and_read_dispute(&mut svm, &payer, &guest, booking_key);
     assert!(
         res.is_ok(),
         "Expected successful open_dispute, got: {:?}",
         res.err()
     );
 
-    let account = svm.get_account(&dispute).unwrap();
-    assert_eq!(account.owner, stayke_disputes::id());
-    let disp: stayke_disputes::state::Dispute =
-        AnchorDeserialize::deserialize(&mut &account.data[8..]).unwrap();
-
-    println!("Time: {:?}", disp.created_at);
+    let disp = disp.expect("dispute account must exist");
     assert_eq!(disp.booking, booking_key);
-    assert_eq!(disp.property, property);
-    assert_eq!(disp.initiator, guest_profile_pda);
-    assert_eq!(disp.guilty, host_profile_pda);
-    assert!(matches!(disp.reason, DisputeReason::PropertyNotAsDescribed));
-    assert!(matches!(
-        disp.status,
-        stayke_disputes::state::DisputeStatus::Open
-    ));
-    assert_eq!(disp.created_at, 1735689600);
-    assert_eq!(disp.resolved_at, None);
+    assert_eq!(disp.opened_by, DisputeParty::Guest);
+    assert_eq!(disp.state, DisputeState::OpenP2P);
+    assert_eq!(disp.opened_at, CHECK_IN);
+    assert_eq!(disp.guest_evidence, None);
+    assert_eq!(disp.host_evidence, None);
+    assert_eq!(disp.outcome, None);
+    assert_eq!(disp.original_booking_status, BookingStatus::Active);
+
+    let booking: stayke_escrow::state::Booking =
+        AnchorDeserialize::deserialize(&mut &svm.get_account(&booking_key).unwrap().data[8..])
+            .unwrap();
+    assert_eq!(booking.status, BookingStatus::Disputed);
 }
 
 #[test]
-// #[ignore = "Requires aligned program binary IDs between test crate and .so for stayke-escrow CPI"]
 fn open_dispute_host_success() {
     let (mut svm, payer) = build_svm_with_programs();
     let guest = Keypair::new();
@@ -126,66 +140,36 @@ fn open_dispute_host_success() {
 
     svm.airdrop(&host.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, host.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::HostUnreachable,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: host.pubkey(),
-            initiator_profile: host_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &host]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, disp) = send_and_read_dispute(&mut svm, &payer, &host, booking_key);
     assert!(
         res.is_ok(),
         "Expected successful open_dispute by host, got: {:?}",
         res.err()
     );
 
-    let account = svm.get_account(&dispute).unwrap();
-    let disp: stayke_disputes::state::Dispute =
-        AnchorDeserialize::deserialize(&mut &account.data[8..]).unwrap();
-    assert_eq!(disp.initiator, host_profile_pda);
-    assert_eq!(disp.guilty, guest_profile_pda);
-    assert!(matches!(disp.reason, DisputeReason::HostUnreachable));
+    let disp = disp.expect("dispute account must exist");
+    assert_eq!(disp.booking, booking_key);
+    assert_eq!(disp.opened_by, DisputeParty::Host);
+    assert_eq!(disp.state, DisputeState::OpenP2P);
+    assert_eq!(disp.guest_evidence, None);
+    assert_eq!(disp.host_evidence, None);
+    assert_eq!(disp.outcome, None);
+    assert_eq!(disp.original_booking_status, BookingStatus::Active);
 }
 
 #[test]
@@ -196,57 +180,25 @@ fn open_dispute_booking_not_active_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Pending,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::PropertyNotAsDescribed,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: guest.pubkey(),
-            initiator_profile: guest_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, _) = send_and_read_dispute(&mut svm, &payer, &guest, booking_key);
     assert!(res.is_err());
     assert_eq!(
-        res.unwrap_err().err,
+        res.unwrap_err(),
         TransactionError::InstructionError(
             0,
             Custom(u32::from(
@@ -265,58 +217,25 @@ fn open_dispute_stranger_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&stranger.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_user_profile(&mut svm, stranger.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-    let stranger_profile_pda = user_profile_pda(stranger.pubkey());
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::PropertyNotAsDescribed,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: stranger.pubkey(),
-            initiator_profile: stranger_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &stranger]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, _) = send_and_read_dispute(&mut svm, &payer, &stranger, booking_key);
     assert!(res.is_err());
     assert_eq!(
-        res.unwrap_err().err,
+        res.unwrap_err(),
         TransactionError::InstructionError(
             0,
             Custom(u32::from(
@@ -334,57 +253,25 @@ fn open_dispute_banned_user_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_banned_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::PropertyNotAsDescribed,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: guest.pubkey(),
-            initiator_profile: guest_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, _) = send_and_read_dispute(&mut svm, &payer, &guest, booking_key);
     assert!(res.is_err());
     assert_eq!(
-        res.unwrap_err().err,
+        res.unwrap_err(),
         TransactionError::InstructionError(
             0,
             Custom(u32::from(stayke_disputes::error::DisputeError::UserBanned))
@@ -400,57 +287,25 @@ fn open_dispute_unverified_user_fails() {
     let property = Pubkey::new_unique();
     svm.airdrop(&guest.pubkey(), 1_000_000_000).unwrap();
 
-    let booking_key = Pubkey::new_unique();
     let guest_profile_pda = user_profile_pda(guest.pubkey());
     let host_profile_pda = user_profile_pda(host.pubkey());
+    let booking_key = booking_pda(property, guest_profile_pda, CHECK_IN);
 
     setup_global_config(&mut svm, stayke_disputes::id(), stayke_escrow::id());
     setup_unverified_user_profile(&mut svm, guest.pubkey());
     setup_booking(
         &mut svm,
-        booking_key,
         guest_profile_pda,
         host_profile_pda,
         property,
+        CHECK_IN,
         BookingStatus::Active,
     );
 
-    let dispute = dispute_pda(booking_key);
-    let cpi_auth = cpi_authority_pda(&stayke_disputes::id());
-    let global_cfg = Pubkey::find_program_address(
-        &[stayke_config::constants::GLOBAL_CONFIG_SEED.as_bytes()],
-        &stayke_config::id(),
-    )
-    .0;
-
-    let instruction = Instruction::new_with_bytes(
-        stayke_disputes::id(),
-        &stayke_disputes::instruction::OpenDispute {
-            reason: DisputeReason::PropertyNotAsDescribed,
-        }
-        .data(),
-        stayke_disputes::accounts::OpenDispute {
-            payer: payer.pubkey(),
-            initiator: guest.pubkey(),
-            initiator_profile: guest_profile_pda,
-            booking: booking_key,
-            dispute,
-            cpi_authority: cpi_auth,
-            global_config: global_cfg,
-            stayke_escrow_program: stayke_escrow::id(),
-            system_program: solana_system_program::id(),
-        }
-        .to_account_metas(None),
-    );
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
-    let tx =
-        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer, &guest]).unwrap();
-    let res = svm.send_transaction(tx);
+    let (res, _) = send_and_read_dispute(&mut svm, &payer, &guest, booking_key);
     assert!(res.is_err());
     assert_eq!(
-        res.unwrap_err().err,
+        res.unwrap_err(),
         TransactionError::InstructionError(
             0,
             Custom(u32::from(
