@@ -74,8 +74,8 @@ pub struct CreateBooking<'info> {
         bump
     )]
     pub booking: Account<'info, Booking>,
-
-    #[account(seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump)]
+    //
+    #[account()]
     pub property: Account<'info, Listing>,
 
     #[account(
@@ -130,6 +130,20 @@ pub fn handler_create_booking(
     check_in: i64,
     check_out: i64,
 ) -> Result<()> {
+    let (expected_property, _) = Pubkey::find_program_address(
+        &[
+            LISTING_SEED.as_bytes(),
+            ctx.accounts.host_profile.key().as_ref(),
+            &ctx.accounts.property.listing_id.to_le_bytes(),
+        ],
+        &stayke_core::ID,
+    );
+
+    require!(
+        ctx.accounts.property.key() == expected_property,
+        EscrowError::InvalidListing
+    );
+
     let now = Clock::get()?.unix_timestamp;
 
     require!(check_in < check_out, EscrowError::InvalidBookingDates);
@@ -251,7 +265,7 @@ pub struct CreateBookingCrossYear<'info> {
     )]
     pub booking: Account<'info, Booking>,
 
-    #[account(seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), property.listing_id.to_le_bytes().as_ref()], seeds::program = stayke_core::ID, bump = property.bump)]
+    #[account()]
     pub property: Box<Account<'info, Listing>>,
 
     #[account(
@@ -315,6 +329,20 @@ pub fn handler_create_booking_cross_year(
     check_in: i64,
     check_out: i64,
 ) -> Result<()> {
+    let (expected_property, _) = Pubkey::find_program_address(
+        &[
+            LISTING_SEED.as_bytes(),
+            ctx.accounts.host_profile.key().as_ref(),
+            &ctx.accounts.property.listing_id.to_le_bytes(),
+        ],
+        &stayke_core::ID,
+    );
+
+    require!(
+        ctx.accounts.property.key() == expected_property,
+        EscrowError::InvalidListing
+    );
+
     let now = Clock::get()?.unix_timestamp;
 
     require!(check_in < check_out, EscrowError::InvalidBookingDates);

@@ -54,9 +54,6 @@ pub struct GuestReview<'info> {
     /// `rating` via the stayke-core CPI.
     #[account(
         mut,
-        seeds = [LISTING_SEED.as_bytes(), host_profile.key().as_ref(), listing.listing_id.to_le_bytes().as_ref()],
-        seeds::program = stayke_core::ID,
-        bump = listing.bump,
         constraint = listing.key() == booking.property @ EscrowError::InvalidBookingProperty,
     )]
     pub listing: Box<Account<'info, Listing>>,
@@ -90,6 +87,20 @@ pub struct GuestReview<'info> {
 
 pub fn handler_guest_review(ctx: Context<GuestReview>, score: u8) -> Result<()> {
     require!((1..=5).contains(&score), EscrowError::InvalidScore);
+
+    let (expected_listing, _) = Pubkey::find_program_address(
+        &[
+            LISTING_SEED.as_bytes(),
+            ctx.accounts.host_profile.key().as_ref(),
+            &ctx.accounts.listing.listing_id.to_le_bytes(),
+        ],
+        &stayke_core::ID,
+    );
+
+    require!(
+        ctx.accounts.listing.key() == expected_listing,
+        EscrowError::InvalidListing
+    );
 
     let booking = &mut ctx.accounts.booking;
     booking.guest_review = score;
