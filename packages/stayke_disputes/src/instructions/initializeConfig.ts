@@ -36,7 +36,7 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda } from "../pdas";
+import { findDisputeConfigPda } from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 
 export const INITIALIZE_CONFIG_DISCRIMINATOR: ReadonlyUint8Array =
@@ -149,7 +149,7 @@ export async function getInitializeConfigInstructionAsync<
 
   // Resolve default values.
   if (!accounts.config.value) {
-    accounts.config.value = await findConfigPda();
+    accounts.config.value = await findDisputeConfigPda();
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =

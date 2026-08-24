@@ -38,7 +38,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findConfigPda, findCpiAuthorityPda, findDisputePda } from "../pdas";
+import {
+  findCpiAuthorityPda,
+  findDisputeConfigPda,
+  findDisputePda,
+} from "../pdas";
 import { STAYKE_DISPUTES_PROGRAM_ADDRESS } from "../programs";
 import {
   getDisputeOutcomeDecoder,
@@ -375,7 +379,7 @@ export async function getResolveDisputeInstructionAsync<
 
   // Resolve default values.
   if (!accounts.config.value) {
-    accounts.config.value = await findConfigPda();
+    accounts.config.value = await findDisputeConfigPda();
   }
   if (!accounts.dispute.value) {
     accounts.dispute.value = await findDisputePda({

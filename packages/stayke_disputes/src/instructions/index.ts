@@ -6,7 +6,9 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./addAdmin";
 export * from "./closeDispute";
+export * from "./deleteAdmin";
 export * from "./escalateDispute";
 export * from "./initializeConfig";
 export * from "./linkEvidente";

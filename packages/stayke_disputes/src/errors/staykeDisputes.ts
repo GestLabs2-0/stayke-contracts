@@ -68,6 +68,8 @@ export const STAYKE_DISPUTES_ERROR__UNBOUND_BOOKING = 0x1788; // 6024
 export const STAYKE_DISPUTES_ERROR__DISPUTE_NOT_RESOLVED = 0x1789; // 6025
 /** InvalidOpenerWallet: The provided wallet is not the party that opened the dispute */
 export const STAYKE_DISPUTES_ERROR__INVALID_OPENER_WALLET = 0x178a; // 6026
+/** UnableToAddAdmins: Can not add more admins */
+export const STAYKE_DISPUTES_ERROR__UNABLE_TO_ADD_ADMINS = 0x178b; // 6027
 
 export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__ADMIN_NOT_FOUND
@@ -88,6 +90,7 @@ export type StaykeDisputesError =
   | typeof STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT
   | typeof STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED
   | typeof STAYKE_DISPUTES_ERROR__P2_P_WINDOW_ELAPSED
+  | typeof STAYKE_DISPUTES_ERROR__UNABLE_TO_ADD_ADMINS
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR
   | typeof STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_SOLVER
@@ -121,6 +124,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_DISPUTES_ERROR__INVALID_TOKEN_MINT]: `Token mint does not match GlobalConfig.usdc_mint`,
     [STAYKE_DISPUTES_ERROR__MAX_ADMINS_REACHED]: `Max admins reached`,
     [STAYKE_DISPUTES_ERROR__P2_P_WINDOW_ELAPSED]: `The P2P resolution window has elapsed; dispute must be resolved by admin`,
+    [STAYKE_DISPUTES_ERROR__UNABLE_TO_ADD_ADMINS]: `Can not add more admins`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_ADMIN]: `Unauthorized admin action`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_INITIATOR]: `Only the guest or host can open a dispute`,
     [STAYKE_DISPUTES_ERROR__UNAUTHORIZED_DISPUTE_SOLVER]: `Only the user who opened the dispute can withdraw it`,
