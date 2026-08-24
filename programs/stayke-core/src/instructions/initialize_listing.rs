@@ -41,17 +41,23 @@ pub fn handler_initialize_listing(
 ) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     let user_profile = &mut ctx.accounts.user_profile;
+    let bump = ctx.bumps.listing;
 
     user_profile.listings = user_profile
         .listings
         .checked_add(1)
         .ok_or(StaykeError::MaxListingsReached)?;
-    listing.listing_id = listing_id;
-    listing.price = price;
-    listing.content_ref = content_ref;
-    listing.state_hash = state_hash;
-    listing.is_active = true;
-    listing.bump = ctx.bumps.listing;
+    listing.set_inner(Listing {
+        listing_id,
+        total_reviews: 0,
+        rating: 0,
+        price,
+        is_active: true,
+        is_occupied: false,
+        state_hash,
+        content_ref,
+        bump,
+    });
 
     Ok(())
 }

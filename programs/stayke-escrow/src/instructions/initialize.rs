@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 
-use crate::{constants::ESCROW_CONFIG_SEED, state::EscrowConfig};
+use crate::{constants::ESCROW_CONFIG_SEED, error::EscrowError, state::EscrowConfig};
 
 // ---------------------------------------------------------------------------
 // Initialize escrow config
@@ -25,6 +25,7 @@ pub struct InitializeConfigEscrow<'info> {
         seeds = [GLOBAL_CONFIG_SEED.as_bytes()],
         bump = global_config.bump,
         seeds::program = stayke_config::ID,
+        constraint = authority.key() == global_config.authority @ EscrowError::UnauthorizedAdmin,
     )]
     pub global_config: Account<'info, GlobalConfig>,
 

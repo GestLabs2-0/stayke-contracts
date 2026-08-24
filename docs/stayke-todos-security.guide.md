@@ -93,6 +93,27 @@ solapadas en el tiempo en **propiedades distintas**, o reservar y no presentarse
   liberación en cancel/reject/expire; (3) costo de renta de una cuenta adicional por guest/año.
 - **Pendiente:** actualizar el protocolo para manejar los `bookingDays` de los clientes (decisión no tomada aún).
 
+### Manejo de rent/fees al cerrar cuentas (Account Closing Fees / Rent Reclamation)
+
+**Pregunta de diseño / TODO abierto:** ¿A quién debe reembolsarse la renta de las cuentas al cerrarse? ¿Debe almacenarse explícitamente el `payer` original en el estado de las cuentas (ej. `Booking.payer`)?
+
+**Contexto actual (verificado en `programs/**`):**
+- En `create_booking`: el `payer` (que puede ser el guest o un relayer) paga la renta de creación para `Booking`, `BookingDays` (si se inicializa) y `escrow_token_account`.
+- En `host_reject_booking` y `expire_booking`: `booking` (`close = payer`) y `escrow_token_account` (`CloseAccount` a `payer`) devuelven la renta al `payer` que firma la transacción de cierre (no necesariamente quien pagó la creación).
+- En `guest_cancel_booking` y `host_cancel_booking`: el `escrow_token_account` se cierra devolviendo la renta a `caller` (el guest o el host que cancela), mientras que la cuenta `Booking` no se cierra (queda en `Cancelled`).
+- En `release_funds`: `escrow_token_account` se cierra devolviendo la renta a `payer` (caller permissionless que ejecuta el settlement tras la ventana de 24 h).
+- En `cpi_resolve_dispute_transfer`: `escrow_token_account` se cierra enviando la renta a `platform_vault_token_account`.
+
+**Trade-offs a evaluar:**
+1. **Opción A — Guardar `payer: Pubkey` en `Booking`:**
+   - *Pros:* Garantiza que los lamports de renta siempre regresen exactamente a quien financió la cuenta (ej. el guest), protegiendo contra la extracción de renta por parte de relayers o callers permissionless.
+   - *Contras:* Agrega 32 bytes de espacio en la cuenta `Booking` (+ renta inicial). Requiere que el destino de cierre coincida con `booking.payer`.
+2. **Opción B — Renta como incentivo al `payer` de la transacción de cierre (modelo crank / relayer):**
+   - *Pros:* No incrementa el tamaño de `Booking`. Sirve como incentivo económico natural (o reembolso de gas) para que bots o relayers ejecuten transacciones permissionless (`release_funds`, `expire_booking`).
+   - *Contras:* Si un tercero llama `expire_booking` o `release_funds`, absorbe los lamports de renta que originalmente puso el guest/relayer inicial.
+
+- **Pendiente:** Definir la política económica de retorno de renta y decidir si se agrega `pub payer: Pubkey` en `Booking` (o si se estandariza el destino de renta hacia la plataforma o hacia el guest).
+
 ### Próxima iteración: terceros como intermediarios en bookings (roadmap)
 
 **Objetivo (roadmap):** ampliar el protocolo para que terceros puedan actuar como **intermediarios** en los

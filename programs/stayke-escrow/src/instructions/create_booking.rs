@@ -160,8 +160,14 @@ pub fn handler_create_booking(
         .checked_mul(days)
         .ok_or(EscrowError::PriceOverflow)?;
 
+    let reserve_days_bump = ctx.bumps.booking_days;
     // Block the requested days in the availability bitmap.
-    reserve_days_single_year(&mut ctx.accounts.booking_days, &start_date, &end_date)?;
+    reserve_days_single_year(
+        &mut ctx.accounts.booking_days,
+        &start_date,
+        &end_date,
+        reserve_days_bump,
+    )?;
 
     // The guest must hold enough funds to cover the full stay before the transfer.
     require!(
@@ -365,6 +371,8 @@ pub fn handler_create_booking_cross_year(
         &mut ctx.accounts.booking_days_next,
         &start_date,
         &end_date,
+        ctx.bumps.booking_days,
+        ctx.bumps.booking_days_next,
     )?;
 
     require!(

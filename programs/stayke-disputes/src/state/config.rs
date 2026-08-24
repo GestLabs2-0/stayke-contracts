@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-pub const MAX_ADMINS: usize = 3;
+pub const MAX_ADMINS: usize = 5;
 
 #[account]
 #[derive(InitSpace)]

@@ -1,4 +1,6 @@
+pub mod add_admin;
 pub mod close_dispute;
+pub mod delete_admin;
 pub mod escalate_dispute;
 pub mod initialize_config;
 pub mod link_evidence;
@@ -6,7 +8,9 @@ pub mod open_dispute;
 pub mod resolve_dispute;
 pub mod solve_dispute_before_admin;
 
+pub use add_admin::*;
 pub use close_dispute::*;
+pub use delete_admin::*;
 pub use escalate_dispute::*;
 pub use initialize_config::*;
 pub use link_evidence::*;
