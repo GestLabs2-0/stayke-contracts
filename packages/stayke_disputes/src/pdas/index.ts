@@ -6,6 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./config";
 export * from "./cpiAuthority";
 export * from "./dispute";
+export * from "./disputeConfig";

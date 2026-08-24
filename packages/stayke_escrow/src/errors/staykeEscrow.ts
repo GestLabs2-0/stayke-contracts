@@ -110,6 +110,8 @@ export const STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_PERCENTAGE = 0x179d; // 6
 export const STAYKE_ESCROW_ERROR__PROFILE_UNMATCH_BOOKING = 0x179e; // 6046
 /** NotAllowedSameProfile: Victim and guilty can not be the same */
 export const STAYKE_ESCROW_ERROR__NOT_ALLOWED_SAME_PROFILE = 0x179f; // 6047
+/** InvalidListing: Invalid listing */
+export const STAYKE_ESCROW_ERROR__INVALID_LISTING = 0x17a0; // 6048
 
 export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__ACTIVE_BOOKING_EXISTS
@@ -136,6 +138,7 @@ export type StaykeEscrowError =
   | typeof STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW
   | typeof STAYKE_ESCROW_ERROR__INVALID_HOST
   | typeof STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING
+  | typeof STAYKE_ESCROW_ERROR__INVALID_LISTING
   | typeof STAYKE_ESCROW_ERROR__INVALID_MONTH
   | typeof STAYKE_ESCROW_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT
   | typeof STAYKE_ESCROW_ERROR__INVALID_SCORE
@@ -188,6 +191,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [STAYKE_ESCROW_ERROR__INVALID_CANCELLATION_WINDOW]: `Invalid cancellation window`,
     [STAYKE_ESCROW_ERROR__INVALID_HOST]: `Invalid host for this property`,
     [STAYKE_ESCROW_ERROR__INVALID_HOST_BOOKING]: `Invalid host for this booking`,
+    [STAYKE_ESCROW_ERROR__INVALID_LISTING]: `Invalid listing`,
     [STAYKE_ESCROW_ERROR__INVALID_MONTH]: `Invalid month`,
     [STAYKE_ESCROW_ERROR__INVALID_PAYOUT_TOKEN_ACCOUNT]: `Payout token account is not owned by the booking party`,
     [STAYKE_ESCROW_ERROR__INVALID_SCORE]: `Invalid score — must be between 1 and 5`,

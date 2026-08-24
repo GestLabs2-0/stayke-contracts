@@ -13,7 +13,7 @@ import {
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
-export async function findConfigPda(
+export async function findDisputeConfigPda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
