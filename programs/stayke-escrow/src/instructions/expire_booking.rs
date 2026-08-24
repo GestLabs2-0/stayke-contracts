@@ -2,7 +2,9 @@
 /// finalize it
 use anchor_lang::prelude::*;
 
-use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{
+    self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
 use stayke_config::{GlobalConfig, GLOBAL_CONFIG_SEED};
 use stayke_core::USER_PROFILE_SEED;
 use stayke_core::{self, UserProfile};
@@ -120,6 +122,16 @@ pub fn handler_expire_booking(ctx: Context<ExpireBooking>) -> Result<()> {
         booking.total_price,
         mint.decimals,
     )?;
+
+    token_interface::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.key(),
+        CloseAccount {
+            account: ctx.accounts.escrow_token_account.to_account_info(),
+            destination: ctx.accounts.payer.to_account_info(),
+            authority: booking.to_account_info(),
+        },
+        booking_seeds,
+    ))?;
 
     emit!(BookingExpired {
         booking: booking.key(),
@@ -244,6 +256,16 @@ pub fn handler_expire_booking_cross_year(ctx: Context<ExpireBookingCrossYear>) -
         booking.total_price,
         mint.decimals,
     )?;
+
+    token_interface::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.key(),
+        CloseAccount {
+            account: ctx.accounts.escrow_token_account.to_account_info(),
+            destination: ctx.accounts.payer.to_account_info(),
+            authority: booking.to_account_info(),
+        },
+        booking_seeds,
+    ))?;
 
     emit!(BookingExpired {
         booking: booking.key(),

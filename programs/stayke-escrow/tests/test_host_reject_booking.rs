@@ -186,6 +186,7 @@ fn host_reject_booking_returns_funds_releases_days_and_closes_account() {
     );
 
     assert!(svm.get_account(&booking).is_none());
+    assert!(svm.get_account(&escrow_token_account).is_none());
 
     let bd_data: stayke_escrow::state::BookingDays =
         AnchorDeserialize::deserialize(&mut &svm.get_account(&bd).unwrap().data[8..]).unwrap();
@@ -679,6 +680,7 @@ fn host_reject_booking_cross_year_returns_funds_releases_days_and_closes_account
     );
 
     assert!(svm.get_account(&booking).is_none());
+    assert!(svm.get_account(&escrow_token_account).is_none());
 
     let bd_2025: stayke_escrow::state::BookingDays =
         AnchorDeserialize::deserialize(&mut &svm.get_account(&bd).unwrap().data[8..]).unwrap();

@@ -83,11 +83,15 @@ pub fn reserve_days_single_year(
     booking_days: &mut Account<'_, BookingDays>,
     check_in: &DateComponents,
     check_out: &DateComponents,
+    bump: u8,
 ) -> Result<()> {
     // Checks that bookings days already have a year which means that was initialized
     if booking_days.year == 0 {
-        booking_days.year = check_in.year;
-        booking_days.occupied_days = [0u32; 12];
+        booking_days.set_inner(BookingDays {
+            occupied_days: [0u32; 12],
+            year: check_in.year,
+            bump,
+        });
     }
     require!(
         check_out.year == check_in.year,
@@ -132,15 +136,23 @@ pub fn reserve_days_cross_years(
     booking_days_next: &mut Account<'_, BookingDays>,
     check_in: &DateComponents,
     check_out: &DateComponents,
+    bump: u8,
+    bump_next: u8,
 ) -> Result<()> {
     // Checks that bookings days already have a year which means that was initialized
     if booking_days.year == 0 {
-        booking_days.year = check_in.year;
-        booking_days.occupied_days = [0u32; 12];
+        booking_days.set_inner(BookingDays {
+            occupied_days: [0u32; 12],
+            year: check_in.year,
+            bump,
+        });
     }
     if booking_days_next.year == 0 {
-        booking_days_next.year = check_out.year;
-        booking_days_next.occupied_days = [0u32; 12];
+        booking_days_next.set_inner(BookingDays {
+            occupied_days: [0u32; 12],
+            year: check_out.year,
+            bump: bump_next,
+        });
     }
 
     require!(

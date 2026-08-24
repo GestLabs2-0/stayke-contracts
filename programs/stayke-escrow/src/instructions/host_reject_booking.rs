@@ -23,6 +23,7 @@ use crate::{
 #[derive(Accounts)]
 pub struct HostRejectBooking<'info> {
     // Payer is only a referenced for transaction paid using the relayer
+    // I think I should delete this and I will after MVP
     pub payer: Signer<'info>,
 
     #[account(
@@ -61,7 +62,7 @@ pub struct HostRejectBooking<'info> {
 
     #[account(
         mut,
-        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), booking.check_in.year().to_le_bytes().as_ref()],
+        seeds = [BOOKING_DAYS_SEED.as_bytes(), booking.property.as_ref(), &booking.check_in.year().to_le_bytes()],
         bump = booking_days.bump,
     )]
     pub booking_days: Account<'info, BookingDays>,
@@ -281,6 +282,17 @@ pub fn handler_host_reject_booking_cross_year(
         booking.total_price,
         mint.decimals,
     )?;
+
+    token_interface::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.key(),
+        CloseAccount {
+            account: ctx.accounts.escrow_token_account.to_account_info(),
+            destination: ctx.accounts.payer.to_account_info(),
+            authority: booking.to_account_info(),
+        },
+        booking_seeds,
+    ))?;
+
     emit!(BookingStatusUpdated {
         status: BookingStatus::Cancelled,
         booking: booking.key()

@@ -179,6 +179,7 @@ fn expire_booking_releases_days_transfers_funds_and_closes_account() {
 
     // Booking account should be closed.
     assert!(svm.get_account(&booking).is_none());
+    assert!(svm.get_account(&escrow_token_account).is_none());
 
     // BookingDays should have released days 1..5 of January.
     let bd_data: stayke_escrow::state::BookingDays =
@@ -664,6 +665,7 @@ fn expire_booking_cross_year_releases_days_transfers_funds_and_closes_account() 
     );
 
     assert!(svm.get_account(&booking).is_none());
+    assert!(svm.get_account(&escrow_token_account).is_none());
 
     let bd_2025: stayke_escrow::state::BookingDays =
         AnchorDeserialize::deserialize(&mut &svm.get_account(&bd).unwrap().data[8..]).unwrap();

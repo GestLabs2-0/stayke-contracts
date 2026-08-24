@@ -71,8 +71,9 @@ Ramas: `Cancelled`; `Disputed` → `DisputeResolved` (split vía CPI) o → esta
 
 - Gate `minimum_deposit` vs política L1/L4 (callout arriba).
 - `host_accept_booking` tiene un chequeo de ventana tautológico (`booking.updated_at <= booking.updated_at + 24h` siempre true): no fuerza el accept dentro de 24 h.
-- `host_reject_booking_cross_year` transfiere el refund pero **no** cierra el vault (`close_account` ausente, a diferencia de la variante single-year).
-- `expire_booking` (ambas variantes) hace el refund pero **no** cierra el vault del escrow: la cuenta token queda abierta (rent bloqueada) tras drenar el saldo.
+- ~~`host_reject_booking_cross_year` transfiere el refund pero **no** cierra el vault~~ → **resuelto**: ahora cierra `escrow_token_account` devolviendo renta al `payer`.
+- ~~`expire_booking` (ambas variantes) hace el refund pero **no** cierra el vault del escrow~~ → **resuelto**: ahora cierra `escrow_token_account` devolviendo renta al `payer`.
+- **Manejo de renta al cerrar cuentas:** evaluar si se debe almacenar `payer: Pubkey` en `Booking` para devolver los lamports al creador original, o mantener el retorno al `payer` de la transacción de cierre (incentivo relayer) → ver [stayke-todos-security.guide.md](./stayke-todos-security.guide.md).
 - Caso borde host baneado mid-settlement: TODO en código (ver [security](./stayke-todos-security.guide.md)).
 - **Intermediarios en bookings (roadmap):** hoy `create_booking` y `host_accept_booking` son estrictamente guest↔host directos (firma/fondeo del guest; pago host+platform en `release_funds`). Permitir que terceros intermedien reservas requiere decidir quién firma, fondea y recibe, y el modelo de delegación → [security](./stayke-todos-security.guide.md) («Próxima iteración: terceros como intermediarios»).
 

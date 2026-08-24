@@ -22,6 +22,13 @@ pub mod stayke_disputes {
         handler_initialize_config(ctx)
     }
 
+    pub fn add_admin(ctx: Context<AddAdmin>, admin: Pubkey) -> Result<()> {
+        handler_add_admin(ctx, admin)
+    }
+
+    pub fn delete_admin(ctx: Context<DeleteAdmin>, admin: Pubkey) -> Result<()> {
+        handler_delete_admin(ctx, admin)
+    }
     // ---------------------------------------------------------------------------
     // Disputes
     // ---------------------------------------------------------------------------

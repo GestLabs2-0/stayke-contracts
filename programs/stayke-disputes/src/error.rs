@@ -68,4 +68,7 @@ pub enum DisputeError {
     DisputeNotResolved,
     #[msg("The provided wallet is not the party that opened the dispute")]
     InvalidOpenerWallet,
+
+    #[msg("Can not add more admins")]
+    UnableToAddAdmins,
 }

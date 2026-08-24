@@ -125,4 +125,7 @@ pub enum EscrowError {
     ProfileUnmatchBooking,
     #[msg("Victim and guilty can not be the same")]
     NotAllowedSameProfile,
+
+    #[msg("Invalid listing")]
+    InvalidListing,
 }
