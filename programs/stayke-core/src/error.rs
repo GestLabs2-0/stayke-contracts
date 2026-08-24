@@ -23,4 +23,7 @@ pub enum StaykeError {
 
     #[msg("Invalid review score: must be between 1 and 5")]
     InvalidScore,
+
+    #[msg("User is already banned")]
+    UserAlreadyBanned,
 }
