@@ -1,8 +1,8 @@
 import {
-  fetchMaybeConfigAcc,
-  findConfigPda,
+  fetchMaybeDisputeConfig,
+  findDisputeConfigPda,
   getInitializeConfigInstructionAsync,
-} from "@GestLabs2-0/stayke-core";
+} from "@GestLabs2-0/stayke-disputes";
 import {
   appendTransactionMessageInstructions,
   assertIsFullySignedTransaction,
@@ -19,16 +19,16 @@ import {
 import type { SolanaRpcType } from "../connection";
 import { confirmTx } from "../utils";
 
-export async function initializeConfig(
+export async function initializeDisputesConfig(
   connection: SolanaRpcType,
   payer: KeyPairSigner,
 ) {
-  const configPda = await findConfigPda();
+  const configPda = await findDisputeConfigPda();
 
-  const existing = await fetchMaybeConfigAcc(connection, configPda[0]);
+  const existing = await fetchMaybeDisputeConfig(connection, configPda[0]);
   if (existing.exists) {
     throw new Error(
-      `ConfigAcc already exists at ${configPda[0]}. Core config is already initialized.`,
+      `DisputeConfig already exists at ${configPda[0]}. Disputes is already initialized.`,
     );
   }
 

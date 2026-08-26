@@ -1,8 +1,8 @@
 import {
-  fetchMaybeConfigAcc,
-  findConfigPda,
-  getInitializeConfigInstructionAsync,
-} from "@GestLabs2-0/stayke-core";
+  fetchMaybeEscrowConfig,
+  findEscrowConfigPda,
+  getInitializeEscrowInstructionAsync,
+} from "@GestLabs2-0/stayke-escrow";
 import {
   appendTransactionMessageInstructions,
   assertIsFullySignedTransaction,
@@ -19,22 +19,22 @@ import {
 import type { SolanaRpcType } from "../connection";
 import { confirmTx } from "../utils";
 
-export async function initializeConfig(
+export async function initializeEscrowConfig(
   connection: SolanaRpcType,
   payer: KeyPairSigner,
 ) {
-  const configPda = await findConfigPda();
+  const configPda = await findEscrowConfigPda();
 
-  const existing = await fetchMaybeConfigAcc(connection, configPda[0]);
+  const existing = await fetchMaybeEscrowConfig(connection, configPda[0]);
   if (existing.exists) {
     throw new Error(
-      `ConfigAcc already exists at ${configPda[0]}. Core config is already initialized.`,
+      `EscrowConfig already exists at ${configPda[0]}. Escrow is already initialized.`,
     );
   }
 
-  const instruction = await getInitializeConfigInstructionAsync({
+  const instruction = await getInitializeEscrowInstructionAsync({
     authority: payer,
-    config: configPda[0],
+    escrowConfig: configPda[0],
   });
 
   const { value: latestBlockhash } = await connection

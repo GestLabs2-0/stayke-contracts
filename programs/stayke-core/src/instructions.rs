@@ -1,3 +1,4 @@
+pub mod ban_user;
 pub mod cpi;
 pub mod init_identity;
 pub mod initialize_config;
@@ -6,6 +7,7 @@ pub mod initialize_user_profile;
 pub mod link_identity;
 pub mod listing_mutator;
 
+pub use ban_user::*;
 pub use cpi::*;
 pub use init_identity::*;
 pub use initialize_config::*;

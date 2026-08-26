@@ -134,4 +134,11 @@ pub mod stayke_core {
     pub fn update_listing_publish(ctx: Context<UpdateListing>, active: bool) -> Result<()> {
         handler_update_listing_publish(ctx, active)
     }
+
+    //---------------------------------------------------------
+    // ADMIN
+    //---------------------------------------------------------
+    pub fn ban_user(ctx: Context<BanUser>) -> Result<()> {
+        handle_ban_user(ctx)
+    }
 }

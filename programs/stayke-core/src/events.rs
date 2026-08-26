@@ -8,3 +8,10 @@ pub struct ListingReviewSubmitted {
     pub score: u8,
     pub total_reviews: u64,
 }
+
+#[event]
+pub struct UserBanned {
+    pub identity: Option<Pubkey>,
+    pub reputation_profile: Pubkey,
+    pub user_profile: Pubkey,
+}
