@@ -40,6 +40,7 @@ export async function initializeGlobalConfig(
     mintAddress,
     feeBps,
     minimumDeposit,
+    freeOps,
     maxOperations,
     coreProgram,
     escrowProgram,
@@ -49,6 +50,7 @@ export async function initializeGlobalConfig(
     mintAddress?: string;
     feeBps?: number;
     minimumDeposit?: number;
+    freeOps?: number;
     maxOperations?: number;
     coreProgram?: string;
     escrowProgram?: string;
@@ -75,7 +77,7 @@ export async function initializeGlobalConfig(
     globalConfig: configPda[0],
     feeBps: feeBps ?? 500,
     minimumDeposit: minimumDeposit ?? 100000,
-    maxOperations: maxOperations ?? 3,
+    freeOps: freeOps ?? maxOperations ?? 3,
     usdcMint: address(mintAddress),
     core: address(coreProgram ?? DEVNET_PROGRAMS.core),
     escrow: address(escrowProgram ?? DEVNET_PROGRAMS.escrow),

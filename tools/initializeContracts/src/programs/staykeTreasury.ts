@@ -1,80 +1,88 @@
 import {
-	address,
-	appendTransactionMessageInstructions,
-	assertIsFullySignedTransaction,
-	assertIsSendableTransaction,
-	assertIsTransactionWithinSizeLimit,
-	compileTransaction,
-	createTransactionMessage,
-	getBase64EncodedWireTransaction,
-	KeyPairSigner,
-	pipe,
-	setTransactionMessageFeePayerSigner,
-	setTransactionMessageLifetimeUsingBlockhash,
+  address,
+  appendTransactionMessageInstructions,
+  assertIsFullySignedTransaction,
+  assertIsSendableTransaction,
+  assertIsTransactionWithinSizeLimit,
+  compileTransaction,
+  createTransactionMessage,
+  getBase64EncodedWireTransaction,
+  type KeyPairSigner,
+  pipe,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
 } from "@solana/kit";
-import { SolanaRpcType } from "../connection";
+import type { SolanaRpcType } from "../connection";
 
 import {
-	findConfigPda,
-	getInitializeTreasuryInstructionAsync,
+  fetchMaybeTreasuryConfig,
+  findConfigPda,
+  getInitializeTreasuryInstructionAsync,
 } from "@GestLabs2-0/stayke-treasury";
 import { confirmTx } from "../utils";
 
 export async function initializeTreasuryConfig(
-	connection: SolanaRpcType,
-	payer: KeyPairSigner,
-	{
-		mintAddress,
-	}: {
-		mintAddress?: string;
-	}
+  connection: SolanaRpcType,
+  payer: KeyPairSigner,
+  {
+    mintAddress,
+  }: {
+    mintAddress?: string;
+  },
 ) {
-	if (!mintAddress) {
-		throw Error("Debes pasar --mint-address");
-	}
-	const configPda = await findConfigPda();
+  if (!mintAddress) {
+    throw Error("Debes pasar --mint-address");
+  }
+  const configPda = await findConfigPda();
 
-	const instruction = await getInitializeTreasuryInstructionAsync({
-		authority: payer,
-		config: configPda[0],
-		usdcMint: address(mintAddress),
-	});
+  const existing = await fetchMaybeTreasuryConfig(connection, configPda[0]);
+  if (existing.exists) {
+    throw new Error(
+      `TreasuryConfig already exists at ${configPda[0]}. Treasury is already initialized.`,
+    );
+  }
 
-	const { value: latestBlockhash } = await connection
-		.getLatestBlockhash()
-		.send();
+  const instruction = await getInitializeTreasuryInstructionAsync({
+    authority: payer,
+    config: configPda[0],
+    usdcMint: address(mintAddress),
+  });
 
-	const transaction = pipe(
-		createTransactionMessage({ version: 0 }),
-		(tx) => setTransactionMessageFeePayerSigner(payer, tx),
-		(tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
-		(tx) => appendTransactionMessageInstructions([instruction], tx),
-		(tx) => compileTransaction(tx)
-	);
+  const { value: latestBlockhash } = await connection
+    .getLatestBlockhash()
+    .send();
 
-	assertIsTransactionWithinSizeLimit(transaction);
+  const transaction = pipe(
+    createTransactionMessage({ version: 0 }),
+    (tx) => setTransactionMessageFeePayerSigner(payer, tx),
+    (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
+    (tx) => appendTransactionMessageInstructions([instruction], tx),
+    (tx) => compileTransaction(tx),
+  );
 
-	const signatures = await payer.signTransactions([transaction]);
-	const signedTx = {
-		...transaction,
-		signatures: {
-			...transaction.signatures,
-			...signatures[0],
-		},
-	};
-	assertIsFullySignedTransaction(signedTx);
-	assertIsSendableTransaction(signedTx);
+  assertIsTransactionWithinSizeLimit(transaction);
 
-	const base64EncodedTx = getBase64EncodedWireTransaction(signedTx);
+  const signatures = await payer.signTransactions([transaction]);
+  const signedTx = {
+    ...transaction,
+    signatures: {
+      ...transaction.signatures,
+      ...signatures[0],
+    },
+  };
+  assertIsFullySignedTransaction(signedTx);
+  assertIsSendableTransaction(signedTx);
 
-	const signature = await connection
-		.sendTransaction(base64EncodedTx, {
-			encoding: "base64",
-			maxRetries: 5n,
-			preflightCommitment: "confirmed",
-		})
-		.send();
+  const base64EncodedTx = getBase64EncodedWireTransaction(signedTx);
 
-	console.log("Transaction signature:", signature);
-	await confirmTx(connection, signature);
+  const signature = await connection
+    .sendTransaction(base64EncodedTx, {
+      encoding: "base64",
+      maxRetries: 5n,
+      preflightCommitment: "confirmed",
+    })
+    .send();
+
+  console.log("Transaction signature:", signature);
+  await confirmTx(connection, signature);
 }

@@ -6,6 +6,7 @@ export type CLIArgs = {
 	mintAddress?: string;
 	feeBps?: number;
 	minimumDeposit?: number;
+	freeOps?: number;
 	maxOperations?: number;
 	coreProgram?: string;
 	escrowProgram?: string;
@@ -30,7 +31,8 @@ export function parseArgs(): CLIArgs {
 
 	const minimumDeposit = getArg("--minimum-deposit");
 	const feeBps = getArg("--fee-bps");
-	const maxOperations = getArg("--max-operations");
+	const freeOpsArg = getArg("--free-ops") ?? getArg("--max-operations");
+	const maxOperationsArg = getArg("--max-operations");
 
 	return {
 		keypair,
@@ -40,7 +42,8 @@ export function parseArgs(): CLIArgs {
 		mintAddress: getArg("--mint-address"),
 		feeBps: feeBps ? parseInt(feeBps) : undefined,
 		minimumDeposit: minimumDeposit ? parseInt(minimumDeposit) : undefined,
-		maxOperations: maxOperations ? parseInt(maxOperations) : undefined,
+		freeOps: freeOpsArg ? parseInt(freeOpsArg) : undefined,
+		maxOperations: maxOperationsArg ? parseInt(maxOperationsArg) : undefined,
 		coreProgram: getArg("--core-program"),
 		escrowProgram: getArg("--escrow-program"),
 		disputesProgram: getArg("--disputes-program"),
